@@ -12,7 +12,7 @@ A Python simulation of a small neighborhood grocery store, built from microecono
 | `SKUs.xlsx` | Hand-crafted product catalog: ~709 SKUs across 12 categories (`uid`, `name`, `brand_level`, `category`, `product_type`, `unit`, `weight_g`, `retail_base_price_EUR`) |
 | `documents/PHASE1_DETAILS.md`, `documents/PHASE2_DETAILS.md`, `documents/PHASE3_DETAILS.md`, `documents/PHASE4_DETAILS.md` | The design documents: the world at t=0, the exogenous script of the year, the daily market loop, and the policy laboratory (scenarios + the tax layer) — every distribution defended, every parameter documented |
 | `documents/ACCOUNTING.md` | How every euro and every unit moves: revenue recognition, procurement, inventory books, the monthly ledger, the recording layer, and the reconciliation contract |
-| `generate_dataset.py` | Entry point; run `uv run python generate_dataset.py` (~35 s) to regenerate the dataset and its 27 validations, byte-reproducible from the master seed |
+| `generate_dataset.py` | Entry point; run `uv run python generate_dataset.py` (~35 s) to regenerate the baseline arm and its 30 validations, byte-reproducible from the master seed; `--scenario <name>` / `--all-scenarios` for the policy arms |
 | `datagen/` | The generator package, one module per design document: `keys` (RNG discipline), `params` (single source of truth), `phase1`–`phase3` (the three phases), `world`, `scenarios` (the policy laboratory), `recording` (the recording layer), `export`, `validate` |
 | `analysis_workbook.py` | Marimo workbook: builds a DuckDB database from the visible data, then EDA and a senior-analyst deep dive (elasticities, promotion lift, stockout/spoilage economics, customer analytics, ML forecasting); run `uv run marimo edit analysis_workbook.py` |
 | `data/scenarios/<name>/visible/` | One arm's analyst dataset: receipts (including voids and refunds), book-inventory snapshots, procurement invoices, price history, promotions, cost sheets, write-offs with stock-count corrections, tax statement, calendar, weather — realistically imperfect records; `documents/ACCOUNTING.md` defines what reconciles with what |
@@ -69,7 +69,7 @@ By progressing systematically through these layers, the project illustrates how 
   3. **Data generation uses NumPy** (`numpy.random.Generator` seeded via `SeedSequence` streams keyed by stable identity — customer, SKU, day, receipt — so counterfactual replays are common-random-numbers valid). The simulation is a stateful, forward, agent-based process (inventory carries over, stockouts feed back into demand, the owner reacts to outcomes). **PyMC is reserved for the analysis notebooks**, where its probabilistic-inference capabilities belong (Bayesian explanatory models, causal estimation). This split also mirrors reality: the world that generates the data and the tools that analyze it are not the same.
   4. The owner's opening decision (location, assortment, quantities, staffing, prices) is solved as a MILP with **PuLP** (CBC solver); at this scale (~10 locations, ~709 SKUs) it solves in seconds.
   5. Comprehensive documentation lives in `documents/`: the three phase documents defend every distribution and parameter (support → generative story → maximum entropy), each contains its causal DAG, and `ACCOUNTING.md` specifies every money and goods flow together with the reconciliation contract the records obey.
-  6. The generator validates itself on every run: 27 checks covering exact conservation identities, forensic-realism fingerprints (charm-price mix, repricing cadence, revenue autocorrelation, seasonal patterns), and the recoverability of every injected recording defect.
+  6. The generator validates itself on every run: 30 checks covering exact conservation identities, the tax arithmetic, forensic-realism fingerprints (charm-price mix, repricing cadence, revenue autocorrelation, seasonal patterns), and the recoverability of every injected recording defect — plus a structural-and-fingerprint subset for each scenario arm.
 
 ## Philosophy of the case design
 
@@ -135,7 +135,7 @@ The simulation runs on a daily basis; each day has a day-of-week, day-of-month, 
   * Nightly **book-inventory** snapshots and procurement invoice lines (order, delivery, and posting dates)
   * Write-off log: recorded spoilage plus monthly stock-count shrinkage corrections, labeled by reason
   * Promotion log (category, discount depth, start/end dates, flyer cost)
-  * Shelf-price history and the owner's monthly ledger (revenue net of refunds, procurement, rent, wages, utilities, storage, flyers, credit line)
+  * Shelf-price history, the owner's monthly ledger (revenue net of refunds, procurement, rent, wages plus payroll tax, utilities, storage, flyers, VAT remittance, credit line), and the annual tax statement
   * Calendar and weather table (date, day-of-week, season, holiday flags, temperature, precipitation — with a few sensor-outage gaps) — the *effects* of weather remain hidden; only the observable conditions are shared
 
 `documents/ACCOUNTING.md` documents every one of these flows and the reconciliation contract between them (what ties to the cent after which cleaning step, and which gaps are supposed to remain).
@@ -156,4 +156,5 @@ What the analyst does **not** receive: customer preference parameters, true dema
   1. **Iteration 1 — done:** SCM and owner's MILP, location and SKU tables, the opening decision (Phase 1).
   2. **Iteration 2 — done:** customer profiles and demand model; the daily market loop over 12 months; recorded-data export; stochastic cost paths, weather, and macro events (Phases 2–3).
   3. **Iteration 3 — done:** promotions and MMM instrumentation, the owner's adaptive weekly behavior, the oracle counterfactual — plus additions beyond the original plan: guest shoppers, menu-cost repricing, weather-linked spoilage, the recording layer of realistic data defects, refunds, and the accounting documentation.
-  4. **Analysis notebooks (next):** one per analytics layer, validated against the hidden ground truth.
+  4. **Iteration 4 — done:** the policy laboratory (Phase 4): the tax layer (differential VAT with a tax-aware but non-strategic owner, payroll contributions, profit tax) and CRN-twin scenario arms with the baseline as one arm among them.
+  5. **Analysis notebooks (next):** one per analytics layer, validated against the hidden ground truth.
