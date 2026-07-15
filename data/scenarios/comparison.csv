@@ -1,7 +1,3 @@
 scenario,description,revenue,vat_remitted,payroll_tax,profit_before_tax,profit_tax,profit_after_tax,oracle_profit,stockout_rate,receipt_lines
 baseline,the reference year,743264.78,16379.03,0.0,36479.12,7295.82,29183.3,44350.64,0.0874,79642
-food_vat_cut_july,reduced VAT 10% -> 5% on food from July 1,737205.59,15161.86,0.0,38412.57,7682.51,30730.06,45989.5,0.0878,80175
-second_clerk,"one hired clerk, opening hours extended to 7:00-22:00",759153.49,16727.04,19548.9,-65194.52,0.0,-65194.52,-58036.75,0.1,81140
 tax_rebate_spring,household tax rebate: budgets +20% in weeks 14-17,744458.62,16352.95,0.0,36535.92,7307.18,29228.74,44197.28,0.0867,79782
-typhoon_september,"typhoon Sep 8-10: storm weather, traffic collapse, fresh-goods cost spike",743693.36,16274.6,0.0,35747.56,7149.51,28598.05,43289.57,0.0881,79657
-war_june,war-driven supply shock on all goods from June 1,770896.46,16453.76,0.0,35943.9,7188.78,28755.12,44776.41,0.0775,76846

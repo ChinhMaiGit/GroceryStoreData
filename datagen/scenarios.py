@@ -57,14 +57,16 @@ def _rebate_expect(world, base):
     # (April is seasonally weaker than March, so a within-arm month-on-month
     # comparison would hide a genuine income effect)
     cs = base["cost_sheet"]
-    _b = pd.read_csv(filepath_or_buffer = OUT / "visible" / "cost_sheet.csv")
+    _b = pd.read_csv(filepath_or_buffer = OUT / "scenarios" / "baseline"
+                     / "visible" / "cost_sheet.csv")
     return float(cs.loc[cs.month == 4, "revenue"].iloc[0]) \
         > 1.03 * float(_b.loc[_b.month == 4, "revenue"].iloc[0])
 
 
 def _rebate_detail(world, base):
     cs = base["cost_sheet"]
-    _b = pd.read_csv(filepath_or_buffer = OUT / "visible" / "cost_sheet.csv")
+    _b = pd.read_csv(filepath_or_buffer = OUT / "scenarios" / "baseline"
+                     / "visible" / "cost_sheet.csv")
     return (f"April revenue baseline {_b.loc[_b.month == 4, 'revenue'].iloc[0]:,.0f} "
             f"-> rebate arm {cs.loc[cs.month == 4, 'revenue'].iloc[0]:,.0f}")
 

@@ -4,7 +4,8 @@ This document describes the complete accounting model of the generated grocery-s
 world: where money and goods originate, which artifact records each movement, the
 exact identities that hold between artifacts, and the deliberate imperfections that
 make the raw files disagree until they are cleaned. It is written for an analyst
-working from `data/visible/`; pointers to the design rationale reference the
+working from an arm's `visible/` folder (the reference year lives at
+`data/scenarios/baseline/visible/`); pointers to the design rationale reference the
 phase documents (`documents/PHASE1..3_DETAILS.md`, abbreviated P1/P2/P3 below).
 
 Parameter values quoted here come from `datagen/params.py` (`PHASE1`, `PHASE3`,
@@ -15,7 +16,7 @@ of the currently shipped dataset, not parameters.
 
 ## 1 The chart of artifacts
 
-| File (`data/visible/`) | What it records | Grain |
+| File (`<arm>/visible/`) | What it records | Grain |
 |---|---|---|
 | `receipts.csv` | every till transaction: sales, voided mis-rings, refunds | line item |
 | `price_history.csv` | every shelf-tag change | SKU × change date |
@@ -27,8 +28,8 @@ of the currently shipped dataset, not parameters.
 | `tax_statement.csv` | the annual tax filing: VAT remitted, payroll tax, profit tax accrual | year |
 | `calendar.csv`, `weather.csv`, `locations.csv` | context | day / site |
 
-Scenario arms (P4) replicate this exact structure under
-`data/scenarios/<name>/`, with `data/scenarios/comparison.csv` summarizing all
+Every arm — the baseline included — lives under `data/scenarios/<name>/` with
+this exact structure, and `data/scenarios/comparison.csv` summarizes all
 generated arms; everything below applies to every arm identically.
 
 One principle governs everything: **the ledger (`cost_sheet.csv`) is the owner's own

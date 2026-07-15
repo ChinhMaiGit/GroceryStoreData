@@ -18,9 +18,8 @@ Phase 3  (documents/PHASE3_DETAILS.md -> datagen/phase3.py): the daily
 Phase 4  (documents/PHASE4_DETAILS.md -> datagen/scenarios.py): the policy
          laboratory — CRN-twin scenario arms under edited macro scripts.
 
-Outputs land in data/visible/ and data/hidden/ (the baseline arm), and in
-data/scenarios/<name>/ for scenario arms. Reproducible end to end from
-MASTER_SEED.
+Every arm — the baseline included — lands under data/scenarios/<name>/ with
+its own visible/ and hidden/ split. Reproducible end to end from MASTER_SEED.
 
 Run:  uv run python generate_dataset.py                 (baseline only)
       uv run python generate_dataset.py --scenario war_june
@@ -117,12 +116,14 @@ def main():
         scenario = None,
         label = "baseline",
     )
+    out_b = OUT / "scenarios" / "baseline"
     dirt = export(
         world = world,
         base = base,
         oracle = oracle,
+        out = out_b,
     )
-    print(f"Exported to {OUT}")
+    print(f"Exported to {out_b}")
     validate(
         world = world,
         base = base,

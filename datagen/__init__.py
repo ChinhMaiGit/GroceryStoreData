@@ -10,9 +10,11 @@ or one cross-cutting concern:
     world.py      the World class assembling phases 1-2 for the daily loop
     phase3.py     the play, performed (P3): the daily market loop + refunds
     recording.py  the recording layer (P3 section 20): how the books get dirty
-    export.py     writes data/visible and data/hidden
-    validate.py   the 27-check self-validation suite
+    export.py     writes one arm's visible/ and hidden/ split
+    validate.py   the self-validation suite (full for baseline, structural
+                  plus fingerprint for scenario arms)
 
-Outputs land in data/visible/ (the analyst's dataset) and data/hidden/
-(the answer key). Reproducible end to end from MASTER_SEED.
+Every arm — the baseline included — lands under data/scenarios/<name>/, with
+visible/ (the analyst's dataset) and hidden/ (the answer key). Reproducible
+end to end from MASTER_SEED.
 """

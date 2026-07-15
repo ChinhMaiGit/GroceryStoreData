@@ -22,12 +22,13 @@ from Phase 1–3 behavior rather than being scripted.
 
 ## 1 The folder contract
 
-The baseline keeps its place and its role:
+The baseline is one arm among the scenarios — same structure, no privileged
+location (2026-07-15 amendment):
 
 ```
-data/visible, data/hidden          <- the baseline arm (unchanged location)
-data/scenarios/<name>/visible      <- one scenario arm's analyst dataset
+data/scenarios/<name>/visible      <- one arm's analyst dataset
 data/scenarios/<name>/hidden       <- its answer key
+data/scenarios/baseline/           <- the reference year, an arm like any other
 data/scenarios/comparison.csv      <- one row per generated arm
 ```
 

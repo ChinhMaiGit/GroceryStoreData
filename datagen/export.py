@@ -1,5 +1,6 @@
-"""Export — writes data/visible/ (through the recording layer) and
-data/hidden/ (the answer key). See documents/ACCOUNTING.md for what each
+"""Export — writes one arm's visible/ (through the recording layer) and
+hidden/ (the answer key) under data/scenarios/<arm>/. The baseline is one
+arm among the scenarios (P4 §1). See documents/ACCOUNTING.md for what each
 artifact records and the reconciliation contract between them.
 """
 
@@ -16,7 +17,7 @@ def export(
     world,
     base,
     oracle,
-    out = OUT,
+    out = OUT / "scenarios" / "baseline",
 ):
     vis, hid = out / "visible", out / "hidden"
     vis.mkdir(
