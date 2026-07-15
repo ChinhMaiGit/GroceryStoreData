@@ -18,7 +18,8 @@ def _():
 
     from pathlib import Path
 
-    ROOT = Path(__file__).resolve().parent
+    # the workbook lives in analyses/; the project root is one level up
+    ROOT = Path(__file__).resolve().parent.parent
     DATA = ROOT / "data"
 
     # ---- chart style: declutter per Knaflic's "Storytelling with Data" -----
