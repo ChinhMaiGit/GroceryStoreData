@@ -1,0 +1,638 @@
+kind,table,key,date,delta,note
+void_pair,receipts,3184,2025-03-09,1,mis-ring of SC-CHO-012 voided at the till
+void_pair,receipts,4337,2025-04-04,2,mis-ring of PH-VIT-010 voided at the till
+void_pair,receipts,3956,2025-03-25,1,mis-ring of DE-MIL-007 voided at the till
+void_pair,receipts,4270,2025-04-02,2,mis-ring of BN-JUI-006 voided at the till
+void_pair,receipts,10192,2025-08-01,2,mis-ring of SF-SHL-009 voided at the till
+void_pair,receipts,1488,2025-02-01,2,mis-ring of DE-MIL-009 voided at the till
+void_pair,receipts,13709,2025-10-15,1,mis-ring of SC-CHO-002 voided at the till
+void_pair,receipts,14847,2025-11-10,2,mis-ring of SF-SPR-009 voided at the till
+void_pair,receipts,6510,2025-05-20,1,mis-ring of FP-HER-008 voided at the till
+void_pair,receipts,16457,2025-12-14,2,mis-ring of MP-PRM-007 voided at the till
+void_pair,receipts,8454,2025-06-27,2,mis-ring of SC-CHO-012 voided at the till
+void_pair,receipts,6951,2025-05-28,2,mis-ring of FP-FRU-005 voided at the till
+void_pair,receipts,431,2025-01-10,1,mis-ring of BB-BKG-008 voided at the till
+void_pair,receipts,9121,2025-07-12,1,mis-ring of BN-COF-009 voided at the till
+void_pair,receipts,8197,2025-06-21,1,mis-ring of MP-POR-007 voided at the till
+void_pair,receipts,6685,2025-05-23,2,mis-ring of PP-CNG-004 voided at the till
+void_pair,receipts,2776,2025-03-02,1,mis-ring of BB-FBR-009 voided at the till
+void_pair,receipts,8619,2025-06-30,2,mis-ring of BN-BTW-009 voided at the till
+void_pair,receipts,7309,2025-06-04,2,mis-ring of FF-FVG-008 voided at the till
+void_pair,receipts,13519,2025-10-11,1,mis-ring of FP-HER-007 voided at the till
+void_pair,receipts,5331,2025-04-25,1,mis-ring of PP-CNG-007 voided at the till
+void_pair,receipts,6333,2025-05-17,1,mis-ring of PP-CNG-006 voided at the till
+void_pair,receipts,8815,2025-07-05,1,mis-ring of AB-WIN-004 voided at the till
+void_pair,receipts,6388,2025-05-17,1,mis-ring of FP-HER-008 voided at the till
+void_pair,receipts,9091,2025-07-11,1,mis-ring of PH-TOI-003 voided at the till
+void_pair,receipts,3055,2025-03-08,1,mis-ring of SF-SPR-008 voided at the till
+void_pair,receipts,15556,2025-11-28,1,mis-ring of MP-PRM-007 voided at the till
+void_pair,receipts,11437,2025-08-28,2,mis-ring of MP-PRM-007 voided at the till
+void_pair,receipts,896,2025-01-19,1,mis-ring of DE-CRE-007 voided at the till
+void_pair,receipts,4180,2025-03-30,2,mis-ring of BB-BKG-007 voided at the till
+void_pair,receipts,14040,2025-10-23,1,mis-ring of BN-BTW-009 voided at the till
+void_pair,receipts,16869,2025-12-24,2,mis-ring of SF-SPR-004 voided at the till
+void_pair,receipts,8062,2025-06-19,2,mis-ring of PP-PAS-011 voided at the till
+void_pair,receipts,10500,2025-08-07,2,mis-ring of MP-CHI-007 voided at the till
+void_pair,receipts,3185,2025-03-09,1,mis-ring of MP-PRM-006 voided at the till
+void_pair,receipts,11278,2025-08-23,2,mis-ring of BB-BKG-008 voided at the till
+void_pair,receipts,14914,2025-11-12,1,mis-ring of BB-PAS-007 voided at the till
+void_pair,receipts,1009,2025-01-22,1,mis-ring of SF-SPR-008 voided at the till
+void_pair,receipts,7166,2025-06-01,1,mis-ring of BN-COF-009 voided at the till
+void_pair,receipts,15397,2025-11-24,2,mis-ring of DE-MIL-009 voided at the till
+void_pair,receipts,2601,2025-02-27,1,mis-ring of SC-CAN-012 voided at the till
+void_pair,receipts,12162,2025-09-13,2,mis-ring of DE-MIL-007 voided at the till
+void_pair,receipts,12619,2025-09-21,1,mis-ring of BB-PAS-007 voided at the till
+void_pair,receipts,7929,2025-06-15,2,mis-ring of FP-HER-008 voided at the till
+void_pair,receipts,1245,2025-01-26,2,mis-ring of DE-CRE-009 voided at the till
+void_pair,receipts,1221,2025-01-26,2,mis-ring of FP-VEG-007 voided at the till
+void_pair,receipts,15926,2025-12-05,2,mis-ring of DE-MIL-009 voided at the till
+void_pair,receipts,11787,2025-09-05,1,mis-ring of DE-CRE-009 voided at the till
+void_pair,receipts,6842,2025-05-25,2,mis-ring of BN-JUI-006 voided at the till
+void_pair,receipts,13905,2025-10-19,2,mis-ring of HC-KIT-010 voided at the till
+void_pair,receipts,1930,2025-02-12,1,mis-ring of BB-PAS-008 voided at the till
+void_pair,receipts,700,2025-01-15,2,mis-ring of SF-SPR-007 voided at the till
+void_pair,receipts,5867,2025-05-06,2,mis-ring of DE-MIL-009 voided at the till
+void_pair,receipts,10723,2025-08-12,2,mis-ring of BN-BTW-009 voided at the till
+void_pair,receipts,10196,2025-08-01,2,mis-ring of DE-MIL-007 voided at the till
+void_pair,receipts,4552,2025-04-08,1,mis-ring of SC-COO-003 voided at the till
+void_pair,receipts,3323,2025-03-13,1,mis-ring of BB-BKG-009 voided at the till
+void_pair,receipts,13791,2025-10-17,1,mis-ring of AB-SPI-004 voided at the till
+void_pair,receipts,12987,2025-10-01,1,mis-ring of PH-VIT-011 voided at the till
+void_pair,receipts,3661,2025-03-20,2,mis-ring of BB-FBR-009 voided at the till
+void_pair,receipts,15008,2025-11-15,1,mis-ring of DE-MIL-009 voided at the till
+void_pair,receipts,12567,2025-09-20,1,mis-ring of MP-PRM-008 voided at the till
+void_pair,receipts,5305,2025-04-25,1,mis-ring of MP-POR-007 voided at the till
+void_pair,receipts,8041,2025-06-19,2,mis-ring of PP-CNG-004 voided at the till
+void_pair,receipts,4133,2025-03-29,2,mis-ring of MP-PRM-007 voided at the till
+void_pair,receipts,1194,2025-01-25,2,mis-ring of PP-CNG-004 voided at the till
+void_pair,receipts,4187,2025-03-30,2,mis-ring of BN-BTW-009 voided at the till
+void_pair,receipts,15507,2025-11-27,1,mis-ring of BN-BTW-009 voided at the till
+void_pair,receipts,12468,2025-09-19,2,mis-ring of PP-CNG-006 voided at the till
+void_pair,receipts,7469,2025-06-07,2,mis-ring of DE-MIL-009 voided at the till
+void_pair,receipts,12870,2025-09-28,2,mis-ring of BN-BTW-009 voided at the till
+void_pair,receipts,7152,2025-05-31,2,mis-ring of FP-VEG-007 voided at the till
+void_pair,receipts,3494,2025-03-16,2,mis-ring of FF-FVG-008 voided at the till
+void_pair,receipts,1637,2025-02-03,2,mis-ring of AB-SPI-001 voided at the till
+void_pair,receipts,14275,2025-10-28,2,mis-ring of FF-ICE-009 voided at the till
+void_pair,receipts,15511,2025-11-27,1,mis-ring of HC-DET-003 voided at the till
+void_pair,receipts,9936,2025-07-26,2,mis-ring of BB-PAS-008 voided at the till
+void_pair,receipts,8396,2025-06-26,1,mis-ring of FF-FVG-008 voided at the till
+void_pair,receipts,1333,2025-01-29,2,mis-ring of BB-BKG-007 voided at the till
+void_pair,receipts,137,2025-01-04,1,mis-ring of PH-HYG-012 voided at the till
+void_pair,receipts,12163,2025-09-13,1,mis-ring of DE-MIL-009 voided at the till
+void_pair,receipts,9375,2025-07-16,2,mis-ring of FF-ICE-009 voided at the till
+void_pair,receipts,11051,2025-08-20,1,mis-ring of SF-SPR-004 voided at the till
+void_pair,receipts,2095,2025-02-15,2,mis-ring of FP-HER-009 voided at the till
+void_pair,receipts,8711,2025-07-03,2,mis-ring of PH-OTC-012 voided at the till
+void_pair,receipts,8659,2025-07-02,2,mis-ring of FF-ICE-009 voided at the till
+void_pair,receipts,14136,2025-10-25,2,mis-ring of SC-COO-012 voided at the till
+void_pair,receipts,10403,2025-08-04,1,mis-ring of MP-PRM-009 voided at the till
+void_pair,receipts,5604,2025-05-01,1,mis-ring of MP-PRM-007 voided at the till
+void_pair,receipts,7159,2025-06-01,2,mis-ring of BB-BKG-009 voided at the till
+void_pair,receipts,4555,2025-04-08,1,mis-ring of SF-SPR-007 voided at the till
+void_pair,receipts,7429,2025-06-07,2,mis-ring of FP-VEG-008 voided at the till
+void_pair,receipts,12235,2025-09-13,2,mis-ring of FF-FVG-008 voided at the till
+void_pair,receipts,9182,2025-07-12,1,mis-ring of FF-ICE-009 voided at the till
+void_pair,receipts,968,2025-01-20,1,mis-ring of PP-PAS-011 voided at the till
+void_pair,receipts,6802,2025-05-25,2,mis-ring of FP-VEG-008 voided at the till
+void_pair,receipts,10487,2025-08-07,1,mis-ring of FP-HER-007 voided at the till
+void_pair,receipts,337,2025-01-08,1,mis-ring of FF-FVG-008 voided at the till
+void_pair,receipts,14462,2025-11-01,1,mis-ring of DE-MIL-009 voided at the till
+void_pair,receipts,5137,2025-04-20,1,mis-ring of MP-PRM-007 voided at the till
+void_pair,receipts,10896,2025-08-16,2,mis-ring of DE-MIL-009 voided at the till
+void_pair,receipts,7065,2025-05-30,2,mis-ring of BB-PAS-008 voided at the till
+void_pair,receipts,10759,2025-08-13,1,mis-ring of FP-HER-009 voided at the till
+hour_glitch,receipts,8209,2025-06-21,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,6793,2025-05-25,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,4887,2025-04-16,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,7593,2025-06-09,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,11813,2025-09-05,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,15169,2025-11-19,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,11183,2025-08-23,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,14965,2025-11-14,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,9943,2025-07-26,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,6104,2025-05-11,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,8829,2025-07-05,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,4927,2025-04-17,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,10771,2025-08-13,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,10822,2025-08-15,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,12588,2025-09-20,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,14910,2025-11-12,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,12590,2025-09-21,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,15055,2025-11-15,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,6013,2025-05-10,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,15452,2025-11-26,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,2486,2025-02-24,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,2072,2025-02-15,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,1791,2025-02-08,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,11773,2025-09-04,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,3221,2025-03-10,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,10545,2025-08-09,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,836,2025-01-18,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,817,2025-01-18,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,2601,2025-02-27,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,12032,2025-09-10,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,5047,2025-04-19,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,9910,2025-07-26,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,15911,2025-12-05,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,6731,2025-05-24,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,1750,2025-02-08,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,7580,2025-06-08,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,11881,2025-09-06,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,8557,2025-06-29,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,8407,2025-06-26,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,5168,2025-04-21,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,11162,2025-08-22,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,13648,2025-10-13,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,10933,2025-08-17,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,2871,2025-03-04,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,14584,2025-11-04,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,13535,2025-10-11,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,1956,2025-02-13,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,9504,2025-07-19,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,3865,2025-03-23,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,5312,2025-04-25,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,9719,2025-07-23,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,341,2025-01-08,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,16380,2025-12-13,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,6825,2025-05-25,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,12423,2025-09-18,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,16919,2025-12-26,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,16351,2025-12-13,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,3342,2025-03-13,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,5146,2025-04-20,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,11589,2025-08-30,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,12006,2025-09-09,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,4201,2025-03-30,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,5857,2025-05-06,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,4031,2025-03-27,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,14130,2025-10-25,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,7849,2025-06-14,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,10712,2025-08-12,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,17115,2025-12-30,0,hour overwritten with the 0 placeholder
+hour_glitch,receipts,7747,2025-06-12,0,hour overwritten with the 0 placeholder
+payment_variant,receipts,182,2025-01-04,0,'card' recorded as 'CARD'
+payment_variant,receipts,4539,2025-04-08,0,'card' recorded as 'CARD'
+payment_variant,receipts,14708,2025-11-07,0,'card' recorded as 'Card'
+payment_variant,receipts,3522,2025-03-16,0,'cash' recorded as 'Cash'
+payment_variant,receipts,3812,2025-03-22,0,'card' recorded as 'Card'
+payment_variant,receipts,2388,2025-02-22,0,'cash' recorded as 'Cash'
+payment_variant,receipts,1186,2025-01-25,0,'card' recorded as 'Card'
+payment_variant,receipts,9519,2025-07-19,0,'cash' recorded as 'Cash'
+payment_variant,receipts,16427,2025-12-14,0,'card' recorded as 'CARD'
+payment_variant,receipts,13887,2025-10-19,0,'card' recorded as 'CARD'
+payment_variant,receipts,12485,2025-09-19,0,'card' recorded as 'Card'
+payment_variant,receipts,5982,2025-05-10,0,'card' recorded as 'CARD'
+payment_variant,receipts,4823,2025-04-14,0,'card' recorded as 'CARD'
+payment_variant,receipts,9982,2025-07-27,0,'card' recorded as 'CARD'
+payment_variant,receipts,12306,2025-09-15,0,'card' recorded as 'Card'
+payment_variant,receipts,4255,2025-04-01,0,'card' recorded as 'Card'
+payment_variant,receipts,2357,2025-02-22,0,'card' recorded as 'Card'
+payment_variant,receipts,5886,2025-05-07,0,'cash' recorded as 'Cash'
+payment_variant,receipts,10689,2025-08-11,0,'card' recorded as 'Card'
+payment_variant,receipts,5305,2025-04-25,0,'card' recorded as 'Card'
+payment_variant,receipts,5803,2025-05-04,0,'cash' recorded as 'CASH'
+payment_variant,receipts,5341,2025-04-25,0,'cash' recorded as 'cash '
+payment_variant,receipts,2831,2025-03-02,0,'card' recorded as 'Card'
+payment_variant,receipts,12377,2025-09-17,0,'card' recorded as 'Card'
+payment_variant,receipts,17147,2025-12-31,0,'card' recorded as 'CARD'
+payment_variant,receipts,16918,2025-12-26,0,'cash' recorded as 'CASH'
+payment_variant,receipts,983,2025-01-20,0,'card' recorded as 'Card'
+payment_variant,receipts,11708,2025-09-03,0,'cash' recorded as 'Cash'
+payment_variant,receipts,10949,2025-08-17,0,'card' recorded as 'CARD'
+payment_variant,receipts,7560,2025-06-08,0,'card' recorded as 'CARD'
+payment_variant,receipts,5246,2025-04-23,0,'card' recorded as 'Card'
+payment_variant,receipts,9598,2025-07-20,0,'card' recorded as 'CARD'
+payment_variant,receipts,15785,2025-12-02,0,'card' recorded as 'CARD'
+payment_variant,receipts,13410,2025-10-09,0,'cash' recorded as 'CASH'
+payment_variant,receipts,307,2025-01-07,0,'cash' recorded as 'Cash'
+payment_variant,receipts,2300,2025-02-21,0,'cash' recorded as 'CASH'
+payment_variant,receipts,7101,2025-05-31,0,'cash' recorded as 'Cash'
+payment_variant,receipts,15996,2025-12-06,0,'cash' recorded as 'CASH'
+payment_variant,receipts,8501,2025-06-28,0,'cash' recorded as 'CASH'
+payment_variant,receipts,15496,2025-11-26,0,'card' recorded as 'CARD'
+payment_variant,receipts,7354,2025-06-05,0,'card' recorded as 'CARD'
+payment_variant,receipts,14815,2025-11-09,0,'cash' recorded as 'Cash'
+payment_variant,receipts,13029,2025-10-01,0,'card' recorded as 'Card'
+payment_variant,receipts,3492,2025-03-16,0,'card' recorded as 'CARD'
+payment_variant,receipts,4292,2025-04-03,0,'card' recorded as 'CARD'
+payment_variant,receipts,13139,2025-10-04,0,'card' recorded as 'CARD'
+payment_variant,receipts,2849,2025-03-03,0,'card' recorded as 'CARD'
+payment_variant,receipts,2531,2025-02-26,0,'card' recorded as 'Card'
+payment_variant,receipts,3473,2025-03-15,0,'card' recorded as 'CARD'
+payment_variant,receipts,10910,2025-08-16,0,'card' recorded as 'Card'
+payment_variant,receipts,2819,2025-03-02,0,'card' recorded as 'Card'
+payment_variant,receipts,191,2025-01-04,0,'cash' recorded as 'cash '
+payment_variant,receipts,11274,2025-08-23,0,'cash' recorded as 'Cash'
+payment_variant,receipts,16799,2025-12-21,0,'card' recorded as 'Card'
+payment_variant,receipts,11305,2025-08-24,0,'card' recorded as 'CARD'
+payment_variant,receipts,14136,2025-10-25,0,'cash' recorded as 'cash '
+payment_variant,receipts,3779,2025-03-22,0,'card' recorded as 'Card'
+payment_variant,receipts,1122,2025-01-24,0,'card' recorded as 'Card'
+payment_variant,receipts,10665,2025-08-11,0,'card' recorded as 'Card'
+payment_variant,receipts,9236,2025-07-13,0,'cash' recorded as 'cash '
+payment_variant,receipts,1226,2025-01-26,0,'card' recorded as 'Card'
+payment_variant,receipts,11111,2025-08-21,0,'card' recorded as 'CARD'
+payment_variant,receipts,11590,2025-08-30,0,'card' recorded as 'CARD'
+payment_variant,receipts,1174,2025-01-25,0,'card' recorded as 'CARD'
+payment_variant,receipts,16560,2025-12-17,0,'card' recorded as 'CARD'
+payment_variant,receipts,648,2025-01-14,0,'card' recorded as 'CARD'
+payment_variant,receipts,16888,2025-12-24,0,'card' recorded as 'Card'
+payment_variant,receipts,10557,2025-08-09,0,'cash' recorded as 'Cash'
+payment_variant,receipts,478,2025-01-11,0,'cash' recorded as 'CASH'
+payment_variant,receipts,15665,2025-11-29,0,'card' recorded as 'CARD'
+payment_variant,receipts,527,2025-01-11,0,'cash' recorded as 'Cash'
+payment_variant,receipts,12235,2025-09-13,0,'card' recorded as 'Card'
+payment_variant,receipts,6462,2025-05-18,0,'card' recorded as 'Card'
+payment_variant,receipts,16077,2025-12-07,0,'card' recorded as 'CARD'
+payment_variant,receipts,10471,2025-08-06,0,'card' recorded as 'Card'
+payment_variant,receipts,529,2025-01-11,0,'card' recorded as 'CARD'
+payment_variant,receipts,3831,2025-03-22,0,'card' recorded as 'CARD'
+payment_variant,receipts,4563,2025-04-09,0,'cash' recorded as 'Cash'
+payment_variant,receipts,9269,2025-07-13,0,'cash' recorded as 'Cash'
+payment_variant,receipts,11945,2025-09-07,0,'card' recorded as 'Card'
+payment_variant,receipts,12535,2025-09-20,0,'card' recorded as 'CARD'
+payment_variant,receipts,10786,2025-08-14,0,'card' recorded as 'Card'
+payment_variant,receipts,315,2025-01-07,0,'card' recorded as 'Card'
+payment_variant,receipts,1024,2025-01-22,0,'cash' recorded as 'CASH'
+payment_variant,receipts,7344,2025-06-05,0,'card' recorded as 'CARD'
+payment_variant,receipts,278,2025-01-06,0,'card' recorded as 'Card'
+payment_variant,receipts,8399,2025-06-26,0,'card' recorded as 'Card'
+payment_variant,receipts,6461,2025-05-18,0,'card' recorded as 'CARD'
+payment_variant,receipts,15966,2025-12-06,0,'cash' recorded as 'CASH'
+payment_variant,receipts,10911,2025-08-16,0,'cash' recorded as 'Cash'
+payment_variant,receipts,1656,2025-02-05,0,'cash' recorded as 'Cash'
+payment_variant,receipts,3398,2025-03-14,0,'card' recorded as 'CARD'
+payment_variant,receipts,8636,2025-07-01,0,'card' recorded as 'Card'
+payment_variant,receipts,10511,2025-08-08,0,'cash' recorded as 'cash '
+payment_variant,receipts,16711,2025-12-20,0,'card' recorded as 'CARD'
+payment_variant,receipts,15209,2025-11-20,0,'card' recorded as 'Card'
+payment_variant,receipts,11571,2025-08-30,0,'card' recorded as 'CARD'
+payment_variant,receipts,16729,2025-12-20,0,'card' recorded as 'Card'
+payment_variant,receipts,15214,2025-11-20,0,'card' recorded as 'Card'
+payment_variant,receipts,7000,2025-05-29,0,'card' recorded as 'CARD'
+payment_variant,receipts,312,2025-01-07,0,'card' recorded as 'CARD'
+payment_variant,receipts,13234,2025-10-05,0,'card' recorded as 'Card'
+payment_variant,receipts,12490,2025-09-19,0,'card' recorded as 'Card'
+payment_variant,receipts,1909,2025-02-12,0,'cash' recorded as 'CASH'
+payment_variant,receipts,3102,2025-03-08,0,'cash' recorded as 'Cash'
+payment_variant,receipts,990,2025-01-20,0,'card' recorded as 'Card'
+payment_variant,receipts,5322,2025-04-25,0,'card' recorded as 'Card'
+payment_variant,receipts,4094,2025-03-29,0,'card' recorded as 'CARD'
+payment_variant,receipts,11928,2025-09-07,0,'card' recorded as 'CARD'
+payment_variant,receipts,12923,2025-09-28,0,'cash' recorded as 'cash '
+payment_variant,receipts,14145,2025-10-25,0,'cash' recorded as 'CASH'
+payment_variant,receipts,9074,2025-07-11,0,'cash' recorded as 'CASH'
+payment_variant,receipts,6505,2025-05-20,0,'cash' recorded as 'Cash'
+payment_variant,receipts,15821,2025-12-03,0,'card' recorded as 'CARD'
+payment_variant,receipts,16848,2025-12-24,0,'card' recorded as 'Card'
+payment_variant,receipts,1602,2025-02-02,0,'cash' recorded as 'CASH'
+payment_variant,receipts,16877,2025-12-24,0,'card' recorded as 'Card'
+payment_variant,receipts,7338,2025-06-05,0,'cash' recorded as 'cash '
+payment_variant,receipts,13579,2025-10-12,0,'card' recorded as 'Card'
+payment_variant,receipts,10156,2025-07-31,0,'card' recorded as 'CARD'
+payment_variant,receipts,9399,2025-07-17,0,'card' recorded as 'CARD'
+payment_variant,receipts,15423,2025-11-25,0,'cash' recorded as 'cash '
+payment_variant,receipts,5194,2025-04-22,0,'cash' recorded as 'cash '
+payment_variant,receipts,16304,2025-12-12,0,'card' recorded as 'Card'
+payment_variant,receipts,3293,2025-03-13,0,'card' recorded as 'CARD'
+payment_variant,receipts,7570,2025-06-08,0,'card' recorded as 'CARD'
+payment_variant,receipts,6729,2025-05-24,0,'cash' recorded as 'cash '
+payment_variant,receipts,6152,2025-05-12,0,'card' recorded as 'CARD'
+payment_variant,receipts,15517,2025-11-27,0,'card' recorded as 'Card'
+payment_variant,receipts,15715,2025-11-30,0,'card' recorded as 'CARD'
+payment_variant,receipts,5567,2025-04-29,0,'cash' recorded as 'cash '
+payment_variant,receipts,10483,2025-08-07,0,'card' recorded as 'Card'
+payment_variant,receipts,9506,2025-07-19,0,'cash' recorded as 'CASH'
+payment_variant,receipts,6151,2025-05-12,0,'cash' recorded as 'cash '
+payment_variant,receipts,10309,2025-08-02,0,'card' recorded as 'Card'
+payment_variant,receipts,16725,2025-12-20,0,'card' recorded as 'Card'
+payment_variant,receipts,14519,2025-11-02,0,'card' recorded as 'CARD'
+payment_variant,receipts,4231,2025-04-01,0,'card' recorded as 'Card'
+payment_variant,receipts,7311,2025-06-04,0,'card' recorded as 'CARD'
+payment_variant,receipts,12890,2025-09-28,0,'card' recorded as 'CARD'
+payment_variant,receipts,9245,2025-07-13,0,'cash' recorded as 'cash '
+payment_variant,receipts,1711,2025-02-06,0,'card' recorded as 'CARD'
+payment_variant,receipts,2140,2025-02-16,0,'card' recorded as 'Card'
+payment_variant,receipts,4683,2025-04-11,0,'card' recorded as 'Card'
+payment_variant,receipts,2413,2025-02-22,0,'card' recorded as 'CARD'
+payment_variant,receipts,4805,2025-04-13,0,'card' recorded as 'Card'
+payment_variant,receipts,8286,2025-06-23,0,'card' recorded as 'CARD'
+payment_variant,receipts,5263,2025-04-24,0,'cash' recorded as 'cash '
+payment_variant,receipts,9671,2025-07-21,0,'card' recorded as 'CARD'
+payment_variant,receipts,4253,2025-04-01,0,'card' recorded as 'CARD'
+payment_variant,receipts,13040,2025-10-02,0,'cash' recorded as 'Cash'
+payment_variant,receipts,14871,2025-11-11,0,'cash' recorded as 'Cash'
+payment_variant,receipts,6782,2025-05-25,0,'card' recorded as 'Card'
+payment_variant,receipts,11097,2025-08-21,0,'card' recorded as 'Card'
+payment_variant,receipts,9800,2025-07-24,0,'card' recorded as 'Card'
+payment_variant,receipts,5454,2025-04-27,0,'card' recorded as 'CARD'
+payment_variant,receipts,1710,2025-02-06,0,'card' recorded as 'CARD'
+payment_variant,receipts,1863,2025-02-09,0,'cash' recorded as 'Cash'
+payment_variant,receipts,14873,2025-11-11,0,'cash' recorded as 'cash '
+payment_variant,receipts,4197,2025-03-30,0,'card' recorded as 'CARD'
+payment_variant,receipts,11940,2025-09-07,0,'card' recorded as 'CARD'
+payment_variant,receipts,16871,2025-12-24,0,'card' recorded as 'CARD'
+payment_variant,receipts,4691,2025-04-12,0,'card' recorded as 'Card'
+payment_variant,receipts,8689,2025-07-03,0,'card' recorded as 'Card'
+payment_variant,receipts,12593,2025-09-21,0,'card' recorded as 'Card'
+payment_variant,receipts,16791,2025-12-21,0,'card' recorded as 'Card'
+payment_variant,receipts,10373,2025-08-03,0,'cash' recorded as 'cash '
+payment_variant,receipts,14132,2025-10-25,0,'cash' recorded as 'CASH'
+payment_variant,receipts,2450,2025-02-23,0,'card' recorded as 'CARD'
+payment_variant,receipts,12947,2025-09-29,0,'cash' recorded as 'CASH'
+payment_variant,receipts,7302,2025-06-04,0,'card' recorded as 'Card'
+payment_variant,receipts,7957,2025-06-16,0,'cash' recorded as 'Cash'
+payment_variant,receipts,3284,2025-03-12,0,'card' recorded as 'Card'
+payment_variant,receipts,8646,2025-07-02,0,'cash' recorded as 'Cash'
+payment_variant,receipts,10556,2025-08-09,0,'cash' recorded as 'cash '
+payment_variant,receipts,7248,2025-06-02,0,'cash' recorded as 'Cash'
+payment_variant,receipts,9333,2025-07-16,0,'cash' recorded as 'CASH'
+payment_variant,receipts,2957,2025-03-06,0,'card' recorded as 'Card'
+payment_variant,receipts,6571,2025-05-21,0,'card' recorded as 'CARD'
+payment_variant,receipts,8196,2025-06-21,0,'card' recorded as 'CARD'
+payment_variant,receipts,10016,2025-07-27,0,'card' recorded as 'CARD'
+payment_variant,receipts,15121,2025-11-17,0,'cash' recorded as 'CASH'
+payment_variant,receipts,2636,2025-02-28,0,'card' recorded as 'CARD'
+payment_variant,receipts,14362,2025-10-31,0,'cash' recorded as 'CASH'
+payment_variant,receipts,14392,2025-10-31,0,'card' recorded as 'Card'
+payment_variant,receipts,10031,2025-07-27,0,'card' recorded as 'CARD'
+payment_variant,receipts,14745,2025-11-08,0,'card' recorded as 'Card'
+payment_variant,receipts,6270,2025-05-16,0,'card' recorded as 'Card'
+payment_variant,receipts,8541,2025-06-28,0,'cash' recorded as 'CASH'
+payment_variant,receipts,11167,2025-08-22,0,'card' recorded as 'CARD'
+payment_variant,receipts,9340,2025-07-16,0,'cash' recorded as 'Cash'
+payment_variant,receipts,17095,2025-12-29,0,'card' recorded as 'CARD'
+payment_variant,receipts,5466,2025-04-27,0,'cash' recorded as 'cash '
+payment_variant,receipts,10275,2025-08-02,0,'card' recorded as 'Card'
+payment_variant,receipts,5261,2025-04-24,0,'card' recorded as 'CARD'
+payment_variant,receipts,8149,2025-06-21,0,'card' recorded as 'Card'
+payment_variant,receipts,10176,2025-07-31,0,'cash' recorded as 'CASH'
+payment_variant,receipts,10419,2025-08-05,0,'card' recorded as 'Card'
+payment_variant,receipts,1334,2025-01-29,0,'cash' recorded as 'Cash'
+payment_variant,receipts,5294,2025-04-25,0,'card' recorded as 'CARD'
+payment_variant,receipts,9479,2025-07-18,0,'card' recorded as 'Card'
+payment_variant,receipts,16834,2025-12-23,0,'cash' recorded as 'CASH'
+payment_variant,receipts,710,2025-01-16,0,'card' recorded as 'CARD'
+payment_variant,receipts,4501,2025-04-06,0,'cash' recorded as 'Cash'
+payment_variant,receipts,8854,2025-07-05,0,'cash' recorded as 'CASH'
+payment_variant,receipts,12363,2025-09-17,0,'card' recorded as 'Card'
+dup_receipt,receipts,13016,2025-10-01,6,POS retry re-posted the whole receipt
+dup_receipt,receipts,14447,2025-11-01,10,POS retry re-posted the whole receipt
+dup_receipt,receipts,2681,2025-03-01,1,POS retry re-posted the whole receipt
+dup_receipt,receipts,2683,2025-03-01,7,POS retry re-posted the whole receipt
+dup_receipt,receipts,12867,2025-09-28,6,POS retry re-posted the whole receipt
+dup_receipt,receipts,5828,2025-05-04,1,POS retry re-posted the whole receipt
+dup_receipt,receipts,8385,2025-06-26,4,POS retry re-posted the whole receipt
+dup_receipt,receipts,5181,2025-04-21,1,POS retry re-posted the whole receipt
+dup_receipt,receipts,986,2025-01-20,3,POS retry re-posted the whole receipt
+dup_receipt,receipts,13137,2025-10-04,1,POS retry re-posted the whole receipt
+dup_receipt,receipts,15139,2025-11-18,2,POS retry re-posted the whole receipt
+dup_receipt,receipts,2302,2025-02-21,2,POS retry re-posted the whole receipt
+dup_receipt,receipts,8581,2025-06-29,6,POS retry re-posted the whole receipt
+dup_receipt,receipts,9482,2025-07-18,1,POS retry re-posted the whole receipt
+dup_receipt,receipts,16672,2025-12-20,2,POS retry re-posted the whole receipt
+dup_receipt,receipts,9101,2025-07-11,3,POS retry re-posted the whole receipt
+dup_receipt,receipts,11703,2025-09-02,1,POS retry re-posted the whole receipt
+dup_receipt,receipts,9414,2025-07-17,6,POS retry re-posted the whole receipt
+dup_receipt,receipts,2955,2025-03-06,1,POS retry re-posted the whole receipt
+dup_receipt,receipts,10591,2025-08-09,2,POS retry re-posted the whole receipt
+dup_receipt,receipts,11536,2025-08-30,3,POS retry re-posted the whole receipt
+dup_receipt,receipts,715,2025-01-16,7,POS retry re-posted the whole receipt
+dup_receipt,receipts,16125,2025-12-08,4,POS retry re-posted the whole receipt
+dup_receipt,receipts,15879,2025-12-04,7,POS retry re-posted the whole receipt
+dup_receipt,receipts,9271,2025-07-13,1,POS retry re-posted the whole receipt
+dup_receipt,receipts,3309,2025-03-13,4,POS retry re-posted the whole receipt
+dup_receipt,receipts,4494,2025-04-06,4,POS retry re-posted the whole receipt
+dup_receipt,receipts,13816,2025-10-18,5,POS retry re-posted the whole receipt
+dup_receipt,receipts,6780,2025-05-25,2,POS retry re-posted the whole receipt
+dup_receipt,receipts,5929,2025-05-08,7,POS retry re-posted the whole receipt
+dup_receipt,receipts,4724,2025-04-12,7,POS retry re-posted the whole receipt
+dup_receipt,receipts,1922,2025-02-12,6,POS retry re-posted the whole receipt
+dup_receipt,receipts,8491,2025-06-28,3,POS retry re-posted the whole receipt
+dup_receipt,receipts,8638,2025-07-01,10,POS retry re-posted the whole receipt
+dup_invoice,procurement,SF-SPR-008,2025-03-19,22,invoice posted twice
+dup_invoice,procurement,FF-FVG-009,2025-03-26,37,invoice posted twice
+dup_invoice,procurement,BB-BKG-009,2025-04-02,228,invoice posted twice
+dup_invoice,procurement,PH-OTC-010,2025-04-02,4,invoice posted twice
+dup_invoice,procurement,BB-BKG-008,2025-04-16,15,invoice posted twice
+dup_invoice,procurement,HC-PAP-001,2025-04-16,5,invoice posted twice
+dup_invoice,procurement,MP-CHI-007,2025-06-25,53,invoice posted twice
+dup_invoice,procurement,FP-VEG-007,2025-07-09,153,invoice posted twice
+dup_invoice,procurement,PH-WEL-011,2025-08-20,2,invoice posted twice
+dup_invoice,procurement,AB-SPI-010,2025-09-17,7,invoice posted twice
+dup_invoice,procurement,DE-MIL-008,2025-10-01,16,invoice posted twice
+dup_invoice,procurement,SF-SPR-009,2025-10-01,41,invoice posted twice
+dup_invoice,procurement,AB-SPI-010,2025-10-08,8,invoice posted twice
+dup_invoice,procurement,AB-WIN-004,2025-10-22,3,invoice posted twice
+dup_invoice,procurement,MP-PRM-006,2025-10-22,26,invoice posted twice
+dup_invoice,procurement,DE-MIL-007,2025-11-05,360,invoice posted twice
+dup_invoice,procurement,AB-WIN-012,2025-11-19,2,invoice posted twice
+dup_invoice,procurement,FP-FRU-005,2025-11-19,39,invoice posted twice
+dup_invoice,procurement,FP-HER-007,2025-11-26,126,invoice posted twice
+dup_invoice,procurement,HC-DET-011,2025-11-26,1,invoice posted twice
+dup_invoice,procurement,MP-PRM-009,2025-12-03,32,invoice posted twice
+dup_invoice,procurement,PH-OTC-002,2025-12-17,4,invoice posted twice
+missing_invoice,procurement,SC-COO-011,2025-04-16,-4,delivery received but never entered
+missing_invoice,procurement,SF-SHL-009,2025-05-28,-8,delivery received but never entered
+missing_invoice,procurement,AB-WIN-012,2025-08-13,-2,delivery received but never entered
+missing_invoice,procurement,BB-PAS-008,2025-11-05,-180,delivery received but never entered
+missing_invoice,procurement,SC-CAN-002,2025-11-12,-3,delivery received but never entered
+missing_invoice,procurement,PH-VIT-002,2025-11-26,-3,delivery received but never entered
+unrecorded_spoilage,write_offs,MP-PRM-008,2025-01-04,2,tossed without being logged
+unrecorded_spoilage,write_offs,DE-CRE-009,2025-01-09,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-006,2025-01-10,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-008,2025-01-12,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-008,2025-01-12,6,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-01-13,3,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-009,2025-01-13,5,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-007,2025-01-17,11,tossed without being logged
+unrecorded_spoilage,write_offs,DE-CRE-007,2025-01-18,2,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-008,2025-01-23,2,tossed without being logged
+unrecorded_spoilage,write_offs,DE-CRE-007,2025-01-28,2,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-02-05,3,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SHL-009,2025-02-05,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-009,2025-02-08,1,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-009,2025-02-12,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-02-13,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-02-14,3,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-009,2025-02-14,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-008,2025-02-22,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-CHI-007,2025-02-25,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-007,2025-02-27,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-03-08,5,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-03-09,5,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-007,2025-03-11,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-03-20,5,tossed without being logged
+unrecorded_spoilage,write_offs,FP-FRU-005,2025-03-21,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-009,2025-03-23,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-009,2025-03-24,3,tossed without being logged
+unrecorded_spoilage,write_offs,FF-DES-009,2025-03-27,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-CHI-007,2025-03-27,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-03-29,4,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-009,2025-03-29,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-03-30,9,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-04-04,6,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-009,2025-04-07,1,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-009,2025-04-08,9,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-007,2025-04-13,3,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-009,2025-04-16,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-04-17,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-009,2025-04-17,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-04-18,3,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-008,2025-04-18,9,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-04-19,9,tossed without being logged
+unrecorded_spoilage,write_offs,DE-CRE-009,2025-04-19,2,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-006,2025-04-20,1,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-007,2025-04-20,1,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-009,2025-04-21,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-FRU-005,2025-04-25,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-008,2025-04-29,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-008,2025-04-29,2,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-004,2025-04-30,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-05-01,8,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-007,2025-05-05,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-05-13,4,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-05-14,4,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-007,2025-05-14,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-05-16,10,tossed without being logged
+unrecorded_spoilage,write_offs,FP-FRU-005,2025-05-17,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-FRU-005,2025-05-18,4,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-007,2025-05-19,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-009,2025-05-21,3,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-006,2025-05-24,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-008,2025-05-26,6,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-007,2025-05-31,7,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-007,2025-05-31,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-06-08,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-009,2025-06-15,1,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-008,2025-06-16,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-06-19,13,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-008,2025-06-20,2,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-009,2025-06-21,5,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-007,2025-06-21,3,tossed without being logged
+unrecorded_spoilage,write_offs,FP-FRU-005,2025-06-23,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-007,2025-06-23,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-06-26,7,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-06-29,6,tossed without being logged
+unrecorded_spoilage,write_offs,DE-CRE-007,2025-06-30,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-POR-007,2025-07-02,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-009,2025-07-03,7,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-007,2025-07-03,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-007,2025-07-05,8,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-07-07,9,tossed without being logged
+unrecorded_spoilage,write_offs,DE-CRE-007,2025-07-07,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-07-12,5,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-007,2025-07-12,3,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-07-17,13,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-07-18,5,tossed without being logged
+unrecorded_spoilage,write_offs,FF-FVG-008,2025-07-18,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-007,2025-07-23,3,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-004,2025-07-24,3,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-008,2025-07-25,4,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-007,2025-07-25,5,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-07-26,8,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-004,2025-07-31,6,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-08-01,4,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-009,2025-08-02,5,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-08-05,6,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-007,2025-08-06,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-008,2025-08-07,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-08-15,11,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-08-15,18,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-007,2025-08-16,5,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-008,2025-08-18,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-08-24,3,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-007,2025-08-25,2,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-009,2025-09-01,7,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-008,2025-09-04,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-007,2025-09-05,4,tossed without being logged
+unrecorded_spoilage,write_offs,MP-CHI-007,2025-09-05,1,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-007,2025-09-07,1,tossed without being logged
+unrecorded_spoilage,write_offs,FF-FVG-009,2025-09-13,1,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-007,2025-09-15,5,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-007,2025-09-19,8,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-009,2025-09-19,16,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-007,2025-09-20,1,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-007,2025-09-21,1,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-008,2025-09-22,1,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-009,2025-09-23,4,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-008,2025-09-25,12,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-09-26,13,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-009,2025-09-26,8,tossed without being logged
+unrecorded_spoilage,write_offs,FP-FRU-005,2025-09-27,3,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-09-28,4,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-007,2025-10-01,1,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-008,2025-10-06,1,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-007,2025-10-07,4,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-009,2025-10-08,6,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-004,2025-10-10,6,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-008,2025-10-13,1,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-009,2025-10-14,11,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-10-14,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-10-17,4,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-10-18,6,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-10-20,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-008,2025-10-23,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-10-24,6,tossed without being logged
+unrecorded_spoilage,write_offs,FF-FVG-008,2025-10-28,1,tossed without being logged
+unrecorded_spoilage,write_offs,FF-FVG-008,2025-10-31,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-007,2025-11-05,2,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-007,2025-11-09,3,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-006,2025-11-16,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-008,2025-11-16,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-009,2025-11-17,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-11-18,1,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-007,2025-11-18,3,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-008,2025-11-20,1,tossed without being logged
+unrecorded_spoilage,write_offs,MP-PRM-008,2025-11-20,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-11-21,3,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-008,2025-11-26,5,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-007,2025-11-27,1,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-004,2025-11-29,1,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-007,2025-11-29,1,tossed without being logged
+unrecorded_spoilage,write_offs,FP-VEG-007,2025-12-01,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-12-03,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-BKG-007,2025-12-04,8,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-12-04,5,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-008,2025-12-05,1,tossed without being logged
+unrecorded_spoilage,write_offs,SF-SPR-007,2025-12-12,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-12-13,5,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-008,2025-12-13,4,tossed without being logged
+unrecorded_spoilage,write_offs,FP-FRU-005,2025-12-15,2,tossed without being logged
+unrecorded_spoilage,write_offs,BB-FBR-009,2025-12-20,3,tossed without being logged
+unrecorded_spoilage,write_offs,BB-PAS-007,2025-12-20,2,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-12-22,4,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-008,2025-12-28,3,tossed without being logged
+unrecorded_spoilage,write_offs,FP-HER-009,2025-12-28,4,tossed without being logged
+unrecorded_spoilage,write_offs,DE-MIL-009,2025-12-29,3,tossed without being logged
+unrecorded_spoilage,write_offs,FP-FRU-005,2025-12-30,3,tossed without being logged
+snapshot_typo,inventory_eod,DE-CRE-007,2025-11-19,63,on_hand 118 keyed in as 181
+snapshot_typo,inventory_eod,SC-COO-003,2025-05-29,27,on_hand 14 keyed in as 41
+snapshot_typo,inventory_eod,PP-CNG-006,2025-12-11,27,on_hand 269 keyed in as 296
+snapshot_typo,inventory_eod,BB-PAS-008,2025-10-04,18,on_hand 179 keyed in as 197
+snapshot_typo,inventory_eod,MP-CHI-007,2025-07-07,36,on_hand 26 keyed in as 62
+snapshot_typo,inventory_eod,PH-VIT-003,2025-01-04,36,on_hand 15 keyed in as 51
+snapshot_typo,inventory_eod,FF-ICE-009,2025-12-13,-45,on_hand 83 keyed in as 38
+snapshot_typo,inventory_eod,FP-HER-008,2025-06-10,18,on_hand 79 keyed in as 97
+snapshot_typo,inventory_eod,AB-SPI-011,2025-01-09,63,on_hand 29 keyed in as 92
+snapshot_typo,inventory_eod,SC-NUT-003,2025-03-15,10,on_hand 11 keyed in as 21
+snapshot_typo,inventory_eod,PP-OIL-005,2025-07-08,10,on_hand 33 keyed in as 43
+snapshot_typo,inventory_eod,BB-BKG-009,2025-06-16,27,on_hand 103 keyed in as 130
+snapshot_typo,inventory_eod,AB-SPI-002,2025-01-24,-18,on_hand 31 keyed in as 13
+snapshot_typo,inventory_eod,FP-HER-008,2025-10-19,10,on_hand 222 keyed in as 232
+snapshot_typo,inventory_eod,BB-BKG-007,2025-02-26,18,on_hand 246 keyed in as 264
+snapshot_typo,inventory_eod,BB-BKG-009,2025-05-23,10,on_hand 200 keyed in as 210
+snapshot_typo,inventory_eod,FP-VEG-008,2025-05-22,27,on_hand 214 keyed in as 241
+snapshot_typo,inventory_eod,AB-WIN-011,2025-06-08,10,on_hand 11 keyed in as 21
+snapshot_typo,inventory_eod,SC-NUT-011,2025-02-12,36,on_hand 15 keyed in as 51
+snapshot_typo,inventory_eod,MP-PRM-007,2025-03-01,-54,on_hand 93 keyed in as 39
+snapshot_typo,inventory_eod,BN-BTW-003,2025-09-18,36,on_hand 26 keyed in as 62
+snapshot_typo,inventory_eod,SC-CHO-012,2025-07-02,-27,on_hand 30 keyed in as 3
+snapshot_typo,inventory_eod,FP-HER-007,2025-10-16,54,on_hand 128 keyed in as 182
+snapshot_typo,inventory_eod,DE-MIL-007,2025-11-29,-18,on_hand 764 keyed in as 746
+weather_outage,weather,,2025-05-15,2,sensor dark for 2 day(s)
+weather_outage,weather,,2025-09-03,3,sensor dark for 3 day(s)
+weather_outage,weather,,2025-10-11,1,sensor dark for 1 day(s)
+category_typo,promotions,1,2025-01-13,0,'Snacks and Confectionery' logged as 'Snacks and Confectionary'
+category_typo,promotions,0,2025-01-06,0,'Snacks and Confectionery' logged as 'Snacks and Confectionary'

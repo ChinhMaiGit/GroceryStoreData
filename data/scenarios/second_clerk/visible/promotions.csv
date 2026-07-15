@@ -1,0 +1,11 @@
+type,category,depth,n_skus,flyer_cost,start_date,end_date
+markdown,Snacks and Confectionary,0.1,6,80.0,2025-01-06,2025-01-20
+markdown,Snacks and Confectionary,0.1,6,80.0,2025-01-13,2025-01-27
+markdown,Alcoholic Beverages,0.1,6,80.0,2025-01-20,2025-02-03
+markdown,Alcoholic Beverages,0.1,6,80.0,2025-01-27,2025-02-10
+markdown,Alcoholic Beverages,0.1,6,80.0,2025-02-03,2025-02-17
+markdown,Alcoholic Beverages,0.2,6,80.0,2025-02-10,2025-02-24
+markdown,Household and Cleaning Supplies,0.1,6,80.0,2025-02-10,2025-02-24
+markdown,Alcoholic Beverages,0.2,6,80.0,2025-02-17,2025-03-03
+markdown,Alcoholic Beverages,0.2,6,80.0,2025-02-24,2025-03-10
+markdown,Alcoholic Beverages,0.2,6,80.0,2025-03-03,2025-03-17

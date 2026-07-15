@@ -1,0 +1,625 @@
+week,category,forecast_weekly,oracle
+1,Alcoholic Beverages,141.70583612387588,0
+1,Bakery and Bread,308.5834927824417,0
+1,Beverages (Non-Alcoholic),484.987170098355,0
+1,Dairy and Eggs,557.5084691443765,0
+1,Fresh Produce,668.3730620380153,0
+1,Frozen Foods,131.08602932516106,0
+1,Household and Cleaning Supplies,100.54219464119512,0
+1,Meat and Poultry,171.15306760826834,0
+1,Pantry Staples and Packaged Goods,573.212878884015,0
+1,Personal Care and Health,80.9922281910469,0
+1,Seafood,62.14593685984356,0
+1,Snacks and Confectionery,223.93282890236034,0
+2,Alcoholic Beverages,131.05389074925057,0
+2,Bakery and Bread,411.4723285216278,0
+2,Beverages (Non-Alcoholic),444.90811339890337,0
+2,Dairy and Eggs,706.8389794295842,0
+2,Fresh Produce,661.9987080253436,0
+2,Frozen Foods,171.22401955010739,0
+2,Household and Cleaning Supplies,100.19479642746342,0
+2,Meat and Poultry,191.8520450721789,0
+2,Pantry Staples and Packaged Goods,615.9752525893433,0
+2,Personal Care and Health,89.66148546069793,0
+2,Seafood,83.76395790656238,0
+2,Snacks and Confectionery,199.78855260157354,0
+3,Alcoholic Beverages,104.40194537462529,0
+3,Bakery and Bread,527.8611642608139,0
+3,Beverages (Non-Alcoholic),429.8290566994517,0
+3,Dairy and Eggs,906.4194897147921,0
+3,Fresh Produce,684.6243540126718,0
+3,Frozen Foods,232.6120097750537,0
+3,Household and Cleaning Supplies,89.09739821373171,0
+3,Meat and Poultry,231.55102253608945,0
+3,Pantry Staples and Packaged Goods,674.9876262946716,0
+3,Personal Care and Health,88.58074273034896,0
+3,Seafood,110.88197895328119,0
+3,Snacks and Confectionery,175.39427630078677,0
+4,Alcoholic Beverages,79.75,0
+4,Bakery and Bread,647.25,0
+4,Beverages (Non-Alcoholic),397.5,0
+4,Dairy and Eggs,1080.0,0
+4,Fresh Produce,670.5,0
+4,Frozen Foods,289.0,0
+4,Household and Cleaning Supplies,75.75,0
+4,Meat and Poultry,270.0,0
+4,Pantry Staples and Packaged Goods,724.5,0
+4,Personal Care and Health,85.5,0
+4,Seafood,136.0,0
+4,Snacks and Confectionery,152.25,0
+5,Alcoholic Beverages,62.5,0
+5,Bakery and Bread,790.0,0
+5,Beverages (Non-Alcoholic),439.0,0
+5,Dairy and Eggs,1299.0,0
+5,Fresh Produce,713.5,0
+5,Frozen Foods,347.0,0
+5,Household and Cleaning Supplies,55.25,0
+5,Meat and Poultry,296.25,0
+5,Pantry Staples and Packaged Goods,821.0,0
+5,Personal Care and Health,73.5,0
+5,Seafood,168.0,0
+5,Snacks and Confectionery,158.5,0
+6,Alcoholic Beverages,46.5,0
+6,Bakery and Bread,764.25,0
+6,Beverages (Non-Alcoholic),410.25,0
+6,Dairy and Eggs,1278.0,0
+6,Fresh Produce,680.75,0
+6,Frozen Foods,365.25,0
+6,Household and Cleaning Supplies,41.75,0
+6,Meat and Poultry,295.75,0
+6,Pantry Staples and Packaged Goods,791.5,0
+6,Personal Care and Health,64.75,0
+6,Seafood,172.25,0
+6,Snacks and Confectionery,152.0,0
+7,Alcoholic Beverages,49.25,0
+7,Bakery and Bread,781.0,0
+7,Beverages (Non-Alcoholic),401.25,0
+7,Dairy and Eggs,1305.25,0
+7,Fresh Produce,679.0,0
+7,Frozen Foods,381.5,0
+7,Household and Cleaning Supplies,43.5,0
+7,Meat and Poultry,296.75,0
+7,Pantry Staples and Packaged Goods,752.25,0
+7,Personal Care and Health,61.5,0
+7,Seafood,172.75,0
+7,Snacks and Confectionery,147.5,0
+8,Alcoholic Beverages,49.5,0
+8,Bakery and Bread,802.0,0
+8,Beverages (Non-Alcoholic),395.5,0
+8,Dairy and Eggs,1371.5,0
+8,Fresh Produce,708.75,0
+8,Frozen Foods,419.5,0
+8,Household and Cleaning Supplies,45.25,0
+8,Meat and Poultry,307.0,0
+8,Pantry Staples and Packaged Goods,750.25,0
+8,Personal Care and Health,66.75,0
+8,Seafood,184.0,0
+8,Snacks and Confectionery,143.75,0
+9,Alcoholic Beverages,54.75,0
+9,Bakery and Bread,790.5,0
+9,Beverages (Non-Alcoholic),396.0,0
+9,Dairy and Eggs,1441.5,0
+9,Fresh Produce,722.75,0
+9,Frozen Foods,436.0,0
+9,Household and Cleaning Supplies,43.5,0
+9,Meat and Poultry,324.5,0
+9,Pantry Staples and Packaged Goods,754.5,0
+9,Personal Care and Health,68.75,0
+9,Seafood,188.5,0
+9,Snacks and Confectionery,144.75,0
+10,Alcoholic Beverages,65.25,0
+10,Bakery and Bread,847.75,0
+10,Beverages (Non-Alcoholic),448.25,0
+10,Dairy and Eggs,1560.75,0
+10,Fresh Produce,771.5,0
+10,Frozen Foods,477.0,0
+10,Household and Cleaning Supplies,47.5,0
+10,Meat and Poultry,352.75,0
+10,Pantry Staples and Packaged Goods,804.0,0
+10,Personal Care and Health,69.0,0
+10,Seafood,206.0,0
+10,Snacks and Confectionery,151.25,0
+11,Alcoholic Beverages,68.5,0
+11,Bakery and Bread,856.75,0
+11,Beverages (Non-Alcoholic),461.0,0
+11,Dairy and Eggs,1596.5,0
+11,Fresh Produce,744.25,0
+11,Frozen Foods,508.25,0
+11,Household and Cleaning Supplies,46.75,0
+11,Meat and Poultry,371.5,0
+11,Pantry Staples and Packaged Goods,814.0,0
+11,Personal Care and Health,73.0,0
+11,Seafood,215.0,0
+11,Snacks and Confectionery,158.25,0
+12,Alcoholic Beverages,68.25,0
+12,Bakery and Bread,839.75,0
+12,Beverages (Non-Alcoholic),496.75,0
+12,Dairy and Eggs,1628.75,0
+12,Fresh Produce,768.5,0
+12,Frozen Foods,529.75,0
+12,Household and Cleaning Supplies,47.5,0
+12,Meat and Poultry,398.25,0
+12,Pantry Staples and Packaged Goods,814.5,0
+12,Personal Care and Health,72.5,0
+12,Seafood,222.0,0
+12,Snacks and Confectionery,161.25,0
+13,Alcoholic Beverages,65.0,0
+13,Bakery and Bread,804.0,0
+13,Beverages (Non-Alcoholic),479.25,0
+13,Dairy and Eggs,1523.5,0
+13,Fresh Produce,722.5,0
+13,Frozen Foods,546.75,0
+13,Household and Cleaning Supplies,45.25,0
+13,Meat and Poultry,386.25,0
+13,Pantry Staples and Packaged Goods,751.5,0
+13,Personal Care and Health,64.25,0
+13,Seafood,213.75,0
+13,Snacks and Confectionery,146.0,0
+14,Alcoholic Beverages,55.75,0
+14,Bakery and Bread,798.0,0
+14,Beverages (Non-Alcoholic),451.0,0
+14,Dairy and Eggs,1474.25,0
+14,Fresh Produce,718.75,0
+14,Frozen Foods,541.5,0
+14,Household and Cleaning Supplies,46.0,0
+14,Meat and Poultry,386.75,0
+14,Pantry Staples and Packaged Goods,745.75,0
+14,Personal Care and Health,63.75,0
+14,Seafood,204.25,0
+14,Snacks and Confectionery,147.0,0
+15,Alcoholic Beverages,52.25,0
+15,Bakery and Bread,772.5,0
+15,Beverages (Non-Alcoholic),446.75,0
+15,Dairy and Eggs,1439.0,0
+15,Fresh Produce,724.0,0
+15,Frozen Foods,530.5,0
+15,Household and Cleaning Supplies,44.0,0
+15,Meat and Poultry,374.25,0
+15,Pantry Staples and Packaged Goods,741.25,0
+15,Personal Care and Health,65.0,0
+15,Seafood,204.0,0
+15,Snacks and Confectionery,142.0,0
+16,Alcoholic Beverages,58.0,0
+16,Bakery and Bread,777.75,0
+16,Beverages (Non-Alcoholic),458.75,0
+16,Dairy and Eggs,1419.75,0
+16,Fresh Produce,713.75,0
+16,Frozen Foods,541.0,0
+16,Household and Cleaning Supplies,45.75,0
+16,Meat and Poultry,362.0,0
+16,Pantry Staples and Packaged Goods,747.0,0
+16,Personal Care and Health,62.5,0
+16,Seafood,201.25,0
+16,Snacks and Confectionery,141.5,0
+17,Alcoholic Beverages,61.5,0
+17,Bakery and Bread,825.75,0
+17,Beverages (Non-Alcoholic),488.0,0
+17,Dairy and Eggs,1515.5,0
+17,Fresh Produce,767.5,0
+17,Frozen Foods,544.25,0
+17,Household and Cleaning Supplies,47.0,0
+17,Meat and Poultry,385.0,0
+17,Pantry Staples and Packaged Goods,776.25,0
+17,Personal Care and Health,68.25,0
+17,Seafood,217.25,0
+17,Snacks and Confectionery,156.25,0
+18,Alcoholic Beverages,60.25,0
+18,Bakery and Bread,819.25,0
+18,Beverages (Non-Alcoholic),483.75,0
+18,Dairy and Eggs,1544.5,0
+18,Fresh Produce,768.25,0
+18,Frozen Foods,544.75,0
+18,Household and Cleaning Supplies,48.25,0
+18,Meat and Poultry,376.0,0
+18,Pantry Staples and Packaged Goods,725.25,0
+18,Personal Care and Health,68.5,0
+18,Seafood,219.0,0
+18,Snacks and Confectionery,154.5,0
+19,Alcoholic Beverages,62.5,0
+19,Bakery and Bread,820.5,0
+19,Beverages (Non-Alcoholic),495.25,0
+19,Dairy and Eggs,1555.5,0
+19,Fresh Produce,788.25,0
+19,Frozen Foods,553.75,0
+19,Household and Cleaning Supplies,50.0,0
+19,Meat and Poultry,396.0,0
+19,Pantry Staples and Packaged Goods,719.0,0
+19,Personal Care and Health,66.75,0
+19,Seafood,210.25,0
+19,Snacks and Confectionery,158.75,0
+20,Alcoholic Beverages,59.25,0
+20,Bakery and Bread,804.75,0
+20,Beverages (Non-Alcoholic),479.5,0
+20,Dairy and Eggs,1536.0,0
+20,Fresh Produce,795.25,0
+20,Frozen Foods,544.25,0
+20,Household and Cleaning Supplies,48.0,0
+20,Meat and Poultry,395.0,0
+20,Pantry Staples and Packaged Goods,685.0,0
+20,Personal Care and Health,64.75,0
+20,Seafood,198.25,0
+20,Snacks and Confectionery,155.75,0
+21,Alcoholic Beverages,62.5,0
+21,Bakery and Bread,799.25,0
+21,Beverages (Non-Alcoholic),507.75,0
+21,Dairy and Eggs,1529.25,0
+21,Fresh Produce,820.0,0
+21,Frozen Foods,566.25,0
+21,Household and Cleaning Supplies,50.0,0
+21,Meat and Poultry,401.5,0
+21,Pantry Staples and Packaged Goods,678.5,0
+21,Personal Care and Health,68.5,0
+21,Seafood,190.75,0
+21,Snacks and Confectionery,148.25,0
+22,Alcoholic Beverages,66.0,0
+22,Bakery and Bread,809.5,0
+22,Beverages (Non-Alcoholic),576.0,0
+22,Dairy and Eggs,1587.25,0
+22,Fresh Produce,870.5,0
+22,Frozen Foods,589.75,0
+22,Household and Cleaning Supplies,48.5,0
+22,Meat and Poultry,423.75,0
+22,Pantry Staples and Packaged Goods,711.0,0
+22,Personal Care and Health,65.5,0
+22,Seafood,196.5,0
+22,Snacks and Confectionery,150.25,0
+23,Alcoholic Beverages,66.0,0
+23,Bakery and Bread,804.75,0
+23,Beverages (Non-Alcoholic),600.0,0
+23,Dairy and Eggs,1592.5,0
+23,Fresh Produce,915.5,0
+23,Frozen Foods,596.0,0
+23,Household and Cleaning Supplies,47.5,0
+23,Meat and Poultry,427.0,0
+23,Pantry Staples and Packaged Goods,712.5,0
+23,Personal Care and Health,69.5,0
+23,Seafood,206.0,0
+23,Snacks and Confectionery,144.0,0
+24,Alcoholic Beverages,68.25,0
+24,Bakery and Bread,802.25,0
+24,Beverages (Non-Alcoholic),614.25,0
+24,Dairy and Eggs,1639.5,0
+24,Fresh Produce,918.25,0
+24,Frozen Foods,595.25,0
+24,Household and Cleaning Supplies,47.25,0
+24,Meat and Poultry,428.25,0
+24,Pantry Staples and Packaged Goods,716.75,0
+24,Personal Care and Health,68.5,0
+24,Seafood,214.25,0
+24,Snacks and Confectionery,152.5,0
+25,Alcoholic Beverages,66.5,0
+25,Bakery and Bread,801.5,0
+25,Beverages (Non-Alcoholic),622.0,0
+25,Dairy and Eggs,1595.25,0
+25,Fresh Produce,914.75,0
+25,Frozen Foods,576.75,0
+25,Household and Cleaning Supplies,47.25,0
+25,Meat and Poultry,434.25,0
+25,Pantry Staples and Packaged Goods,705.0,0
+25,Personal Care and Health,60.75,0
+25,Seafood,214.75,0
+25,Snacks and Confectionery,153.5,0
+26,Alcoholic Beverages,66.25,0
+26,Bakery and Bread,761.75,0
+26,Beverages (Non-Alcoholic),598.0,0
+26,Dairy and Eggs,1560.75,0
+26,Fresh Produce,877.75,0
+26,Frozen Foods,558.75,0
+26,Household and Cleaning Supplies,47.25,0
+26,Meat and Poultry,429.75,0
+26,Pantry Staples and Packaged Goods,676.75,0
+26,Personal Care and Health,61.75,0
+26,Seafood,206.75,0
+26,Snacks and Confectionery,150.0,0
+27,Alcoholic Beverages,64.0,0
+27,Bakery and Bread,748.75,0
+27,Beverages (Non-Alcoholic),578.5,0
+27,Dairy and Eggs,1530.0,0
+27,Fresh Produce,839.0,0
+27,Frozen Foods,550.0,0
+27,Household and Cleaning Supplies,49.75,0
+27,Meat and Poultry,423.0,0
+27,Pantry Staples and Packaged Goods,669.0,0
+27,Personal Care and Health,55.75,0
+27,Seafood,193.25,0
+27,Snacks and Confectionery,144.25,0
+28,Alcoholic Beverages,65.5,0
+28,Bakery and Bread,764.25,0
+28,Beverages (Non-Alcoholic),601.75,0
+28,Dairy and Eggs,1514.5,0
+28,Fresh Produce,877.25,0
+28,Frozen Foods,569.5,0
+28,Household and Cleaning Supplies,50.0,0
+28,Meat and Poultry,440.0,0
+28,Pantry Staples and Packaged Goods,652.5,0
+28,Personal Care and Health,57.75,0
+28,Seafood,192.0,0
+28,Snacks and Confectionery,136.5,0
+29,Alcoholic Beverages,64.25,0
+29,Bakery and Bread,738.5,0
+29,Beverages (Non-Alcoholic),608.75,0
+29,Dairy and Eggs,1551.5,0
+29,Fresh Produce,902.5,0
+29,Frozen Foods,594.75,0
+29,Household and Cleaning Supplies,53.5,0
+29,Meat and Poultry,438.5,0
+29,Pantry Staples and Packaged Goods,632.0,0
+29,Personal Care and Health,61.75,0
+29,Seafood,186.25,0
+29,Snacks and Confectionery,133.75,0
+30,Alcoholic Beverages,66.75,0
+30,Bakery and Bread,754.0,0
+30,Beverages (Non-Alcoholic),612.5,0
+30,Dairy and Eggs,1566.25,0
+30,Fresh Produce,937.5,0
+30,Frozen Foods,601.75,0
+30,Household and Cleaning Supplies,52.5,0
+30,Meat and Poultry,450.5,0
+30,Pantry Staples and Packaged Goods,659.0,0
+30,Personal Care and Health,63.5,0
+30,Seafood,194.75,0
+30,Snacks and Confectionery,134.0,0
+31,Alcoholic Beverages,66.25,0
+31,Bakery and Bread,754.75,0
+31,Beverages (Non-Alcoholic),607.75,0
+31,Dairy and Eggs,1598.75,0
+31,Fresh Produce,973.0,0
+31,Frozen Foods,600.0,0
+31,Household and Cleaning Supplies,49.0,0
+31,Meat and Poultry,450.5,0
+31,Pantry Staples and Packaged Goods,653.25,0
+31,Personal Care and Health,63.5,0
+31,Seafood,202.0,0
+31,Snacks and Confectionery,142.5,0
+32,Alcoholic Beverages,60.5,0
+32,Bakery and Bread,686.25,0
+32,Beverages (Non-Alcoholic),575.0,0
+32,Dairy and Eggs,1514.0,0
+32,Fresh Produce,911.25,0
+32,Frozen Foods,559.0,0
+32,Household and Cleaning Supplies,48.5,0
+32,Meat and Poultry,418.75,0
+32,Pantry Staples and Packaged Goods,620.5,0
+32,Personal Care and Health,61.0,0
+32,Seafood,184.75,0
+32,Snacks and Confectionery,130.75,0
+33,Alcoholic Beverages,60.75,0
+33,Bakery and Bread,667.25,0
+33,Beverages (Non-Alcoholic),558.25,0
+33,Dairy and Eggs,1489.5,0
+33,Fresh Produce,859.0,0
+33,Frozen Foods,535.25,0
+33,Household and Cleaning Supplies,46.25,0
+33,Meat and Poultry,418.25,0
+33,Pantry Staples and Packaged Goods,632.75,0
+33,Personal Care and Health,59.0,0
+33,Seafood,187.0,0
+33,Snacks and Confectionery,130.75,0
+34,Alcoholic Beverages,62.25,0
+34,Bakery and Bread,668.5,0
+34,Beverages (Non-Alcoholic),570.5,0
+34,Dairy and Eggs,1443.75,0
+34,Fresh Produce,825.0,0
+34,Frozen Foods,536.0,0
+34,Household and Cleaning Supplies,46.0,0
+34,Meat and Poultry,410.0,0
+34,Pantry Staples and Packaged Goods,609.0,0
+34,Personal Care and Health,58.25,0
+34,Seafood,181.0,0
+34,Snacks and Confectionery,127.25,0
+35,Alcoholic Beverages,61.75,0
+35,Bakery and Bread,667.0,0
+35,Beverages (Non-Alcoholic),554.0,0
+35,Dairy and Eggs,1436.75,0
+35,Fresh Produce,786.75,0
+35,Frozen Foods,545.5,0
+35,Household and Cleaning Supplies,46.75,0
+35,Meat and Poultry,407.5,0
+35,Pantry Staples and Packaged Goods,612.75,0
+35,Personal Care and Health,57.0,0
+35,Seafood,180.25,0
+35,Snacks and Confectionery,122.75,0
+36,Alcoholic Beverages,63.5,0
+36,Bakery and Bread,702.5,0
+36,Beverages (Non-Alcoholic),561.75,0
+36,Dairy and Eggs,1487.75,0
+36,Fresh Produce,794.25,0
+36,Frozen Foods,554.75,0
+36,Household and Cleaning Supplies,47.0,0
+36,Meat and Poultry,411.25,0
+36,Pantry Staples and Packaged Goods,643.25,0
+36,Personal Care and Health,60.25,0
+36,Seafood,193.25,0
+36,Snacks and Confectionery,136.75,0
+37,Alcoholic Beverages,61.25,0
+37,Bakery and Bread,715.0,0
+37,Beverages (Non-Alcoholic),529.75,0
+37,Dairy and Eggs,1486.5,0
+37,Fresh Produce,787.25,0
+37,Frozen Foods,553.0,0
+37,Household and Cleaning Supplies,45.5,0
+37,Meat and Poultry,400.0,0
+37,Pantry Staples and Packaged Goods,641.5,0
+37,Personal Care and Health,63.25,0
+37,Seafood,188.25,0
+37,Snacks and Confectionery,136.25,0
+38,Alcoholic Beverages,56.25,0
+38,Bakery and Bread,717.75,0
+38,Beverages (Non-Alcoholic),506.0,0
+38,Dairy and Eggs,1532.75,0
+38,Fresh Produce,818.75,0
+38,Frozen Foods,551.25,0
+38,Household and Cleaning Supplies,47.5,0
+38,Meat and Poultry,396.0,0
+38,Pantry Staples and Packaged Goods,668.5,0
+38,Personal Care and Health,64.75,0
+38,Seafood,187.5,0
+38,Snacks and Confectionery,146.5,0
+39,Alcoholic Beverages,59.0,0
+39,Bakery and Bread,699.25,0
+39,Beverages (Non-Alcoholic),529.0,0
+39,Dairy and Eggs,1520.75,0
+39,Fresh Produce,817.0,0
+39,Frozen Foods,549.25,0
+39,Household and Cleaning Supplies,47.25,0
+39,Meat and Poultry,385.25,0
+39,Pantry Staples and Packaged Goods,657.5,0
+39,Personal Care and Health,65.5,0
+39,Seafood,190.5,0
+39,Snacks and Confectionery,149.5,0
+40,Alcoholic Beverages,58.5,0
+40,Bakery and Bread,737.25,0
+40,Beverages (Non-Alcoholic),535.25,0
+40,Dairy and Eggs,1568.5,0
+40,Fresh Produce,855.25,0
+40,Frozen Foods,566.25,0
+40,Household and Cleaning Supplies,50.5,0
+40,Meat and Poultry,402.25,0
+40,Pantry Staples and Packaged Goods,686.5,0
+40,Personal Care and Health,66.75,0
+40,Seafood,189.25,0
+40,Snacks and Confectionery,148.25,0
+41,Alcoholic Beverages,58.25,0
+41,Bakery and Bread,757.0,0
+41,Beverages (Non-Alcoholic),541.75,0
+41,Dairy and Eggs,1568.0,0
+41,Fresh Produce,859.5,0
+41,Frozen Foods,556.75,0
+41,Household and Cleaning Supplies,50.0,0
+41,Meat and Poultry,395.0,0
+41,Pantry Staples and Packaged Goods,696.25,0
+41,Personal Care and Health,65.25,0
+41,Seafood,188.75,0
+41,Snacks and Confectionery,145.25,0
+42,Alcoholic Beverages,57.75,0
+42,Bakery and Bread,720.0,0
+42,Beverages (Non-Alcoholic),528.0,0
+42,Dairy and Eggs,1482.0,0
+42,Fresh Produce,807.5,0
+42,Frozen Foods,538.75,0
+42,Household and Cleaning Supplies,46.0,0
+42,Meat and Poultry,395.5,0
+42,Pantry Staples and Packaged Goods,662.25,0
+42,Personal Care and Health,62.5,0
+42,Seafood,188.25,0
+42,Snacks and Confectionery,140.5,0
+43,Alcoholic Beverages,57.5,0
+43,Bakery and Bread,737.75,0
+43,Beverages (Non-Alcoholic),504.25,0
+43,Dairy and Eggs,1461.75,0
+43,Fresh Produce,782.0,0
+43,Frozen Foods,516.0,0
+43,Household and Cleaning Supplies,45.75,0
+43,Meat and Poultry,388.25,0
+43,Pantry Staples and Packaged Goods,677.25,0
+43,Personal Care and Health,62.5,0
+43,Seafood,181.0,0
+43,Snacks and Confectionery,131.25,0
+44,Alcoholic Beverages,60.75,0
+44,Bakery and Bread,733.0,0
+44,Beverages (Non-Alcoholic),469.5,0
+44,Dairy and Eggs,1396.5,0
+44,Fresh Produce,753.25,0
+44,Frozen Foods,494.0,0
+44,Household and Cleaning Supplies,45.5,0
+44,Meat and Poultry,364.5,0
+44,Pantry Staples and Packaged Goods,664.75,0
+44,Personal Care and Health,62.5,0
+44,Seafood,186.75,0
+44,Snacks and Confectionery,130.0,0
+45,Alcoholic Beverages,59.0,0
+45,Bakery and Bread,700.75,0
+45,Beverages (Non-Alcoholic),443.0,0
+45,Dairy and Eggs,1364.25,0
+45,Fresh Produce,714.0,0
+45,Frozen Foods,487.75,0
+45,Household and Cleaning Supplies,45.25,0
+45,Meat and Poultry,343.5,0
+45,Pantry Staples and Packaged Goods,661.25,0
+45,Personal Care and Health,64.75,0
+45,Seafood,182.0,0
+45,Snacks and Confectionery,131.5,0
+46,Alcoholic Beverages,57.25,0
+46,Bakery and Bread,738.75,0
+46,Beverages (Non-Alcoholic),415.5,0
+46,Dairy and Eggs,1373.5,0
+46,Fresh Produce,705.0,0
+46,Frozen Foods,486.5,0
+46,Household and Cleaning Supplies,49.25,0
+46,Meat and Poultry,338.0,0
+46,Pantry Staples and Packaged Goods,662.25,0
+46,Personal Care and Health,62.5,0
+46,Seafood,180.75,0
+46,Snacks and Confectionery,124.75,0
+47,Alcoholic Beverages,56.0,0
+47,Bakery and Bread,758.25,0
+47,Beverages (Non-Alcoholic),411.5,0
+47,Dairy and Eggs,1340.75,0
+47,Fresh Produce,696.25,0
+47,Frozen Foods,482.0,0
+47,Household and Cleaning Supplies,49.5,0
+47,Meat and Poultry,340.0,0
+47,Pantry Staples and Packaged Goods,657.75,0
+47,Personal Care and Health,63.75,0
+47,Seafood,183.25,0
+47,Snacks and Confectionery,126.75,0
+48,Alcoholic Beverages,56.75,0
+48,Bakery and Bread,761.25,0
+48,Beverages (Non-Alcoholic),423.75,0
+48,Dairy and Eggs,1371.0,0
+48,Fresh Produce,679.5,0
+48,Frozen Foods,493.25,0
+48,Household and Cleaning Supplies,50.25,0
+48,Meat and Poultry,359.0,0
+48,Pantry Staples and Packaged Goods,678.0,0
+48,Personal Care and Health,59.5,0
+48,Seafood,182.75,0
+48,Snacks and Confectionery,128.0,0
+49,Alcoholic Beverages,55.75,0
+49,Bakery and Bread,784.5,0
+49,Beverages (Non-Alcoholic),416.75,0
+49,Dairy and Eggs,1425.5,0
+49,Fresh Produce,693.75,0
+49,Frozen Foods,503.25,0
+49,Household and Cleaning Supplies,50.75,0
+49,Meat and Poultry,370.5,0
+49,Pantry Staples and Packaged Goods,726.75,0
+49,Personal Care and Health,61.25,0
+49,Seafood,196.5,0
+49,Snacks and Confectionery,138.5,0
+50,Alcoholic Beverages,58.0,0
+50,Bakery and Bread,813.25,0
+50,Beverages (Non-Alcoholic),432.5,0
+50,Dairy and Eggs,1497.0,0
+50,Fresh Produce,705.25,0
+50,Frozen Foods,514.75,0
+50,Household and Cleaning Supplies,51.0,0
+50,Meat and Poultry,364.5,0
+50,Pantry Staples and Packaged Goods,765.75,0
+50,Personal Care and Health,68.0,0
+50,Seafood,201.25,0
+50,Snacks and Confectionery,149.25,0
+51,Alcoholic Beverages,58.5,0
+51,Bakery and Bread,829.5,0
+51,Beverages (Non-Alcoholic),409.75,0
+51,Dairy and Eggs,1559.0,0
+51,Fresh Produce,716.0,0
+51,Frozen Foods,527.25,0
+51,Household and Cleaning Supplies,52.75,0
+51,Meat and Poultry,370.75,0
+51,Pantry Staples and Packaged Goods,823.5,0
+51,Personal Care and Health,69.0,0
+51,Seafood,211.75,0
+51,Snacks and Confectionery,162.25,0
+52,Alcoholic Beverages,53.75,0
+52,Bakery and Bread,824.0,0
+52,Beverages (Non-Alcoholic),383.25,0
+52,Dairy and Eggs,1527.0,0
+52,Fresh Produce,696.25,0
+52,Frozen Foods,512.25,0
+52,Household and Cleaning Supplies,47.25,0
+52,Meat and Poultry,367.75,0
+52,Pantry Staples and Packaged Goods,816.0,0
+52,Personal Care and Health,70.25,0
+52,Seafood,214.75,0
+52,Snacks and Confectionery,164.0,0

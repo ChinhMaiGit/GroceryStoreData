@@ -1,0 +1,10 @@
+# virtual environment and caches
+.venv/
+__pycache__/
+*.pyc
+
+# local assistant settings
+.claude/
+
+# workbook build artifact (rebuilt from data/visible on first run)
+data/store.duckdb
