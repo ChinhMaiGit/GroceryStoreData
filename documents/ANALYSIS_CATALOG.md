@@ -30,10 +30,12 @@ Layers 0–4 and 6 on a longer clock — three recording-layer binders to clean,
 three Christmases to describe, three cost-shock episodes to diagnose — and
 additionally unlock **Layer 7**, the questions a single year structurally
 cannot ask: trend, churn, structural breaks, regime-change forecasting, and
-capital decisions. Year one of `3y_baseline` is byte-identical to
-`baseline/`, so any pipeline built on the baseline must reproduce its own
-numbers there before extending — a built-in regression test for the
-*analyst's* code.
+capital decisions. Year one of `3y_baseline` replays the published
+baseline's *exogenous script* byte-for-byte (weather, cost paths, events)
+with a live customer panel — churn runs from month one — so a pipeline
+built on the baseline should land *near* its own numbers there (revenue
+within a fraction of a percent) without matching them exactly; the
+one-year arm remains the exact regression anchor.
 
 ---
 
@@ -174,7 +176,8 @@ A natural notebook series follows the layers in order — cleaning first (its
 output feeds everything), the policy laboratory after diagnosis (5.5's method
 validation needs Layer 2's estimates), structure last, and the three-year arc
 (Layer 7) as its own arc-length engagement once the one-year pipeline is
-trusted (its year one doubles as that pipeline's regression test).
+trusted (the one-year baseline arm remains the pipeline's exact
+regression anchor).
 `analyses/analysis_workbook.py` walks a single narrative through Layers 0–4
 at survey depth; `analyses/catalog_walkthrough.py` demonstrates the grading
 loop with one scored question per layer; Layer 7 is covered by its own

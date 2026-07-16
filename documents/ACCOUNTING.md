@@ -252,9 +252,10 @@ after-tax lines.)*
 On the three-year horizon each year settles separately: the one-time openings
 are charged to 2025, repairs are expensed in their month, capex is not
 deducted, and `tax_statement.csv` carries one row per year. Reference
-(`3y_baseline`, seed 20260712): 2025 +36,479 / 2026 +48,756 / 2027 −2,080
-before tax — the growth year funds the expansion, and the squeeze year poses
-the renew-or-close question the dataset was built to ask (P5 §15).
+(`3y_baseline`, seed 20260712, live-panel vintage): 2025 +36,057 / 2026
++49,941 / 2027 **−481** before tax — the growth year funds the expansion,
+and the squeeze year lands on a knife edge, posing the renew-or-close
+question the dataset was built to ask (P5 §15).
 
 ### 7.3 The tax layer (P4 §2)
 
@@ -311,7 +312,7 @@ What an analyst should expect each check to return, on the shipped data:
 | Check | Expected result |
 |---|---|
 | Raw receipts Σ(qty × price) vs ledger revenue | **off by the duplicated uploads** (≈ €1.5k) |
-| After retry-dedup (a receipt is a retry iff *every* distinct line's multiplicity is even → keep half) | **ties to the cent**, refunds already netted on both sides |
+| After retry-dedup (a receipt is a retry iff *every* distinct line's multiplicity is even → keep half) | **ties to the cent** on the one-year baseline. On the three-year arms the rule has a **structural blind spot**: a legitimate basket whose distinct lines all happen to have even multiplicity (typically a single-line item double-scanned at the till) satisfies the all-even test by chance and gets falsely halved. This vintage has two such receipts in ~243k lines (residues −€4.89 in 2025 and −€13.40 in 2026; 2027 ties exactly), each traceable to one receipt absent from `imperfections.csv`. A heuristic with roughly one error per hundred-thousand lines, and residues explainable to the cent, is the realistic standard |
 | Every refund's `ref_receipt_id` | resolves to a real earlier sale (0 orphans) |
 | Invoice file after exact-line dedup vs ledger procurement | **short by the missing invoices** (a knowable € gap) |
 | Perpetual-inventory identity per SKU-day, refund lines excluded | holds everywhere except 2-day typo pairs; monthly `stock_count` rows explain the shrinkage |
@@ -337,6 +338,7 @@ What an analyst should expect each check to return, on the shipped data:
 - Capex is expensed against nothing: no depreciation schedule exists, so the
   €14,000 expansion reduces cash and retained earnings but never taxable
   profit (P5 §4).
-- On the three-year arms, year one shows no customer churn (the panel flow
-  starts month 13 to preserve the published baseline byte-for-byte, P5 §2),
-  and the recording layer runs per calendar-year binder.
+- On the three-year arms, the recording layer runs per calendar-year binder,
+  and year one shares only the *exogenous script* with the published
+  baseline (P5 §2, amended): the panel churns from month one, so year-one
+  receipts are near — not equal to — the one-year arm's.

@@ -390,7 +390,8 @@ PHASE5 = {
         "newcomer_transient_share": 0.50,       # movers are likelier to move again
         "replacement_delay_p": 0.50,            # arrival = 1 + Geometric(p) months out
         "growth_trickle_per_year": 4,           # Poisson mean, net new households
-        "churn_start_month": 13,                # byte-identity contract (P5 §2)
+        "churn_start_month": 1,                 # the panel flows from day one (P5 §2
+                                                # amendment: realism beat byte-identity)
         "apartment_block": {
             "t_from": 609,                      # 2026-09-01
             "n_new": 9,
@@ -447,6 +448,8 @@ PHASE5 = {
         "t_from": 547,                          # 2026-07-01 .. 2026-08-31
         "t_to": 608,
         "temp_delta": 3.5,
+        "ramp_days": 10,                        # heat builds and breaks over days,
+                                                # not at midnight — no square edges
     },
     # P5 §8: year three — the squeeze
     "competitor": {

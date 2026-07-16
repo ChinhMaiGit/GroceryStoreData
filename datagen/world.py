@@ -94,12 +94,22 @@ class World:
         )
         if self.p5:
             # the 2026 heatwave (P5 §7) edits the weather script BEFORE the
-            # paths are built, so demand modifiers and spoilage feel the heat
+            # paths are built, so demand modifiers and spoilage feel the heat.
+            # The anomaly ramps in and out over ramp_days: heat builds and
+            # breaks over days, never at midnight (P5 audit amendment)
             _hw = self.p5["heatwave"]
-            _sl = self.wx.index[(self.wx["t"] >= _hw["t_from"]) & (self.wx["t"] <= _hw["t_to"])]
-            self.wx.loc[_sl, "temp_C"] = self.wx.loc[_sl, "temp_C"] + _hw["temp_delta"]
-            self.wx.loc[_sl, "anomaly"] = self.wx.loc[_sl, "anomaly"] + _hw["temp_delta"]
-            self.wx.loc[_sl, "z"] = self.wx.loc[_sl, "anomaly"] / 2.8
+            _t_all = self.wx["t"].to_numpy()
+            _profile = _hw["temp_delta"] * np.clip(
+                a = np.minimum(
+                    (_t_all - _hw["t_from"] + 1) / _hw["ramp_days"],
+                    (_hw["t_to"] - _t_all + 1) / _hw["ramp_days"],
+                ),
+                a_min = 0.0,
+                a_max = 1.0,
+            )
+            self.wx["temp_C"] = self.wx["temp_C"] + _profile
+            self.wx["anomaly"] = self.wx["anomaly"] + _profile
+            self.wx["z"] = self.wx["anomaly"] / 2.8
         # scenario weather edits are script overwrites BEFORE the paths are
         # built, so demand modifiers and spoilage factors feel the storm too
         for _we in self.scenario.get("weather_edit", []):
@@ -303,8 +313,9 @@ class World:
         ))
         for _d in _blk_days:
             _add_newcomer(arr_t = _d)
-        # the slow growth trickle: the neighborhood does not boom
-        for y in range(1, self.n_years):
+        # the slow growth trickle: the neighborhood does not boom, but it
+        # does not hold its breath through year one either
+        for y in range(self.n_years):
             gt = rng_for(K_PANEL, 3, y)
             _n_extra = gt.poisson(lam = p5p["growth_trickle_per_year"])
             _months = sorted(int(x) for x in gt.integers(

@@ -423,33 +423,26 @@ def validate_phase5(
     base,
     out,
 ):
-    """The Phase 5 battery (P5 §11, checks 31-35): the year-one identity
-    contract against the published one-year baseline, the panel accounting,
-    and the retained-earnings ledger's reconciliation to the cost sheet."""
+    """The Phase 5 battery (P5 §11, checks 31-35): the exogenous script's
+    year-one identity against the published one-year baseline, the panel
+    accounting, and the RE ledger's reconciliation to the cost sheet."""
     w = world
     base_dir = OUT / "scenarios" / "baseline"
     checks = []
 
-    # (31) year one is byte-for-byte the published baseline: every export
-    # whose schema did not widen must START with the baseline file's text
+    # (31) the exogenous script's year one is byte-for-byte the published
+    # baseline's: weather, calendar, modifiers, cost paths, events. The
+    # ENDOGENOUS files (receipts, inventory, ...) are allowed to differ —
+    # the panel churns from month one on this horizon (P5 §2 amendment),
+    # so the people move even while the world's script stands still.
     _prefix_files = [
-        "visible/receipts.csv",
-        "visible/procurement.csv",
-        "visible/inventory_eod.csv",
-        "visible/write_offs.csv",
         "visible/weather.csv",
-        "visible/price_history.csv",
-        "visible/promotions.csv",
         "visible/calendar.csv",
         "visible/locations.csv",
-        "hidden/imperfections.csv",
         "hidden/demand_modifiers.csv",
         "hidden/tilts.csv",
         "hidden/cost_paths.csv",
         "hidden/spoil_factors.csv",
-        "hidden/hidden_demand.csv",
-        "hidden/guests.csv",
-        "hidden/owner_forecasts.csv",
         "hidden/event_log.csv",
         "hidden/weather_full.csv",
         "hidden/decision_t0.csv",
@@ -463,21 +456,10 @@ def validate_phase5(
         if not _b.startswith(_a):
             _bad.append(_rel)
     checks.append((
-        "P5-31 year one is a byte prefix of every unwidened export",
+        "P5-31 the exogenous script's year one is a byte prefix of the baseline's",
         not _bad,
         f"{len(_prefix_files) - len(_bad)}/{len(_prefix_files)} files"
         + (f", first mismatch {_bad[0]}" if _bad else ""),
-    ))
-    # ... and the widened cost sheet matches the baseline on shared columns
-    _cs = base["cost_sheet"]
-    _cs_b = pd.read_csv(filepath_or_buffer = base_dir / "visible" / "cost_sheet.csv")
-    _y1 = _cs[_cs["year"] == 2025].reset_index(drop = True)
-    _gap = float(np.max(np.abs(
-        _y1[_cs_b.columns].to_numpy(dtype = float) - _cs_b.to_numpy(dtype = float))))
-    checks.append((
-        "P5-31b year-one cost sheet matches the baseline on shared columns",
-        len(_y1) == 12 and _gap < 1e-6,
-        f"max gap {_gap:.2e}",
     ))
 
     # (32) panel accounting: nobody shops before arriving or after leaving
@@ -509,6 +491,7 @@ def validate_phase5(
     ))
 
     # (33) the RE ledger reconciles to the cost sheet to the cent
+    _cs = base["cost_sheet"]
     _rate = PHASE4["profit_tax_rate"]
     _retain = w.p5["finance"]["retain_ratio"]
     _open = float(base["year_results"][0]["profit_after_tax"])

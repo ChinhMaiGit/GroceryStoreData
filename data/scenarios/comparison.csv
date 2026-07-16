@@ -1,8 +1,8 @@
 scenario,description,revenue,vat_remitted,payroll_tax,profit_before_tax,profit_tax,profit_after_tax,oracle_profit,stockout_rate,receipt_lines
 baseline,the reference year,743264.78,16379.03,0.0,36479.12,7295.82,29183.3,44350.64,0.0874,79642
-3y_baseline,"three years (P5): growth, churn, an expansion, then a discounter",2318109.13,44960.2,13179.94,83154.41,17046.93,66107.48,93453.32,0.0772,242256
-3y_no_competitor,the three-year arc without the 2027 discounter (CRN twin),2334398.76,45550.07,13179.94,88272.11,17654.42,70617.69,98773.31,0.0776,243541
-3y_no_expansion,the three-year arc with the expansion switched off (CRN twin),2295159.36,45932.82,0.0,165157.88,33031.58,132126.31,190945.27,0.0933,240331
+3y_baseline,"three years (P5): growth, churn, an expansion, then a discounter",2328572.56,45286.58,13179.94,85516.37,17199.54,68316.83,95675.74,0.0749,243227
+3y_no_competitor,the three-year arc without the 2027 discounter (CRN twin),2345543.54,45993.82,13179.94,91348.9,18269.78,73079.12,101307.86,0.0769,244482
+3y_no_expansion,the three-year arc with the expansion switched off (CRN twin),2303918.26,46214.7,0.0,167188.92,33437.78,133751.14,192628.45,0.0919,241281
 food_vat_cut_july,reduced VAT 10% -> 5% on food from July 1,737205.59,15161.86,0.0,38412.57,7682.51,30730.06,45989.5,0.0878,80175
 second_clerk,"one hired clerk, opening hours extended to 7:00-22:00",759153.49,16727.04,19548.9,-65194.52,0.0,-65194.52,-58036.75,0.1,81140
 tax_rebate_spring,household tax rebate: budgets +20% in weeks 14-17,744458.62,16352.95,0.0,36535.92,7307.18,29228.74,44197.28,0.0867,79782

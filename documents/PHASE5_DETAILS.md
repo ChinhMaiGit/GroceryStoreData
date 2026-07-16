@@ -2,7 +2,7 @@
 
 *(2026-07-16. Builds on Phases 1–4; extends the horizon, adds the panel flow and
 the owner's balance sheet, and scripts years two and three. Changes to the
-year-one code path are forbidden — see the byte-identity contract, §2.
+year-one exogenous script are forbidden — see the identity contract, §2.
 **Implemented 2026-07-16**: the three-year world generates as the scenario arms
 `3y_baseline`, `3y_no_competitor`, and `3y_no_expansion` under
 `data/scenarios/` — the `3y_` prefix keeps them apart from the one-year arms —
@@ -40,7 +40,7 @@ through the keyed-RNG market loop.
 
 | Year | Name | Role in the dataset |
 |---|---|---|
-| 2025 | **Proof of concept** | The published baseline, byte-identical to the current vintage. Energy crisis, one wage raise, random events — the "least excited" year that sets expectations. |
+| 2025 | **Proof of concept** | The published baseline's script, replayed with a live panel (churn from month one, §2). Energy crisis, one wage raise, random events — the "least excited" year that sets expectations. |
 | 2026 | **Growth, with scares** | The neighborhood grows, the owner's capital grows, and both are interrupted: a freezer failure, a supply shock, a heatwave. Ends with the expansion — the owner's bet on the future. |
 | 2027 | **The squeeze** | The rent reprices, a discounter opens, the owner fights back, a festival gives one good fortnight, a commodity spike lands. Ends on the question the whole dataset was built to pose: *was the expansion right, and is the shop worth continuing?* |
 
@@ -49,38 +49,42 @@ previously ask: trend–seasonality separation, year-over-year decomposition, a
 true holdout year for forecasting, cohort and survival analysis, structural
 breaks, and the external validity of every year-one causal estimate.
 
-## 2 The byte-identity contract (year one is sacred)
+## 2 The identity contract (the script is sacred; the people are not)
 
-The current one-year baseline is published, graded, and referenced throughout
-the analysis notebooks. Phase 5 must not disturb it:
+*(Amended 2026-07-16 after the independent-analyst audit of the first
+vintage. The original contract froze the customer panel through all of 2025
+so that year one of the three-year run stayed byte-identical to the published
+one-year baseline. The audit showed that freeze was the dataset's single most
+visible artifact — not one regular went silent in twelve months, then dozens
+did — and realism won: the panel now flows from month one.)*
 
-> **Contract.** Restricted to dates ≤ 2025-12-31 and to the columns that
-> existed before Phase 5, every visible and hidden artifact of the three-year
-> baseline run is **row-identical** to the one-year baseline run. Schema may
-> widen (new columns), files may lengthen (years two and three), but year-one
-> rows on shared columns do not change.
+> **Contract.** Restricted to dates ≤ 2025-12-31, every **exogenous-script**
+> artifact of the three-year baseline run — calendar, weather, demand
+> modifiers and tilts, cost and rate paths, spoilage factors, the event log,
+> locations, the opening decision — is **byte-identical** to the one-year
+> baseline run's. The **endogenous** artifacts (receipts, inventory,
+> procurement, write-offs, prices, forecasts) are *near* the baseline but not
+> identical: the panel churns from day one, so the people differ even while
+> the world's script stands still. The published one-year arm itself is
+> untouched — it remains its own, separately validated dataset.
 
-This is achievable because of the keyed-RNG discipline (P2 §13): new draws
-(churn, arrivals, script events of years two and three) live under **new keys**
-or keys with $t > 365$, so no existing stream desyncs. The contract imposes
-four implementation rules:
+This split is exactly what the keyed-RNG discipline (P2 §13) buys: panel
+draws live under their own `K_PANEL` keys, so adding year-one churn moves no
+weather draw, no cost path, no event. The remaining implementation rules:
 
-- **No churn draws for year-one months.** Departures and arrivals begin with
-  the January-2026 close (`churn_start_month = 13`). Narratively: year one
-  *defines* the panel; the flow is observed from year two. (An idealization —
-  real neighborhoods churn continuously — accepted deliberately to keep the
-  published baseline as a regression anchor; noted in §10.)
+- **Churn from month one.** Original transients face the monthly hazard from
+  the first close (`churn_start_month = 1`); replacements and the growth
+  trickle run in year one too.
 - **No owner draw in year one.** The founder lives off savings while proving
-  the shop (§4); cash paths of year one are untouched.
-- **The recording layer runs per calendar-year block**, keyed by year, so the
-  year-one defect set is exactly the one-year run's defect set.
-- **Refunds deferred past 2025-12-31** — dropped in the one-year run — now
-  materialize in January 2026. Year-one rows are unaffected; year two gains a
-  handful of early-January refunds referencing December sales (a nice
-  realistic seam).
+  the shop (§4).
+- **The recording layer runs per calendar-year block**, keyed by year.
+- **Refunds deferred past 2025-12-31** — dropped in the one-year run —
+  materialize in January 2026: year two opens with a handful of refunds
+  referencing December sales, a realistic seam.
 
-**Validation #31** hashes the year-one row-slices of the three-year run
-against the one-year baseline and must match exactly.
+**Validation #31** checks that the exogenous-script files' year one is a
+byte prefix of the published baseline's — the CRN guarantee, stated on the
+files an analyst can diff.
 
 ## 3 The panel flow: rooted and transient customers
 
@@ -257,7 +261,7 @@ formalization, and the cost sheet's new columns hold zeros.
 | Feb 8 | 404 | **Freezer failure** | overnight compressor death: 100% of Frozen Foods stock and 30% of Dairy and Eggs written off at opening (`write_offs.reason = "damage"`); €1,800 emergency repair (cash + RE debit); frozen shelf capacity ×0.5 for 21 days (order cap) | a sharp, narrated inventory anomaly; delays the expansion; tests event detection vs. the answer key |
 | Apr–May | 470–530 | **Avian flu** | scripted cost event on Dairy and Eggs: +18% invoice peak, 14-day ramp, 8-week decay (the P2 event machinery, scripted rather than drawn) | a second pass-through episode, single-category, cleanly identified |
 | Jul 1 | 547 | **Wage raise** | +4% statutory | opex step |
-| Jul–Aug | 547–608 | **Heatwave** | `weather_edit`: +3.5 °C temperature anomaly, more clear days, Jul–Aug | ice-cream boom *and* spoilage pressure (κ_T channel) — revenue and waste rise together |
+| Jul–Aug | 547–608 | **Heatwave** | +3.5 °C temperature anomaly, Jul–Aug, ramping in and out over ~10 days (audit amendment: heat builds and breaks over days, never at midnight) | ice-cream boom *and* spoilage pressure (κ_T channel) — revenue and waste rise together |
 | Sep–Oct | 609–650 | **The apartment block fills** | scripted arrival surge: ~9 new regulars phased over 6 weeks (fresh profiles, newcomer persistence mix); guest intensity +5% permanently | the growth the owner has been waiting for — realized, visible, and just before his capital crosses the line |
 | ~Nov 1 | ~670 | **EXPANSION** (endogenous) | RE crosses $K_{exp}$ → the first clerk (8-hour shift), hours 07–21, shelf ×1.2, capex €14,000 | the owner's bet, placed at the exact peak of his world |
 
@@ -333,7 +337,8 @@ runtime roughly triples (~11 min); acceptable.
   arrival/departure/persistence; new hidden `panel_ledger.csv` if needed for
   grading (arrivals, departures, causes).
 - **validate.py** — all band-calibrated checks re-scoped per year; new:
-  **(31)** year-one byte-identity vs. the one-year baseline; **(32)** panel
+  **(31)** the exogenous script's year-one byte-identity vs. the one-year
+  baseline; **(32)** panel
   accounting identity ($N_t = N_0 + \text{arrivals} - \text{departures}$,
   ledger vs. data); **(33)** RE ledger reconciles to the cash identity to the
   cent; **(34)** the expansion fires exactly once, in autumn 2026; **(35)**
@@ -356,7 +361,7 @@ PHASE5 = {
         "newcomer_transient_share": 0.50,    # movers are likelier to move again
         "replacement_delay_p": 0.50,         # 1 + Geometric(p) months to refill
         "growth_trickle_per_year": 4,        # Poisson mean, net new households
-        "churn_start_month": 13,             # byte-identity contract, §2
+        "churn_start_month": 1,              # the panel flows from day one (§2)
         "apartment_block": {
             "t_from": 609,                   # 2026-09-01
             "n_new": 9,
@@ -415,6 +420,7 @@ PHASE5 = {
         "t_from": 547,
         "t_to": 608,
         "temp_delta": 3.5,
+        "ramp_days": 10,                     # no square edges (audit amendment)
     },
     "competitor": {
         "t": 790,                            # 2027-03-01
@@ -454,11 +460,13 @@ PHASE5 = {
 
 ## 13 Open questions, with proposed answers
 
-1. **Should year-one churn exist?** *Proposed: no* (churn starts month 13).
-   The realism cost — a forensically quiet first year — is accepted to keep
-   the published baseline as a regression anchor, and it matches the user's
-   framing of year one as the bare minimum. Revisit only if an auditor pass
-   flags it.
+1. **Should year-one churn exist?** *Settled: yes* (amended 2026-07-16). The
+   first vintage started churn at month 13 to keep year one byte-identical to
+   the published baseline — and the auditor pass flagged exactly the
+   predicted tell (zero regulars going silent in 2025, then 15 and 36 in the
+   later years). Realism won: churn, replacements, and the growth trickle now
+   run from month one, and the identity contract narrowed to the exogenous
+   script (§2).
 2. **Does the owner re-run the assortment MILP at expansion?** *Proposed: no.*
    Expansion is depth (shelf ×1.2) and hours, not breadth; the
    fixed-assortment contract and its censoring-spiral evidence survive. An
@@ -495,7 +503,9 @@ complete, 2026-07-16**:
    festival, commodity; check P5-35).
 7. Recording layer runs per calendar-year binder with per-year keys; the full
    30-check suite still passes on the regenerated one-year baseline, which
-   stays **byte-identical to the published files** (verified via git).
+   stays **byte-identical to the published files** (verified via git); the
+   three-year arms' year one shares the baseline's exogenous script but
+   carries a live panel (§2 amendment).
 8. Twins `3y_no_competitor` / `3y_no_expansion`; comparison.csv covers all
    nine arms.
 9. Reference numbers recorded in ACCOUNTING.md; README status update.
@@ -503,19 +513,24 @@ complete, 2026-07-16**:
 The workbook retrofit (year dimension) follows as its own task once the data
 is stable.
 
-## 15 Measured reference numbers (seed 20260712, this vintage)
+## 15 Measured reference numbers (seed 20260712, live-panel vintage of 2026-07-16)
 
 `3y_baseline` (data/scenarios/3y_baseline/):
 
 | Year | Revenue | Profit before tax | Tax | After tax | Notes |
 |---|---|---|---|---|---|
-| 2025 | 743,264.78 | 36,479.12 | 7,295.82 | 29,183.30 | identical to the one-year baseline |
-| 2026 | 768,041 | 48,755.54 | 9,751.11 | 39,004.43 | growth year; expansion Nov 1 (capex €14k, RE €40.8k after) |
-| 2027 | 806,803 | **−2,080.25** | 0 | −2,080.25 | the squeeze: rent +12%, a full year of the clerk, the discounter |
+| 2025 | 742,977 | 36,056.90 | 7,211.38 | 28,845.52 | the baseline's script with a live panel (§2): near, not equal to, the published one-year figures |
+| 2026 | 771,317 | 49,940.82 | 9,988.16 | 39,952.65 | growth year; expansion Nov 1 (capex €14k, RE €40.9k after) |
+| 2027 | 814,278 | **−481.35** | 0 | −481.35 | the squeeze: rent +12%, a full year of the clerk, the discounter — a knife-edge year |
 
-Panel: 259 opening regulars → 314 ever-present identities over three years
-(block + trickle + replacement churn). χ calibration: transient defection
-×0.87 vs rooted ×0.92, aggregate ×0.910. Twins: `3y_no_competitor` realized
-€88k / oracle €99k; `3y_no_expansion` realized €165k / oracle €191k;
-`3y_baseline` realized €83k — the expansion, not the discounter, is what
-made 2027 dangerous, and only the twins can prove it.
+Panel: 259 opening regulars → 321 ever-present identities over three years
+(replacement churn from month one + trickle + the block); regulars go silent
+in every year (10 / 12 / 23 by last-purchase year). χ calibration: transient
+defection ×0.87 vs rooted ×0.92, aggregate ×0.910. Twins: `3y_no_competitor`
+realized €91.3k / oracle €101.3k; `3y_no_expansion` realized €167.2k /
+oracle €192.6k; `3y_baseline` realized €85.5k — the expansion (~€82k + €14k
+capex) dwarfs the discounter (~€5.8k), and only the twins can prove it.
+Recording layer: the all-even dedup rule has **two natural false positives**
+in three years (single-line double-scanned baskets; residues −€4.89 in 2025
+and −€13.40 in 2026, each traceable to one receipt) — the structural blind
+spot the reconciliation contract documents (ACCOUNTING §9).
