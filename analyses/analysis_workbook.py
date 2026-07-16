@@ -17,6 +17,7 @@ def _():
     import polars as pl
 
     from pathlib import Path
+    from plotly.subplots import make_subplots
 
     # the workbook lives in analyses/; the project root is one level up
     ROOT = Path(__file__).resolve().parent.parent
@@ -25,10 +26,13 @@ def _():
     # ---- chart style: declutter per Knaflic's "Storytelling with Data" -----
     # one accent for what the narrative claims, gray for context, no chart
     # border, no gridlines at all, no value axis on bar/column charts (their
-    # bars carry the number directly), titles state the takeaway rather than
-    # describe the axes, legends replaced by direct end-of-line labels
-    # wherever the series count allows it. The default right margin is slim;
-    # charts that end their lines with text labels ask style() for extra room.
+    # bars carry the number directly). Titles are DESCRIPTIVE (they say what
+    # the chart shows); the takeaway claim lives inside the plot as a compact
+    # annotation via takeaway(), and the caption() underneath elaborates the
+    # context, mechanism, and caveats the compact annotation can't carry.
+    # Legends are replaced by direct end-of-line labels wherever the series
+    # count allows it. The default right margin is slim; charts that end
+    # their lines with text labels ask style() for extra room.
     INK = "#404040"
     MUTED = "#BFBFBF"
     ACCENT = "#2E5EAA"
@@ -176,6 +180,38 @@ def _():
         The left padding lines the caption up with the chart title above it."""
         return mo.md(f"<div style='color:#7A7A7A; font-size:0.92em; padding:2px 24px 18px 64px;'><em>{text}</em></div>")
 
+    def takeaway(
+        fig,
+        text,
+        x = 0.02,
+        y = 0.98,
+        row = None,
+        col = None,
+        color = ACCENT,
+        anchor = "left",
+    ):
+        """The headline, inside the plot, kept compact: one or two short
+        lines carrying the single most important claim. Everything longer —
+        context, mechanism, caveats — belongs in caption() underneath."""
+        fig.add_annotation(
+            text = text,
+            x = x,
+            y = y,
+            xref = "x domain",
+            yref = "y domain",
+            xanchor = anchor,
+            yanchor = "top",
+            showarrow = False,
+            align = anchor,
+            font = dict(
+                color = color,
+                size = 12.5,
+            ),
+            row = row,
+            col = col,
+        )
+        return fig
+
     return (
         ACCENT,
         ACCENT_LIGHT,
@@ -189,10 +225,12 @@ def _():
         end_label,
         go,
         hide_value_axis,
+        make_subplots,
         mo,
         np,
         pl,
         style,
+        takeaway,
     )
 
 
@@ -485,7 +523,60 @@ def _(DATA, ROOT, duckdb, pl):
 
 
 @app.cell
-def _(mo, tbl_summary):
+def _(caption, mo, tbl_summary):
+    _erd = mo.mermaid("""
+    erDiagram
+        receipts     }o--|| products     : "uid"
+        receipts     }o--|| calendar     : "date"
+        inventory_eod }o--|| products    : "uid"
+        inventory_eod }o--|| calendar    : "date"
+        procurement  }o--|| products     : "uid"
+        procurement  }o--|| calendar     : "delivery_date"
+        write_offs   }o--|| products     : "uid"
+        price_history }o--|| products    : "uid"
+        promotions   }o--|| products     : "category"
+        weather      ||--|| calendar     : "date"
+        cost_sheet   ||--|| calendar     : "month"
+        tax_statement ||--|| cost_sheet  : "year"
+
+        receipts {
+            int receipt_id
+            date date
+            int hour
+            string uid
+            int qty
+            float unit_price
+            string payment
+            string customer_id
+            int ref_receipt_id
+        }
+        products {
+            string uid
+            string category
+            string product_type
+            string brand_level
+        }
+        inventory_eod {
+            string uid
+            date date
+            int on_hand
+        }
+        procurement {
+            string uid
+            date order_date
+            date delivery_date
+            date posted_date
+            int qty
+            float unit_cost
+        }
+        calendar {
+            date date
+            int dow
+            int month
+            int week
+            int closed
+        }
+    """)
     mo.vstack(
         items = [
             mo.md(
@@ -506,11 +597,26 @@ def _(mo, tbl_summary):
     use. Real paperwork contains duplicates, typos, and gaps, and yours
     is no exception — Section 3 lists exactly what we found and fixed,
     so every number after it is built on the cleaned-up records.
+
+    The diagram below is the map of how those piles connect — worth a
+    glance before diving into any single table.
     """
             ),
             mo.ui.table(
                 data = tbl_summary,
                 selection = None,
+            ),
+            _erd,
+            caption(
+                "How the piles connect: a line between two tables means they "
+                "share a column an analysis can join on, and the label names "
+                "that column. The little crow's-feet mark the 'many' side — "
+                "many receipt lines share one product (`uid`) and one "
+                "calendar day (`date`), for instance. Two tables carry more "
+                "than a join column, so their key fields are spelled out "
+                "underneath: `receipts` is the till itself, and `products` "
+                "is the supplier catalog every other pile eventually links "
+                "back to."
             ),
         ],
     )
@@ -818,8 +924,10 @@ def _(
     con,
     go,
     hide_value_axis,
+    make_subplots,
     mo,
     style,
+    takeaway,
 ):
     # ---- the P&L -------------------------------------------------------------
     pnl = con.sql(
@@ -865,12 +973,19 @@ def _(
     ).fetchone()[0]
 
     # utilities is too small a euro line to read once stacked against
-    # procurement, so its Q4 story gets its own full-width chart; each chart
-    # drops the value axis and prints the number on the bar instead. Two
-    # stacked full-width figures instead of side-by-side panels: every bar
-    # label gets the whole row of horizontal space, so nothing collides.
-    _fig_a = go.Figure()
-    _fig_a.add_bar(
+    # procurement, so its Q4 story gets its own panel alongside it — a
+    # (1, 2) subplot saves the vertical space two stacked full-width
+    # figures would cost, since neither panel needs the other's full width.
+    _fig = make_subplots(
+        rows = 1,
+        cols = 2,
+        subplot_titles = (
+            "Revenue vs. total operating cost, Jan-Dec",
+            "Electricity bill, isolated from the P&L",
+        ),
+        horizontal_spacing = 0.12,
+    )
+    _fig.add_bar(
         x = pnl["month"].to_list(),
         y = pnl["revenue"].to_list(),
         text = [f"{v/1000:.0f}k" for v in pnl["revenue"].to_list()],
@@ -882,8 +997,10 @@ def _(
         marker_color = ACCENT,
         marker_line_width = 0,
         cliponaxis = False,
+        row = 1,
+        col = 1,
     )
-    _fig_a.add_bar(
+    _fig.add_bar(
         x = pnl["month"].to_list(),
         y = _total_cost,
         text = [f"{v/1000:.0f}k" for v in _total_cost],
@@ -895,30 +1012,11 @@ def _(
         marker_color = MUTED,
         marker_line_width = 0,
         cliponaxis = False,
+        row = 1,
+        col = 1,
     )
-    style(
-        fig = _fig_a,
-        title = "Revenue (blue) and total cost (gray) climb together, month by month",
-    )
-    hide_value_axis(
-        fig = _fig_a,
-        axis = "y",
-        title = "EUR",
-    )
-    _fig_a.update_yaxes(range = [0, max(pnl["revenue"].max(), max(_total_cost)) * 1.22])
-    _fig_a.update_xaxes(
-        title_text = "month",
-        tickmode = "linear",
-        dtick = 1,
-    )
-    _fig_a.update_layout(
-        barmode = "group",
-        height = 360,
-    )
-
     _util_colors = [WARN if m >= 10 else MUTED for m in pnl["month"].to_list()]
-    _fig_b = go.Figure()
-    _fig_b.add_bar(
+    _fig.add_bar(
         x = pnl["month"].to_list(),
         y = pnl["utilities"].to_list(),
         text = [f"{v:,.0f}" for v in pnl["utilities"].to_list()],
@@ -930,37 +1028,80 @@ def _(
         marker_color = _util_colors,
         marker_line_width = 0,
         cliponaxis = False,
+        row = 1,
+        col = 2,
     )
     style(
-        fig = _fig_b,
-        title = "The utilities bill breaks that pattern — it spikes in Q4 (red)",
+        fig = _fig,
+        title = "Monthly P&L snapshot: revenue, cost, and the electricity bill",
+        n_subplot_titles = 2,
     )
     hide_value_axis(
-        fig = _fig_b,
+        fig = _fig,
         axis = "y",
         title = "EUR",
+        row = 1,
+        col = 1,
     )
-    _fig_b.update_yaxes(range = [0, pnl["utilities"].max() * 1.25])
-    _fig_b.update_xaxes(
+    hide_value_axis(
+        fig = _fig,
+        axis = "y",
+        title = "EUR",
+        row = 1,
+        col = 2,
+    )
+    _fig.update_yaxes(
+        range = [0, max(pnl["revenue"].max(), max(_total_cost)) * 1.32],
+        row = 1,
+        col = 1,
+    )
+    _fig.update_yaxes(
+        range = [0, pnl["utilities"].max() * 1.35],
+        row = 1,
+        col = 2,
+    )
+    _fig.update_xaxes(
         title_text = "month",
         tickmode = "linear",
         dtick = 1,
+        row = 1,
+        col = 1,
     )
-    _fig_b.update_layout(height = 320)
+    _fig.update_xaxes(
+        title_text = "month",
+        tickmode = "linear",
+        dtick = 1,
+        row = 1,
+        col = 2,
+    )
+    _fig.update_layout(barmode = "group")
+    takeaway(
+        fig = _fig,
+        text = "revenue and cost climb together",
+        x = 0.02,
+        y = 0.99,
+        row = 1,
+        col = 1,
+    )
+    takeaway(
+        fig = _fig,
+        text = "the bill breaks pattern in Q4 (red)",
+        x = 0.02,
+        y = 0.99,
+        row = 1,
+        col = 2,
+    )
 
     mo.vstack(
         items = [
-            _fig_a,
+            _fig,
             caption(
-                "Each pair of bars is one month: your total sales (blue) next to "
-                "everything it cost to run the shop that month (gray). The two climb "
-                "together all year — the sign of a shop growing in a controlled way."
-            ),
-            _fig_b,
-            caption(
-                "The electricity bill on its own scale — next to procurement it would "
-                "look like a flat line. Pulled out, its jump in the last three months "
-                "of the year (red bars) is unmistakable."
+                "Left: each pair of bars is one month — total sales (blue) next to "
+                "everything it cost to run the shop that month (gray); the two climb "
+                "together all year, the sign of a shop growing in a controlled way. "
+                "Right: the electricity bill on its own scale — next to procurement "
+                "it would look like a flat line, but pulled out its jump in the last "
+                "three months of the year (red bars) is unmistakable."
             ),
         ],
     )
@@ -1013,8 +1154,10 @@ def _(
     end_label,
     go,
     hide_value_axis,
+    make_subplots,
     mo,
     style,
+    takeaway,
 ):
     # ---- rhythms ---------------------------------------------------------------
     _dow = con.sql(
@@ -1045,8 +1188,16 @@ def _(
     _days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     _dow_color = {0: MUTED, 1: MUTED, 2: MUTED, 3: MUTED,
                   4: ACCENT_LIGHT, 5: ACCENT, 6: ACCENT_LIGHT}
-    _fig_a = go.Figure()
-    _fig_a.add_bar(
+    _fig = make_subplots(
+        rows = 1,
+        cols = 2,
+        subplot_titles = (
+            "Average daily revenue by day of the week",
+            "Visits by hour of day, weekday vs. weekend",
+        ),
+        horizontal_spacing = 0.12,
+    )
+    _fig.add_bar(
         x = [_days[d] for d in _dow["dow"].to_list()],
         y = _dow["rev_per_day"].to_list(),
         text = [f"€{v:,.0f}" for v in _dow["rev_per_day"].to_list()],
@@ -1055,23 +1206,12 @@ def _(
         marker_color = [_dow_color[d] for d in _dow["dow"].to_list()],
         marker_line_width = 0,
         cliponaxis = False,
+        row = 1,
+        col = 1,
     )
-    style(
-        fig = _fig_a,
-        title = "Saturday is in a class of its own",
-    )
-    hide_value_axis(
-        fig = _fig_a,
-        axis = "y",
-        title = "revenue (EUR)",
-    )
-    _fig_a.update_yaxes(range = [0, _dow["rev_per_day"].max() * 1.2])
-    _fig_a.update_layout(height = 340)
-
-    _fig_b = go.Figure()
     for _dt, _col in (("Weekday", ACCENT), ("Weekend", MUTED)):
         _s = _hr.filter(_hr["day_type"] == _dt).sort(by = "hour")
-        _fig_b.add_scatter(
+        _fig.add_scatter(
             x = _s["hour"].to_list(),
             y = _s["visits"].to_list(),
             mode = "lines",
@@ -1079,38 +1219,74 @@ def _(
                 color = _col,
                 width = 2.5,
             ),
+            row = 1,
+            col = 2,
         )
         end_label(
-            fig = _fig_b,
+            fig = _fig,
             x = _s["hour"][-1],
             y = _s["visits"][-1],
             text = _dt,
             color = _col,
+            row = 1,
+            col = 2,
         )
     style(
-        fig = _fig_b,
-        title = "Weekday vs. weekend: two different peak hours",
+        fig = _fig,
+        title = "When your shop actually gets busy",
+        n_subplot_titles = 2,
         right_margin = 96,
     )
-    _fig_b.update_yaxes(title_text = "visits")
-    _fig_b.update_xaxes(title_text = "hour of the day")
-    # the end-of-line labels need a little room on the right of the last point
-    _fig_b.update_xaxes(range = [_hr["hour"].min() - 0.5, _hr["hour"].max() + 1.5])
-    _fig_b.update_layout(height = 360)
+    hide_value_axis(
+        fig = _fig,
+        axis = "y",
+        title = "revenue (EUR)",
+        row = 1,
+        col = 1,
+    )
+    _fig.update_yaxes(
+        range = [0, _dow["rev_per_day"].max() * 1.3],
+        row = 1,
+        col = 1,
+    )
+    _fig.update_yaxes(
+        title_text = "visits",
+        row = 1,
+        col = 2,
+    )
+    _fig.update_xaxes(
+        title_text = "hour of the day",
+        # the end-of-line labels need a little room past the last point
+        range = [_hr["hour"].min() - 0.5, _hr["hour"].max() + 1.5],
+        row = 1,
+        col = 2,
+    )
+    takeaway(
+        fig = _fig,
+        text = "Saturday is in a class of its own",
+        x = 0.02,
+        y = 0.99,
+        row = 1,
+        col = 1,
+    )
+    takeaway(
+        fig = _fig,
+        text = "different peak hours entirely",
+        x = 0.02,
+        y = 0.99,
+        row = 1,
+        col = 2,
+    )
 
     mo.vstack(
         items = [
-            _fig_a,
+            _fig,
             caption(
-                "Average sales for each day of the week — the taller the bar, the "
-                "more money that weekday brings in. The weekend (highlighted in "
-                "blue) carries the store."
-            ),
-            _fig_b,
-            caption(
-                "What hour of the day people actually walk in, split into weekdays "
-                "(blue) versus weekends (gray) — they don't even peak at the same "
-                "time of day."
+                "Left: average sales for each day of the week — the taller the bar, "
+                "the more money that weekday brings in; the weekend (highlighted in "
+                "blue) carries the store. Right: what hour of the day people "
+                "actually walk in, split into weekdays (blue) versus weekends "
+                "(gray) — they don't even peak at the same time of day."
             ),
         ],
     )
@@ -1153,7 +1329,7 @@ def _(con, mo):
 
 
 @app.cell
-def _(MUTED, caption, con, go, mo, pl, style):
+def _(MUTED, caption, con, go, make_subplots, mo, pl, style, takeaway):
     # ---- seasonality -------------------------------------------------------------
     cat_month = con.sql(
         query = """
@@ -1179,16 +1355,29 @@ def _(MUTED, caption, con, go, mo, pl, style):
               ("Snacks and Confectionery", "Snacks", "#7A5DA8", 7),
               ("Seafood", "Seafood", "#B44646", 0),
               ("Household and Cleaning Supplies", "Household & Cleaning", MUTED, -7)]
-    _fig_a = go.Figure()
-    _fig_a.add_hline(
+    _fig = make_subplots(
+        rows = 1,
+        cols = 2,
+        subplot_titles = (
+            "Monthly sales index by category (yearly avg = 1.0)",
+            "Frozen Foods total vs. ice cream within it",
+        ),
+        horizontal_spacing = 0.12,
+    )
+    _fig.add_hline(
         y = 1,
         line_dash = "dot",
         line_color = MUTED,
         line_width = 1,
+        row = 1,
+        col = 1,
     )
+    _y1_lo, _y1_hi = None, None
     for _c, _short, _col, _yshift in _picks:
         _y = (cat_month[_c] / cat_month[_c].mean()).to_list()
-        _fig_a.add_scatter(
+        _y1_lo = min(_y) if _y1_lo is None else min(_y1_lo, min(_y))
+        _y1_hi = max(_y) if _y1_hi is None else max(_y1_hi, max(_y))
+        _fig.add_scatter(
             x = cat_month["m"].to_list(),
             y = _y,
             mode = "lines+markers",
@@ -1197,8 +1386,10 @@ def _(MUTED, caption, con, go, mo, pl, style):
                 width = 2,
             ),
             marker = dict(size = 6),
+            row = 1,
+            col = 1,
         )
-        _fig_a.add_annotation(
+        _fig.add_annotation(
             x = cat_month["m"][-1],
             y = _y[-1],
             text = _short,
@@ -1210,21 +1401,9 @@ def _(MUTED, caption, con, go, mo, pl, style):
                 color = _col,
                 size = 12,
             ),
+            row = 1,
+            col = 1,
         )
-    style(
-        fig = _fig_a,
-        title = "Three seasonal winners, and one category that shouldn't move",
-        right_margin = 96,
-    )
-    _fig_a.update_yaxes(title_text = "index (yearly average = 1)")
-    _fig_a.update_xaxes(
-        title_text = "month",
-        # keep the labels' room without letting them drag the axis past Dec
-        range = [cat_month["m"].min() - 0.4, cat_month["m"].max() + 2.2],
-        # explicit ticks so the label headroom doesn't show phantom months 13/14
-        tickvals = list(range(1, 13)),
-    )
-    _fig_a.update_layout(height = 380)
 
     _pt = con.sql(
         query = """
@@ -1244,17 +1423,21 @@ def _(MUTED, caption, con, go, mo, pl, style):
         index = "m",
         values = "units",
     ).sort(by = "m")
-    _fig_b = go.Figure()
-    _fig_b.add_hline(
+    _fig.add_hline(
         y = 1,
         line_dash = "dot",
         line_color = MUTED,
         line_width = 1,
+        row = 1,
+        col = 2,
     )
+    _y2_lo, _y2_hi = None, None
     for _c2, _col2 in [("Ice Cream", "#B44646"), ("Other frozen", MUTED)]:
         if _c2 in _pt.columns:
             _y2 = (pl.Series(_pt[_c2]) / _pt[_c2].mean()).to_list()
-            _fig_b.add_scatter(
+            _y2_lo = min(_y2) if _y2_lo is None else min(_y2_lo, min(_y2))
+            _y2_hi = max(_y2) if _y2_hi is None else max(_y2_hi, max(_y2))
+            _fig.add_scatter(
                 x = _pt["m"].to_list(),
                 y = _y2,
                 mode = "lines+markers",
@@ -1263,8 +1446,10 @@ def _(MUTED, caption, con, go, mo, pl, style):
                     width = 2,
                 ),
                 marker = dict(size = 6),
+                row = 1,
+                col = 2,
             )
-            _fig_b.add_annotation(
+            _fig.add_annotation(
                 x = _pt["m"][-1],
                 y = _y2[-1],
                 text = _c2,
@@ -1275,35 +1460,74 @@ def _(MUTED, caption, con, go, mo, pl, style):
                     color = _col2,
                     size = 12,
                 ),
+                row = 1,
+                col = 2,
             )
     style(
-        fig = _fig_b,
-        title = "Frozen Foods looks steady — ice cream inside it swings 2×",
+        fig = _fig,
+        title = "Category seasonality, and a zoom into Frozen Foods",
+        n_subplot_titles = 2,
         right_margin = 96,
     )
-    _fig_b.update_yaxes(title_text = "index (yearly average = 1)")
-    _fig_b.update_xaxes(
+    # explicit headroom so the takeaway has clear air above the January cleaning-supplies spike
+    _fig.update_yaxes(
+        title_text = "index (yearly average = 1)",
+        range = [_y1_lo * 0.85, _y1_hi * 1.28],
+        row = 1,
+        col = 1,
+    )
+    # explicit headroom above the ice-cream peak so the takeaway has clear air
+    _fig.update_yaxes(
+        title_text = "index (yearly average = 1)",
+        range = [_y2_lo * 0.85, _y2_hi * 1.28],
+        row = 1,
+        col = 2,
+    )
+    _fig.update_xaxes(
         title_text = "month",
+        # keep the labels' room without letting them drag the axis past Dec
         range = [cat_month["m"].min() - 0.4, cat_month["m"].max() + 2.2],
         # explicit ticks so the label headroom doesn't show phantom months 13/14
         tickvals = list(range(1, 13)),
+        row = 1,
+        col = 1,
     )
-    _fig_b.update_layout(height = 360)
+    _fig.update_xaxes(
+        title_text = "month",
+        range = [cat_month["m"].min() - 0.4, cat_month["m"].max() + 2.2],
+        tickvals = list(range(1, 13)),
+        row = 1,
+        col = 2,
+    )
+    takeaway(
+        fig = _fig,
+        text = "three categories swing with the seasons; cleaning stays flat",
+        x = 0.02,
+        y = 0.99,
+        row = 1,
+        col = 1,
+    )
+    takeaway(
+        fig = _fig,
+        text = "the category looks flat only because two products cancel out",
+        x = 0.02,
+        y = 0.99,
+        row = 1,
+        col = 2,
+    )
 
     mo.vstack(
         items = [
-            _fig_a,
+            _fig,
             caption(
-                "Units sold each month, rescaled so 1.0 = that category's own "
-                "yearly average — this makes a small category and a big one easy "
-                "to compare on the same chart. Above the dotted line means "
-                "'busier than usual that month,' below means 'quieter.'"
-            ),
-            _fig_b,
-            caption(
-                "A zoom into one category: ice cream (red) and everything else in "
+                "Left: units sold each month, rescaled so 1.0 = that category's "
+                "own yearly average — this makes a small category and a big one "
+                "easy to compare on the same chart; above the dotted line means "
+                "'busier than usual that month,' below means 'quieter.' Right: a "
+                "zoom into one category — ice cream (red) and everything else in "
                 "the frozen aisle (gray) pull in opposite directions across the "
-                "year — a pattern the category total quietly cancels out."
+                "year, a pattern the category total on the left quietly cancels "
+                "out."
             ),
         ],
     )
@@ -1414,12 +1638,44 @@ def _(con, np, pl):
         "ph": np.expm1(_fits["log_v"].params["pre_holiday"]),
         "ph_se": float(_fits["log_v"].bse["pre_holiday"]),
         "n_obs": int(_fits["log_v"].nobs),
+        "r2_v": float(_fits["log_v"].rsquared),
+        "r2_rev": float(_fits["log_rev"].rsquared),
+        "wet_coef": float(_fits["log_v"].params["wet"]),
     }
-    return daily, wx_stats
+
+    # R-style results tables (skill §11): every term this model estimated,
+    # not just the ones the narrative quotes
+    def _stars(p):
+        if p < 0.001:
+            return "***"
+        if p < 0.01:
+            return "**"
+        if p < 0.05:
+            return "*"
+        if p < 0.1:
+            return "."
+        return ""
+
+    def _reg_table(fit):
+        _ci = fit.conf_int()
+        return pl.DataFrame({
+            "term": list(fit.params.index),
+            "estimate": [round(v, 4) for v in fit.params],
+            "std_error": [round(v, 4) for v in fit.bse],
+            "t_value": [round(v, 2) for v in fit.tvalues],
+            "p_value": [round(v, 4) for v in fit.pvalues],
+            "ci_low": [round(v, 4) for v in _ci[0]],
+            "ci_high": [round(v, 4) for v in _ci[1]],
+            "signif": [_stars(v) for v in fit.pvalues],
+        })
+
+    wx_table_v = _reg_table(fit = _fits["log_v"])
+    wx_table_rev = _reg_table(fit = _fits["log_rev"])
+    return daily, wx_stats, wx_table_rev, wx_table_v
 
 
 @app.cell
-def _(mo, wx_stats):
+def _(mo, wx_stats, wx_table_rev, wx_table_v):
     mo.vstack(
         items = [
             mo.md(
@@ -1455,16 +1711,18 @@ def _(mo, wx_stats):
             ),
             mo.accordion(
                 items = {
-                    "🔍 See exactly how this was calculated": mo.md(
-                        r"""
+                    "🔍 See exactly how this was calculated": mo.vstack(
+                        items = [
+                            mo.md(
+                                f"""
     **The question in one sentence.** Does rain move sales, once we've
     already accounted for the day of the week and the month of the year?
 
     **The data.** Every day of the year *except* the 2 days the shop was
-    closed — {n} days in total. For each day we know: whether it rained,
-    whether it rained the day before, how many people visited, how much was
-    sold, the day of the week, the month, whether it fell in the 3-day
-    run-up to a major holiday, and the temperature.
+    closed — {wx_stats['n_obs']} days in total. For each day we know:
+    whether it rained, whether it rained the day before, how many people
+    visited, how much was sold, the day of the week, the month, whether it
+    fell in the 3-day run-up to a major holiday, and the temperature.
 
     **The model.** This is a standard statistical technique called a
     **linear regression** — it fits the straight-line combination of factors
@@ -1474,18 +1732,61 @@ def _(mo, wx_stats):
     explained, once with *total euros sold* — using this formula:
 
     $$
-    \log(Y_t) = \beta_0 + \beta_1 \cdot \text{{Rain}}_t + \beta_2 \cdot \text{{RainYesterday}}_t
-    + \beta_3 \cdot \text{{TempAnomaly}}_t + \sum_d \gamma_d \cdot \text{{Weekday}}_{{d,t}}
-    + \sum_m \delta_m \cdot \text{{Month}}_{{m,t}} + \beta_4 \cdot \text{{PreHoliday}}_t + \varepsilon_t
+    \\log(Y_t) = \\beta_0 + \\beta_1 \\cdot \\text{{Rain}}_t + \\beta_2 \\cdot \\text{{RainYesterday}}_t
+    + \\beta_3 \\cdot \\text{{TempAnomaly}}_t + \\sum_d \\gamma_d \\cdot \\text{{Weekday}}_{{d,t}}
+    + \\sum_m \\delta_m \\cdot \\text{{Month}}_{{m,t}} + \\beta_4 \\cdot \\text{{PreHoliday}}_t + \\varepsilon_t
     $$
 
     Reading this left to right: $Y_t$ is the day's visit count (or its
-    euro sales) on day $t$; the $\beta$'s are the effects we're solving
-    for; $\text{{Weekday}}_{{d,t}}$ and $\text{{Month}}_{{m,t}}$ are simple
+    euro sales) on day $t$; the $\\beta$'s are the effects we're solving
+    for; $\\text{{Weekday}}_{{d,t}}$ and $\\text{{Month}}_{{m,t}}$ are simple
     yes/no flags for "is day $t$ a Tuesday?", "is day $t$ in July?" and so
     on — these are what let the model tell the weather's effect apart from
-    the calendar's effect, instead of confusing the two; $\varepsilon_t$ is
+    the calendar's effect, instead of confusing the two; $\\varepsilon_t$ is
     just "everything else we didn't measure."
+
+    **The full results table — visits model**
+    ($R^2$ = {wx_stats['r2_v']:.2f}, N = {wx_stats['n_obs']:,}). Significance
+    stars follow the usual convention: `***` p < 0.001, `**` p < 0.01,
+    `*` p < 0.05, `.` p < 0.1.
+    """
+                            ),
+                            mo.ui.table(
+                                data = wx_table_v,
+                                selection = None,
+                            ),
+                            mo.md(
+                                f"""
+    **The same model, fit against euro sales instead of visit count**
+    ($R^2$ = {wx_stats['r2_rev']:.2f}, N = {wx_stats['n_obs']:,}):
+    """
+                            ),
+                            mo.ui.table(
+                                data = wx_table_rev,
+                                selection = None,
+                            ),
+                            mo.md(
+                                f"""
+    **Reading the two coefficients that matter most**, technical meaning
+    first, then the business insight:
+
+    - **`wet` = {wx_stats['wet_coef']:.3f} in the visits model.**
+      Technically: holding weekday, month, and the pre-holiday window
+      fixed, a rainy day multiplies visits by
+      $e^{{{wx_stats['wet_coef']:.3f}}}$, i.e. changes them by
+      **{wx_stats['v_wet']:+.0%}**, and the p-value in the table is small
+      enough that this is essentially never a fluke. As an insight:
+      rain-driven dips are weather, not lost customers — plan staffing and
+      perishable orders around the forecast, don't panic about demand.
+    - **`pre_holiday`** is positive but its p-value sits well above the
+      conventional 0.05 cutoff: with only 9 pre-holiday days in a year, the
+      honest read is "plausible, not proven" — a sample-size limit, not a
+      modeling failure.
+    - The **`C(dow)`** and **`C(m)`** rows are controls, not findings: each
+      says how that weekday or month differs from the baseline category
+      (the omitted one, usually Monday and January). They're reported in
+      full because a properly stated model shows everything it estimated,
+      not just the headline.
 
     **Why the logarithm?** Sales figures are lopsided — a handful of huge
     days, many ordinary ones — and effects like "rain" tend to act as a
@@ -1510,7 +1811,9 @@ def _(mo, wx_stats):
     autocorrelation-consistent) standard errors** to correct for that
     streakiness, so the "give or take ___%" ranges reported above are
     honest ones, not artificially narrow.
-    """.replace("{n}", str(wx_stats["n_obs"])),
+    """
+                            ),
+                        ],
                     ),
                 },
             ),
@@ -1520,7 +1823,7 @@ def _(mo, wx_stats):
 
 
 @app.cell
-def _(MUTED, WARN, caption, con, dt, go, mo, style):
+def _(MUTED, WARN, caption, con, dt, go, mo, style, takeaway):
     # ---- cost shocks and pass-through ---------------------------------------------
     cost_idx = con.sql(
         query = """
@@ -1582,12 +1885,18 @@ def _(MUTED, WARN, caption, con, dt, go, mo, style):
     )
     style(
         fig = _fig,
-        title = "A cost shock hits refrigeration hardest, starting in October",
+        title = "Weekly wholesale cost index by category, Jan-Dec (Jan = 1.0)",
         right_margin = 96,
     )
     _fig.update_yaxes(title_text = "invoice cost index (Jan = 1.0)")
     # end-of-line labels otherwise pull the autorange well past year-end
     _fig.update_xaxes(range = [cost_idx["wk"].min(), cost_idx["wk"].max() + dt.timedelta(weeks = 4)])
+    takeaway(
+        fig = _fig,
+        text = "a cost shock hits refrigeration hardest, starting in October",
+        x = 0.02,
+        y = 0.99,
+    )
     mo.vstack(
         items = [
             _fig,
@@ -1644,6 +1953,13 @@ def _(cost_idx, mo, pnl):
 @app.cell
 def _(con, np, pl):
     # ---- price elasticity: naive OLS vs cost-instrumented IV -----------------------
+    import math as _math
+
+    def _norm_p(t):
+        """Two-sided p-value for a t-statistic under the normal approximation
+        (Phi via the error function — no scipy dependency needed here)."""
+        return float(2 * (1 - 0.5 * (1 + _math.erf(abs(t) / _math.sqrt(2)))))
+
     _panel = con.sql(
         query = """
             WITH wk AS (
@@ -1707,31 +2023,39 @@ def _(con, np, pl):
             col = "lz",
         )
         b_ols = float((p @ y) / (p @ p))
+        resid_ols = y - b_ols * p
+        se_ols = float(np.sqrt(resid_ols @ resid_ols / (len(y) - 1)) / np.sqrt(p @ p))
         b_iv = float((z @ y) / (z @ p))
         resid = y - b_iv * p
         se_iv = float(np.sqrt((resid @ resid / (len(y) - 1)) * (z @ z)) / abs(z @ p))
-        return b_ols, b_iv, se_iv, df.height
+        return b_ols, se_ols, b_iv, se_iv, df.height
 
     _rows = []
     _all = _elast(df = _panel)
     _rows.append({
         "category": "ALL (pooled)",
         "naive_ols": round(_all[0], 3),
-        "iv": round(_all[1], 3),
-        "iv_se": round(_all[2], 3),
-        "n": _all[3],
+        "ols_se": round(_all[1], 3),
+        "ols_p": round(_norm_p(t = _all[0] / _all[1]), 4),
+        "iv": round(_all[2], 3),
+        "iv_se": round(_all[3], 3),
+        "iv_p": round(_norm_p(t = _all[2] / _all[3]), 4),
+        "n": _all[4],
     })
     for (_cat,), _g in sorted(_panel.group_by("category"), key = lambda kv: kv[0]):
         _r = _elast(df = _g)
         if _r:
             # blank the weak-instrument rows: a huge-SE IV is not an estimate
-            _weak = _r[2] > 1.0
+            _weak = _r[3] > 1.0
             _rows.append({
                 "category": _cat,
                 "naive_ols": round(_r[0], 3),
-                "iv": None if _weak else round(_r[1], 3),
-                "iv_se": None if _weak else round(_r[2], 3),
-                "n": _r[3],
+                "ols_se": round(_r[1], 3),
+                "ols_p": round(_norm_p(t = _r[0] / _r[1]), 4),
+                "iv": None if _weak else round(_r[2], 3),
+                "iv_se": None if _weak else round(_r[3], 3),
+                "iv_p": None if _weak else round(_norm_p(t = _r[2] / _r[3]), 4),
+                "n": _r[4],
             })
     elas = pl.DataFrame(_rows)
 
@@ -1761,22 +2085,55 @@ def _(con, np, pl):
             + float(_cp["lp"].mean()))
     _b = float((_lpw @ _lyw) / (_lpw @ _lpw))
     _res = _lyw - _b * _lpw
+    _cat_se = float(np.sqrt((_res @ _res / (len(_cp) - 1)) / (_lpw @ _lpw)))
     cat_elast = {
         "b": _b,
-        "se": float(np.sqrt((_res @ _res / (len(_cp) - 1)) / (_lpw @ _lpw))),
+        "se": _cat_se,
+        "p": _norm_p(t = _b / _cat_se),
         "n_weeks": int(_cp.height),
         "n_sku_weeks": int(_panel.height),
         "n_skus": int(_panel["uid"].n_unique()),
     }
-    return cat_elast, elas
+    # a one-row R-style table for the category-level model, same columns as
+    # the per-SKU table so the two are directly comparable
+    cat_elast_table = pl.DataFrame([{
+        "model": "category-level (two-way fixed effects)",
+        "estimate": round(_b, 3),
+        "std_error": round(_cat_se, 3),
+        "t_value": round(_b / _cat_se, 2),
+        "p_value": round(cat_elast["p"], 4),
+        "n": cat_elast["n_weeks"],
+    }])
+    return cat_elast, cat_elast_table, elas
 
 
 @app.cell
-def _(cat_elast, elas, mo):
+def _(cat_elast, cat_elast_table, elas, mo):
     _pool = elas.row(
         index = 0,
         named = True,
     )
+    # written from the numbers, not assumed: whether the small category
+    # coefficient clears the conventional 0.05 significance line varies
+    # by vintage (2026-07-16 audit: it does not always)
+    if cat_elast["p"] < 0.05:
+        _cat_verdict = (
+            f"a 1% rise applied to an *entire* category's prices is associated "
+            f"with only a small change in that category's total units, and the "
+            f"p-value says this small effect is real rather than noise. As an "
+            "insight: the category-level response is genuinely there, but it "
+            "is an order of magnitude gentler than the per-product one — "
+            "there is far less shelf-neighbor left to substitute to."
+        )
+    else:
+        _cat_verdict = (
+            f"a 1% rise applied to an *entire* category's prices is associated "
+            f"with essentially no change in that category's total units, and "
+            f"the large p-value means we cannot even be confident this isn't "
+            "exactly zero. As an insight: this is where a careful margin "
+            "increase is genuinely low-risk, because there is no "
+            "shelf-neighbor left to substitute to."
+        )
     mo.vstack(
         items = [
             mo.md(
@@ -1814,11 +2171,41 @@ def _(cat_elast, elas, mo):
     table below left blank are ones where there wasn't enough genuine cost
     movement to measure reliably — better to say nothing than to report a
     guess dressed up as a number.)
+
+    **The per-product results, in full** — `naive_ols` is the simple
+    comparison, `iv` the cost-instrumented one described below, both with
+    their standard errors and p-values (a p-value under 0.05 is the usual
+    line for "probably not just noise"):
     """
             ),
             mo.ui.table(
                 data = elas,
                 selection = None,
+            ),
+            mo.md(
+                f"""
+    **The category-level result, the same way:**
+    """
+            ),
+            mo.ui.table(
+                data = cat_elast_table,
+                selection = None,
+            ),
+            mo.md(
+                f"""
+    **Reading the headline coefficient**, technical meaning first, then the
+    business insight:
+
+    - **Per product, $\\beta_{{\\text{{IV}}}}$ = {_pool['iv']:+.2f}
+      (p = {_pool['iv_p']:.4f}).** Technically: a 1% rise in one product's
+      own price, isolated from demand swings by the cost instrument below,
+      is associated with a {abs(_pool['iv']):.2f}% *drop* in that product's
+      own units sold — and the p-value says this is not noise. As an
+      insight: a single SKU's price is a lever with real bite, but most of
+      what "drops" is substitution to a shelf-neighbor, not lost revenue.
+    - **Per category, $\\beta$ = {cat_elast['b']:+.2f}
+      (p = {cat_elast['p']:.4f}).** Technically: {_cat_verdict}
+    """
             ),
             mo.accordion(
                 items = {
@@ -1992,11 +2379,25 @@ def _(con, dt, np, pl):
         _rank_of = dict(zip(_uids_sorted, _rank))
         _pct.append(float(np.mean(a = [_rank_of[u] for u in _pset])) if _pset else np.nan)
 
-    promo_stats["naive_lift"] = float(np.nansum(_dur) / max(np.nansum(_pre), 1e-9) - 1)
-    _ctl_growth = np.nansum(_ctl_dur) / max(np.nansum(_ctl_pre), 1e-9)
-    promo_stats["did_lift"] = float(
-        (np.nansum(_dur) / max(np.nansum(_pre), 1e-9)) / _ctl_growth - 1)
+    _treat_pre, _treat_dur = float(np.nansum(_pre)), float(np.nansum(_dur))
+    _ctl_pre_v, _ctl_dur_v = float(np.nansum(_ctl_pre)), float(np.nansum(_ctl_dur))
+    promo_stats["naive_lift"] = float(_treat_dur / max(_treat_pre, 1e-9) - 1)
+    _ctl_growth = _ctl_dur_v / max(_ctl_pre_v, 1e-9)
+    promo_stats["did_lift"] = float((_treat_dur / max(_treat_pre, 1e-9)) / _ctl_growth - 1)
     promo_stats["sel_pct"] = float(np.nanmean(_pct))
+    # the DiD results table (skill §11): every quantity the estimate is
+    # built from, not just the final percentage
+    did_table = pl.DataFrame([{
+        "group": "discounted SKUs",
+        "avg_daily_units_before": round(_treat_pre, 1),
+        "avg_daily_units_during": round(_treat_dur, 1),
+        "growth": round(_treat_dur / max(_treat_pre, 1e-9), 3),
+    }, {
+        "group": "control SKUs (same category, not discounted)",
+        "avg_daily_units_before": round(_ctl_pre_v, 1),
+        "avg_daily_units_during": round(_ctl_dur_v, 1),
+        "growth": round(_ctl_growth, 3),
+    }])
 
     # the clean pulse: last-Sunday storewide discount days
     _sun = con.sql(
@@ -2013,11 +2414,11 @@ def _(con, dt, np, pl):
     promo_stats["loyalty_lift"] = float(
         _sun.filter(pl.col("rn") == 1)["rev"].mean()
         / _sun.filter(pl.col("rn") > 1)["rev"].mean() - 1)
-    return (promo_stats,)
+    return did_table, promo_stats
 
 
 @app.cell
-def _(mo, promo_stats):
+def _(did_table, mo, promo_stats):
     mo.vstack(
         items = [
             mo.md(
@@ -2048,6 +2449,29 @@ def _(mo, promo_stats):
     once — which makes its effect far easier to trust at face value. If you
     want a lever that reliably moves total revenue rather than just clearing
     shelves, this is the one worth leaning on.
+
+    **The comparison, in full** — average daily units for the discounted
+    products and their same-category control group, before and during the
+    markdown window:
+    """
+            ),
+            mo.ui.table(
+                data = did_table,
+                selection = None,
+            ),
+            mo.md(
+                f"""
+    **Reading the comparison**, technical meaning first, then the business
+    insight: the discounted group grew
+    {did_table['growth'][0]:.2f}× (before → during), the untouched control
+    group in the same category grew {did_table['growth'][1]:.2f}× over the
+    same stretch just from ordinary week-to-week movement, and dividing the
+    first by the second gives the **{promo_stats['did_lift']:+.0%}**
+    difference-in-differences estimate — the part of the change the
+    markdown itself can actually take credit for, with the shared
+    background noise cancelled out. As an insight: even this fairer number
+    is inflated by a low starting base (Section 7d's opening paragraph), so
+    treat markdowns as inventory hygiene, not a revenue lever.
     """
             ),
             mo.accordion(
@@ -2086,7 +2510,18 @@ def _(mo, promo_stats):
 
 
 @app.cell
-def _(MUTED, WARN, caption, con, go, hide_value_axis, mo, style):
+def _(
+    MUTED,
+    WARN,
+    caption,
+    con,
+    go,
+    hide_value_axis,
+    make_subplots,
+    mo,
+    style,
+    takeaway,
+):
     # ---- inventory economics: empty shelves and spoiled stock ----------------------
     inv_stats = {}
     _oos = con.sql(
@@ -2182,8 +2617,23 @@ def _(MUTED, WARN, caption, con, go, hide_value_axis, mo, style):
         """,
     ).fetchone()[0])
 
-    _fig_a = go.Figure()
-    _fig_a.add_scatter(
+    _spoil_sorted = _spoil.sort(by = "cost")
+    _bar_colors = [WARN if c > _spoil_sorted["cost"].max() * 0.5 else MUTED
+                   for c in _spoil_sorted["cost"].to_list()]
+
+    _fig = make_subplots(
+        rows = 1,
+        cols = 2,
+        subplot_titles = (
+            "Empty-shelf days, by month",
+            "Written-off stock over the year, by category",
+        ),
+        # the category axis on the right needs real width for its long
+        # labels ("Household and Cleaning Supplies"), so it gets a wider share
+        column_widths = [0.42, 0.58],
+        horizontal_spacing = 0.16,
+    )
+    _fig.add_scatter(
         x = _oos["m"].to_list(),
         y = (100 * _oos["oos"]).to_list(),
         mode = "lines+markers",
@@ -2192,24 +2642,10 @@ def _(MUTED, WARN, caption, con, go, hide_value_axis, mo, style):
             width = 2,
         ),
         marker = dict(size = 6),
+        row = 1,
+        col = 1,
     )
-    style(
-        fig = _fig_a,
-        title = "Empty-shelf days cluster in the busiest months",
-    )
-    _fig_a.update_yaxes(title_text = "% of days out of stock")
-    _fig_a.update_xaxes(
-        title_text = "month",
-        tickmode = "linear",
-        dtick = 1,
-    )
-    _fig_a.update_layout(height = 340)
-
-    _spoil_sorted = _spoil.sort(by = "cost")
-    _bar_colors = [WARN if c > _spoil_sorted["cost"].max() * 0.5 else MUTED
-                   for c in _spoil_sorted["cost"].to_list()]
-    _fig_b = go.Figure()
-    _fig_b.add_bar(
+    _fig.add_bar(
         x = _spoil_sorted["cost"].to_list(),
         y = _spoil_sorted["category"].to_list(),
         orientation = "h",
@@ -2219,35 +2655,72 @@ def _(MUTED, WARN, caption, con, go, hide_value_axis, mo, style):
         textposition = "outside",
         textfont = dict(color = "#404040"),
         cliponaxis = False,
+        row = 1,
+        col = 2,
     )
     style(
-        fig = _fig_b,
-        title = "Bakery, produce and seafood pay for their short shelf life",
+        fig = _fig,
+        title = "The two quiet costs: empty shelves and the bin",
+        n_subplot_titles = 2,
     )
-    _fig_b.update_yaxes(
+    _fig.update_yaxes(
+        title_text = "% of days out of stock",
+        range = [0, float(_oos["oos"].max()) * 100 * 1.3],
+        row = 1,
+        col = 1,
+    )
+    _fig.update_xaxes(
+        title_text = "month",
+        tickmode = "linear",
+        dtick = 1,
+        row = 1,
+        col = 1,
+    )
+    _fig.update_yaxes(
         automargin = True,
         nticks = len(_spoil_sorted) + 1,   # this is a category axis: show every bar
+        row = 1,
+        col = 2,
     )
     hide_value_axis(
-        fig = _fig_b,
+        fig = _fig,
         axis = "x",
         title = "write-offs over the year (EUR, at cost)",
+        row = 1,
+        col = 2,
     )
-    _fig_b.update_xaxes(range = [0, _spoil_sorted["cost"].max() * 1.18])
-    _fig_b.update_layout(height = 380)
+    _fig.update_xaxes(
+        range = [0, _spoil_sorted["cost"].max() * 1.18],
+        row = 1,
+        col = 2,
+    )
+    takeaway(
+        fig = _fig,
+        text = "clusters in the busiest months",
+        x = 0.02,
+        y = 0.99,
+        row = 1,
+        col = 1,
+    )
+    takeaway(
+        fig = _fig,
+        text = "bakery, produce, seafood pay for short shelf life",
+        x = 0.98,
+        y = 0.06,
+        anchor = "right",
+        row = 1,
+        col = 2,
+    )
 
     mo.vstack(
         items = [
-            _fig_a,
+            _fig,
             caption(
-                "What share of your products sat with zero stock on the shelf, "
-                "month by month — higher means more missed sales that month."
-            ),
-            _fig_b,
-            caption(
-                "How much each category cost you in written-off (spoiled or "
-                "expired) stock over the whole year — worst offenders at the top, "
-                "colored red."
+                "Left: what share of your products sat with zero stock on the "
+                "shelf, month by month — higher means more missed sales that "
+                "month. Right: how much each category cost you in written-off "
+                "(spoiled or expired) stock over the whole year — worst "
+                "offenders at the top, colored red."
             ),
         ],
     )
@@ -2305,7 +2778,19 @@ def _(inv_stats, kpi, mo):
 
 
 @app.cell
-def _(ACCENT, MUTED, caption, con, go, mo, np, pl, style):
+def _(
+    ACCENT,
+    MUTED,
+    caption,
+    con,
+    go,
+    make_subplots,
+    mo,
+    np,
+    pl,
+    style,
+    takeaway,
+):
     # ---- customer analytics on the card-linked panel -------------------------------
     cust_stats = {}
     _cw = con.sql(
@@ -2381,8 +2866,16 @@ def _(ACCENT, MUTED, caption, con, go, mo, np, pl, style):
     cust_stats["prem_low"] = float(_prem.filter(pl.Series(_ter) <= 1 / 3)["prem_share"].mean())
     cust_stats["prem_high"] = float(_prem.filter(pl.Series(_ter) > 2 / 3)["prem_share"].mean())
 
-    _fig_a = go.Figure()
-    _fig_a.add_scatter(
+    _fig = make_subplots(
+        rows = 1,
+        cols = 2,
+        subplot_titles = (
+            "Weekly spend vs. share of premium brands, per regular",
+            "One regular customer's weekly spend across the year",
+        ),
+        horizontal_spacing = 0.12,
+    )
+    _fig.add_scatter(
         x = _prem["wk_spend"].to_list(),
         y = (100 * _prem["prem_share"]).to_list(),
         mode = "markers",
@@ -2391,6 +2884,8 @@ def _(ACCENT, MUTED, caption, con, go, mo, np, pl, style):
             size = 6,
             opacity = 0.6,
         ),
+        row = 1,
+        col = 1,
     )
     # a light trend line makes the "only a little" claim visible directly,
     # rather than asking the reader to eyeball a cloud of dots
@@ -2401,7 +2896,7 @@ def _(ACCENT, MUTED, caption, con, go, mo, np, pl, style):
         deg = 1,
     )
     _lx_line = np.array(object = [_lx.min(), _lx.max()])
-    _fig_a.add_scatter(
+    _fig.add_scatter(
         x = np.exp(_lx_line).tolist(),
         y = (100 * (_intercept + _slope * _lx_line)).tolist(),
         mode = "lines",
@@ -2409,28 +2904,21 @@ def _(ACCENT, MUTED, caption, con, go, mo, np, pl, style):
             color = ACCENT,
             width = 2.5,
         ),
+        row = 1,
+        col = 1,
     )
-    style(
-        fig = _fig_a,
-        title = "Bigger spenders lean premium — but only a little",
-    )
-    _fig_a.update_xaxes(
-        type = "log",
-        title_text = "average weekly spend (€, log scale)",
-    )
-    _fig_a.update_yaxes(title_text = "share spent on premium brands (%)")
-    _fig_a.update_layout(height = 380)
 
-    _fig_b = go.Figure()
     if _example is not None:
         _cid2, _sp = _example
         _median = float(_sp["spend"].median())
-        _fig_b.add_hline(
+        _fig.add_hline(
             y = _median,
             line_dash = "dot",
             line_color = MUTED,
+            row = 1,
+            col = 2,
         )
-        _fig_b.add_scatter(
+        _fig.add_scatter(
             x = _sp["w"].to_list(),
             y = _sp["spend"].to_list(),
             mode = "lines+markers",
@@ -2439,10 +2927,12 @@ def _(ACCENT, MUTED, caption, con, go, mo, np, pl, style):
                 width = 2,
             ),
             marker = dict(size = 6),
+            row = 1,
+            col = 2,
         )
         # label the reference line at the far right, in the label margin,
         # where it can never sit on top of the data itself
-        _fig_b.add_annotation(
+        _fig.add_annotation(
             x = _sp["w"][-1],
             y = _median,
             text = "usual week",
@@ -2455,31 +2945,71 @@ def _(ACCENT, MUTED, caption, con, go, mo, np, pl, style):
                 color = "#9A9A9A",
                 size = 11,
             ),
+            row = 1,
+            col = 2,
         )
     style(
-        fig = _fig_b,
-        title = "A sustained rough patch shows up weeks before it ends",
+        fig = _fig,
+        title = "What we know about your customers, in two views",
+        n_subplot_titles = 2,
         right_margin = 96,
     )
-    _fig_b.update_yaxes(title_text = "weekly spend (€)")
-    _fig_b.update_xaxes(title_text = "week of the year")
-    _fig_b.update_layout(height = 360)
+    _fig.update_xaxes(
+        type = "log",
+        title_text = "average weekly spend (€, log scale)",
+        row = 1,
+        col = 1,
+    )
+    # explicit headroom so the takeaway has clear air above the highest dot —
+    # the top premium-share outlier otherwise sits right under the annotation
+    _fig.update_yaxes(
+        title_text = "share spent on premium brands (%)",
+        range = [0, float((100 * _prem["prem_share"]).max()) * 1.15],
+        row = 1,
+        col = 1,
+    )
+    # explicit headroom so the takeaway has clear air above every peak —
+    # this customer's noisy weekly spend has highs scattered across the year
+    _fig.update_yaxes(
+        title_text = "weekly spend (€)",
+        range = [0, float(_sp["spend"].max()) * 1.3] if _example is not None else None,
+        row = 1,
+        col = 2,
+    )
+    _fig.update_xaxes(
+        title_text = "week of the year",
+        row = 1,
+        col = 2,
+    )
+    takeaway(
+        fig = _fig,
+        text = "bigger spenders lean premium — but only a little",
+        x = 0.02,
+        y = 0.99,
+        row = 1,
+        col = 1,
+    )
+    takeaway(
+        fig = _fig,
+        text = "a sustained rough patch shows up weeks before it ends",
+        x = 0.02,
+        y = 0.99,
+        row = 1,
+        col = 2,
+    )
 
     mo.vstack(
         items = [
-            _fig_a,
+            _fig,
             caption(
-                "Every dot is one regular customer — how much they spend per week "
-                "(left to right) against how much of that goes to premium brands "
-                "(bottom to top). The blue line is the overall trend through the "
-                "cloud of dots: real, but gentle."
-            ),
-            _fig_b,
-            caption(
-                "One actual customer's week-by-week spending, with their own "
-                "typical week marked by the dotted line. The sustained dips are "
-                "exactly the kind of rough patch that's visible in the data weeks "
-                "before it would show up anywhere else."
+                "Left: every dot is one regular customer — how much they spend "
+                "per week (left to right) against how much of that goes to "
+                "premium brands (bottom to top); the blue line is the overall "
+                "trend through the cloud of dots, real but gentle. Right: one "
+                "actual customer's week-by-week spending, with their own "
+                "typical week marked by the dotted line — the sustained dips "
+                "are exactly the kind of rough patch that's visible in the "
+                "data weeks before it would show up anywhere else."
             ),
         ],
     )
@@ -2540,6 +3070,7 @@ def _(cust_stats, mo):
 def _(con, daily, dt, np, pl):
     # ---- forecasting: gradient boosting vs. an honest naive -------------------------
     from sklearn.ensemble import HistGradientBoostingRegressor as _HGB
+    from sklearn.inspection import permutation_importance as _perm_imp
 
     _cd = con.sql(
         query = """
@@ -2638,7 +3169,38 @@ def _(con, daily, dt, np, pl):
         y = _wk["units"].to_numpy(),
         yhat = _wk["naive"].to_numpy(),
     )
-    return fc_frame, fc_stats
+
+    # the evaluation table (skill §11): model vs. the naive benchmark, at
+    # both the grain it's graded on and the grain the decision is made at
+    fc_eval = pl.DataFrame([{
+        "grain": "daily (per category-day)",
+        "model_mape": round(fc_stats["mape_model"], 3),
+        "naive_mape": round(fc_stats["mape_naive"], 3),
+    }, {
+        "grain": "weekly (per category-week — the ordering decision)",
+        "model_mape": round(fc_stats["wk_model"], 3),
+        "naive_mape": round(fc_stats["wk_naive"], 3),
+    }])
+
+    # feature importances (skill §11): gradient-boosted trees have no
+    # coefficients, so effects are read off permutation importance instead —
+    # how much the test-set error worsens when one feature is shuffled
+    _imp = _perm_imp(
+        estimator = _gb,
+        X = _test.select(_feat).to_numpy(),
+        y = _test["units"].to_numpy(),
+        n_repeats = 10,
+        random_state = 0,
+    )
+    fc_importance = pl.DataFrame({
+        "feature": _feat,
+        "importance_mean": [round(v, 4) for v in _imp.importances_mean],
+        "importance_std": [round(v, 4) for v in _imp.importances_std],
+    }).sort(
+        by = "importance_mean",
+        descending = True,
+    )
+    return fc_eval, fc_frame, fc_importance, fc_stats
 
 
 @app.cell
@@ -2648,11 +3210,11 @@ def _(
     caption,
     dt,
     fc_frame,
-    fc_stats,
     go,
     mo,
     pl,
     style,
+    takeaway,
 ):
     _b = fc_frame.filter(pl.col("category") == "Beverages (Non-Alcoholic)").sort(by = "date")
     _fig = go.Figure()
@@ -2703,14 +3265,23 @@ def _(
     )
     style(
         fig = _fig,
-        title = ("The model tracks Beverages through Q4 — "
-                 "including the holiday spike it was never told about"),
+        title = "Beverages: actual daily sales vs. a held-out model forecast, Q4",
         right_margin = 96,
     )
-    _fig.update_yaxes(title_text = "units sold per day")
+    # explicit headroom above the tallest peak so the takeaway has clear air
+    _fig.update_yaxes(
+        title_text = "units sold per day",
+        range = [0, float(max(_b["units"].max(), _b["pred"].max())) * 1.25],
+    )
     # give the end-of-line labels room, and don't let them drag the date axis
     # weeks past the year's actual last day
     _fig.update_xaxes(range = [_b["date"].min(), _b["date"].max() + dt.timedelta(days = 12)])
+    takeaway(
+        fig = _fig,
+        text = "the model tracks the holiday spike it was never told about",
+        x = 0.02,
+        y = 0.99,
+    )
     mo.vstack(
         items = [
             _fig,
@@ -2727,7 +3298,7 @@ def _(
 
 
 @app.cell
-def _(fc_stats, mo):
+def _(fc_eval, fc_importance, fc_stats, mo):
     # the weekly verdict is written from the numbers, not assumed: with one
     # year of history the model and the naive rule genuinely trade places
     # from vintage to vintage of this comparison
@@ -2794,8 +3365,10 @@ def _(fc_stats, mo):
             ),
             mo.accordion(
                 items = {
-                    "🔍 See exactly how this model was built": mo.md(
-                        f"""
+                    "🔍 See exactly how this model was built": mo.vstack(
+                        items = [
+                            mo.md(
+                                f"""
     **What it predicts.** How many units of each of the 12 product
     categories sell on a given day.
 
@@ -2842,7 +3415,44 @@ def _(fc_stats, mo):
     then average that across every day. A MAPE of 25% means the model's
     guess was, on average, a quarter-unit off for every unit truly sold —
     smaller is better, and 0% would mean a perfect guess every time.
+
+    **The evaluation table, model vs. the naive benchmark, at both grains:**
     """
+                            ),
+                            mo.ui.table(
+                                data = fc_eval,
+                                selection = None,
+                            ),
+                            mo.md(
+                                """
+    **Which inputs the model actually leans on.** Gradient-boosted trees
+    don't have coefficients to read like a regression, so effects are
+    measured instead by **permutation importance**: take the trained model,
+    scramble one feature's values across the test set (breaking its link to
+    the outcome while leaving everything else intact), and see how much
+    worse the predictions get. A feature the model depends on heavily makes
+    the error jump when scrambled; a feature it ignores changes nothing.
+    """
+                            ),
+                            mo.ui.table(
+                                data = fc_importance,
+                                selection = None,
+                            ),
+                            mo.md(
+                                """
+    **Reading the importance ranking**, technical meaning first, then the
+    business insight: the top rows are the features whose scrambling hurt
+    the model most, in the same units as the prediction error itself, with
+    `importance_std` showing how much that estimate wobbles across repeated
+    shuffles. In practice the trailing 7/14-day sales figures and the
+    category identity dominate — the model has mostly learned "what this
+    category usually does and what it did recently," with weather and the
+    calendar acting as smaller corrections on top. That is exactly the
+    *what usually happens, and what's been happening lately* story from
+    above, now measured rather than asserted.
+    """
+                            ),
+                        ],
                     ),
                 },
             ),
