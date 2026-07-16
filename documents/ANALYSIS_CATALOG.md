@@ -177,5 +177,8 @@ validation needs Layer 2's estimates), structure last, and the three-year arc
 trusted (its year one doubles as that pipeline's regression test).
 `analyses/analysis_workbook.py` walks a single narrative through Layers 0–4
 at survey depth; `analyses/catalog_walkthrough.py` demonstrates the grading
-loop with one scored question per layer; the catalog is the specification
-for doing each layer at full depth, graded.
+loop with one scored question per layer; Layer 7 is covered by its own
+trio — `analyses/three_year_review.py` (7.1–7.5, 7.10–7.11 posed),
+`analyses/competitor_entry_study.py` (7.3–7.6), and
+`analyses/expansion_review.py` (7.9, 7.11 answered). The catalog is the
+specification for doing each layer at full depth, graded.
