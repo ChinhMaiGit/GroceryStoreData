@@ -25,6 +25,16 @@ about arm *pairs* by construction. Some questions are sharpest in a specific
 arm — pass-through (2.3) in `food_vat_cut_july`, elasticity identification
 (2.4) in `war_june`, stockout prediction (3.4) in `second_clerk`.
 
+The **three-year arms** (`3y_baseline` and its twins, P5) run everything in
+Layers 0–4 and 6 on a longer clock — three recording-layer binders to clean,
+three Christmases to describe, three cost-shock episodes to diagnose — and
+additionally unlock **Layer 7**, the questions a single year structurally
+cannot ask: trend, churn, structural breaks, regime-change forecasting, and
+capital decisions. Year one of `3y_baseline` is byte-identical to
+`baseline/`, so any pipeline built on the baseline must reproduce its own
+numbers there before extending — a built-in regression test for the
+*analyst's* code.
+
 ---
 
 ## Layer 0 — Clean the records before trusting them
@@ -80,7 +90,7 @@ reconciliation contract lives in `ACCOUNTING.md` §9.*
 | 3.3 | How wrong is the owner's own forecast, and why? | autopsy the trailing-MA rule; quantify the censoring spiral | `owner_forecasts.csv` vs realized and vs true demand |
 | 3.4 | Which SKUs will stock out next week? | OOS risk classification from cover, seasonality, delivery cadence | subsequent weeks' truth |
 | 3.5 | Which regulars are sliding into trouble? | early-warning detection of sustained down-trading spells | `spell_flags.csv`, `budget_paths.csv` |
-| 3.6 | How far can one year of history be trusted? | quantify the single-seasonal-cycle limit (one Christmas, one summer) | honest epistemics — a lesson, not a file |
+| 3.6 | How far can one year of history be trusted? | quantify the single-seasonal-cycle limit (one Christmas, one summer) | honest epistemics — and now priced empirically: fit on the baseline year, test on `3y_baseline`'s later years (7.5) |
 
 ## Layer 4 — Prescribe (core question 6)
 
@@ -121,6 +131,27 @@ arm, then check yourself against the twin diff.*
 | 6.5 | How much business is passing trade? | mixture modeling of the token panel: regulars vs single-use guests | `guests.csv` |
 | 6.6 | Is the documented causal graph consistent with the data? | test the DAG's implied conditional independencies | the DAGs in PHASE1–3 details |
 
+## Layer 7 — The three-year arc (P5: time, churn, and capital)
+
+*Asked of `3y_baseline` (`data/scenarios/3y_baseline/`), graded against its
+`hidden/` key and the `3y_no_competitor` / `3y_no_expansion` CRN twins. These
+are the questions one year of data structurally cannot ask.*
+
+| # | Question | Approach | Graded against |
+| --- | --- | --- | --- |
+| 7.1 | Is the business growing, or is it just summer? | trend–seasonality decomposition (STL / year-over-year indices) now identified with three annual cycles | `demand_modifiers.csv` is mean-one *per year* by construction, so measured trend must come from the panel and inflation — `customers.csv` arrival/departure dates + `cost_paths.csv` |
+| 7.2 | Which customers left, which arrived, and who was never going to stay? | churn inference from token silence (competing risks: lapsed vs gone), cohort retention curves, survival modeling | `customers.csv` — `arrival_date`, `departure_date`, `persistence`; survivorship bias in loyalty metrics is the planted trap (lesson #11) |
+| 7.3 | What happened in March 2027? | structural-break detection on visits/revenue; then *who* left — defection concentrated among price-sensitive transients | the competitor script (entry date, ramp, χ); `3y_no_competitor` twin diff prices the entry (~€5k net over 2027) |
+| 7.4 | Did customers trade up after the discounter opened? | premium share and basket value rise post-entry — composition vs behavior decomposition | nobody traded up: the price-hunters left (lesson #12); `persistence` + departure dates prove the mix shift |
+| 7.5 | Does a model trained on 2025–26 survive 2027? | true holdout-year evaluation; forecast breakdown at the regime change, monitored vs unmonitored | the held-out year itself + the `3y_no_competitor` twin separating regime break from model error (lesson #16) |
+| 7.6 | Did the promotions of 2027 work? | naive promo lift vs entry-aware estimates — the owner cut prices and loosened markdowns *because* revenue fell | the response is scheduled off the entry script, absent in `3y_no_competitor` (lesson #14: the endogenous-response confound) |
+| 7.7 | What do the three cost-shock episodes have in common? | compare pass-through of the 2025 energy crisis, 2026 avian flu, and 2027 commodity spike — same menu-cost mechanics, different competitive regimes | `event_log.csv`, `cost_paths.csv`, the response's markup cut in `price_history.csv` |
+| 7.8 | What did the freezer failure, the apartment block, and the festival each cost or earn? | event studies on narrated one-offs: a `damage` write-off spike, a demand step, a guest surge | the P5 script parameters (dates, magnitudes); `write_offs.reason`, `guests.csv`, arrival dates |
+| 7.9 | Was the expansion a good investment? | capital budgeting from the books: capex, the clerk's wages, extended-hours revenue, recovered stockouts — NPV the bet | `3y_no_expansion` twin: the bet costs ~€82k over its life (lesson #13, investment at the peak) |
+| 7.10 | How does capital actually flow through a small shop? | financial-statement analysis of the widened cost sheet: retained earnings, owner draws, the January tax cash calls, the rent step, wage revisions | ACCOUNTING §7.1's P5 columns and the contract schedule; the RE ledger reconciles to the cent by construction |
+| 7.11 | Renew the lease or close? | the capstone prescriptive: decompose 2027's −€2k into expansion, entry, and contract steps, then project 2028 under renewal | both twins together — the decomposition has a known answer: the expansion (−€82k) dwarfs the discounter (−€5k) |
+
+
 ---
 
 ## Coverage of the README's seven core questions
@@ -131,13 +162,19 @@ arm, then check yourself against the twin diff.*
 | 2 — what co-occurs (correlation) | 1.2–1.4, 2.1 |
 | 3 — causes (causal) | Layer 2 |
 | 4 — forecasts (predictive) | Layer 3 |
-| 5 — interventions (counterfactual) | Layer 5 |
-| 6 — optimal actions (optimization) | Layer 4 |
+| 5 — interventions (counterfactual) | Layer 5; 7.3, 7.9, 7.11 (the P5 twins) |
+| 6 — optimal actions (optimization) | Layer 4; 7.9–7.11 (capital decisions) |
 | 7 — learning preferences (intervention/structure) | Layer 6 |
+
+Layer 7 cuts across the core questions rather than adding an eighth: it is
+the same seven asked over *time* — growth vs season, churn, breaks, regime
+change, and the owner's capital story.
 
 A natural notebook series follows the layers in order — cleaning first (its
 output feeds everything), the policy laboratory after diagnosis (5.5's method
-validation needs Layer 2's estimates), structure last.
+validation needs Layer 2's estimates), structure last, and the three-year arc
+(Layer 7) as its own arc-length engagement once the one-year pipeline is
+trusted (its year one doubles as that pipeline's regression test).
 `analyses/analysis_workbook.py` walks a single narrative through Layers 0–4
 at survey depth; `analyses/catalog_walkthrough.py` demonstrates the grading
 loop with one scored question per layer; the catalog is the specification

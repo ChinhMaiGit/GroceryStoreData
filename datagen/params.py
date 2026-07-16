@@ -343,6 +343,147 @@ PHASE4 = {
     "profit_tax_rate": 0.20,
 }
 
+PHASE5 = {
+    # P5 §1: the three-year horizon, 2025-01-01 .. 2027-12-31; year one is
+    # byte-identical to the published one-year baseline (P5 §2)
+    "horizon_years": 3,
+    # holiday calendar for the extra years (fixed feasts plus movable Easter)
+    "holidays": {
+        "new_year_2026": dt.date(2026, 1, 1),
+        "good_friday_2026": dt.date(2026, 4, 3),
+        "easter_monday_2026": dt.date(2026, 4, 6),
+        "may_day_2026": dt.date(2026, 5, 1),
+        "midsummer_2026": dt.date(2026, 6, 21),
+        "christmas_eve_2026": dt.date(2026, 12, 24),
+        "christmas_2026": dt.date(2026, 12, 25),
+        "boxing_day_2026": dt.date(2026, 12, 26),
+        "new_years_eve_2026": dt.date(2026, 12, 31),
+        "new_year_2027": dt.date(2027, 1, 1),
+        "good_friday_2027": dt.date(2027, 3, 26),
+        "easter_monday_2027": dt.date(2027, 3, 29),
+        "may_day_2027": dt.date(2027, 5, 1),
+        "midsummer_2027": dt.date(2027, 6, 21),
+        "christmas_eve_2027": dt.date(2027, 12, 24),
+        "christmas_2027": dt.date(2027, 12, 25),
+        "boxing_day_2027": dt.date(2027, 12, 26),
+        "new_years_eve_2027": dt.date(2027, 12, 31),
+    },
+    "major_holidays": [
+        "easter_monday_2026",
+        "midsummer_2026",
+        "christmas_2026",
+        "easter_monday_2027",
+        "midsummer_2027",
+        "christmas_2027",
+    ],
+    "closures": [
+        dt.date(2026, 1, 1),
+        dt.date(2026, 12, 25),
+        dt.date(2027, 1, 1),
+        dt.date(2027, 12, 25),
+    ],
+    # P5 §3: the panel flow — rooted residents stay the whole window,
+    # transients churn and are replaced; the neighborhood grows only slowly
+    "panel": {
+        "transient_share": 0.20,
+        "transient_monthly_hazard": 1 / 18,     # mean tenure 18 months
+        "newcomer_transient_share": 0.50,       # movers are likelier to move again
+        "replacement_delay_p": 0.50,            # arrival = 1 + Geometric(p) months out
+        "growth_trickle_per_year": 4,           # Poisson mean, net new households
+        "churn_start_month": 13,                # byte-identity contract (P5 §2)
+        "apartment_block": {
+            "t_from": 609,                      # 2026-09-01
+            "n_new": 9,
+            "ramp_days": 42,
+            "guest_mult": 1.05,                 # permanent extra foot traffic
+        },
+    },
+    # P5 §4: retained earnings and the expansion decision
+    "finance": {
+        "formalize_month": 13,                  # RE ledger + owner draw begin
+        "retain_ratio": 0.50,                   # of positive after-tax monthly results
+        "expansion_threshold": 52_000.0,        # calibrated -> autumn 2026 crossing
+        "expansion_capex": 14_000.0,
+        "expansion": {
+            "hired_extra": 1,
+            "clerk_hours_per_day": 8,           # a part-time shift, not all open hours
+            "open_hour": 7,
+            "close_hour": 21,
+            "shelf_mult": 1.2,
+        },
+    },
+    # P5 §5: the lumpy nominal world — contracts reprice in steps, on dates
+    "contracts": {
+        "rent_mult_from_t": (731, 1.12),        # 2-yr contract renews 2027-01: +12%
+        "wage_raises": [                        # statutory July revisions (t, pct);
+            (547, 0.04),                        # 2026-07 (the 2025 raise stays in P2)
+            (912, 0.05),                        # 2027-07, tight labor market
+        ],
+        "utility_tariff": [                     # January contract resets (t, mult)
+            (366, 1.06),                        # 2026-01: crisis-aftermath repricing
+            (731, 1.03),                        # 2027-01
+        ],
+    },
+    # P5 §7: year two — growth, with scares
+    "freezer": {
+        "t": 404,                               # 2026-02-08, overnight compressor death
+        "frozen_loss": 1.00,
+        "dairy_loss": 0.30,
+        "repair_cost": 1_800.0,
+        "frozen_cap_mult": 0.5,                 # half the frozen shelf while it's fixed
+        "cap_days": 21,
+    },
+    "avian_flu": {
+        "type": "avian_flu",
+        "start": 470,                           # 2026-04-15
+        "ramp": 14,
+        "decay": 56,
+        "cats": {
+            "Dairy and Eggs": 0.18,
+        },
+        "utility_peak": 0.0,
+    },
+    "heatwave": {
+        "t_from": 547,                          # 2026-07-01 .. 2026-08-31
+        "t_to": 608,
+        "temp_delta": 3.5,
+    },
+    # P5 §8: year three — the squeeze
+    "competitor": {
+        "t": 790,                               # 2027-03-01, discounter opens 600 m away
+        "ramp_days": 28,
+        "target_visit_drop": 0.09,              # calibrates chi over the panel
+        "rooted_factor": 0.6,                   # relationships hold rooted residents
+        "guest_mult": 0.85,                     # guests are the most footloose
+    },
+    "response": {                               # scheduled, keyed to the entry (P5 §13.3)
+        "t": 851,                               # 2027-05-01
+        "markup_cut": 0.04,
+        "cut_cats": [
+            "Beverages (Non-Alcoholic)",
+            "Snacks and Confectionery",
+            "Household and Cleaning Supplies",
+        ],
+        "promo_trigger_cover": 3.0,             # loosened from the baseline 4.0
+    },
+    "festival": {
+        "t_from": 950,                          # 2027-08-07, two weeks on this street
+        "t_to": 963,
+        "guest_mult": 2.3,
+    },
+    "commodity": {
+        "type": "commodity_spike_2027",
+        "start": 994,                           # 2027-09-20
+        "ramp": 14,
+        "decay": 70,
+        "cats": {
+            "Pantry Staples and Packaged Goods": 0.14,
+            "Bakery and Bread": 0.14,
+        },
+        "utility_peak": 0.0,
+    },
+}
+
 # ============================================================================
 # The recording layer (Phase 3 §20) — rates of document defects
 # ============================================================================

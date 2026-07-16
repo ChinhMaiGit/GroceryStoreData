@@ -192,6 +192,50 @@ def solve_milp(
     }
 
 
+def gen_newcomer(rng):
+    """One household moving into the neighborhood (P5 §3): the same profile
+    distributions as the opening panel, drawn from the newcomer's own keyed
+    stream so the original panel's draws never move."""
+    p = PHASE1
+    budget = float(rng.lognormal(
+        mean = p["budget_lognormal"]["mu"],
+        sigma = p["budget_lognormal"]["sigma"],
+    ))
+    z = (math.log(budget) - p["budget_lognormal"]["mu"]) / p["budget_lognormal"]["sigma"]
+    nu = float(rng.normal(
+        loc = 0,
+        scale = 1,
+    ))
+    lam = p["brand_budget_loading"]
+    brand_aff = 1 / (1 + math.exp(-(lam * z + math.sqrt(1 - lam**2) * nu)))
+    alpha = np.array(object = [BASKET_SHARE[c] for c in CATS]) * p["dirichlet_conc"]
+    row = {
+        "weekly_budget": budget,
+        "primary_day": int(rng.choice(
+            a = 7,
+            p = p["primary_day_weights"],
+        )),
+        "adherence": float(rng.beta(
+            a = p["adherence_beta"][0],
+            b = p["adherence_beta"][1],
+        )),
+        "topup_rate": float(rng.beta(
+            a = p["topup_beta"][0],
+            b = p["topup_beta"][1],
+        )),
+        "price_sens": float(rng.lognormal(
+            mean = p["price_sens_lognormal"]["mu"],
+            sigma = p["price_sens_lognormal"]["sigma"],
+        )),
+        "brand_affinity": brand_aff,
+        "card_type": bool(rng.random() < p["card_share"]),
+    }
+    weights = rng.dirichlet(alpha = alpha)
+    for ci in range(len(CATS)):
+        row[f"w{ci}"] = float(weights[ci])
+    return row
+
+
 def gen_customers(
     rng,
     n_households,

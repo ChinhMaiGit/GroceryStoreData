@@ -59,6 +59,16 @@ def export(
     if len(wo):
         wo["date"] = wo["t"].map(arg = date_of)
         wo = wo.drop(columns = "t")
+        # keep the published column order (uid, units, date[, reason]) so the
+        # P5 §2 prefix contract sees the same header whatever the horizon
+        _wo_cols = [
+            "uid",
+            "units",
+            "date",
+        ]
+        if "reason" in wo.columns:
+            _wo_cols.append("reason")
+        wo = wo[_wo_cols]
     wxv = w.wx.copy()
     wxv["date"] = wxv["t"].map(arg = date_of)
     _wx_cols = [
@@ -94,16 +104,31 @@ def export(
         index = False,
     )
     # the annual tax statement (P4 §2): VAT, payroll, and the profit-tax
-    # accrual — what the accountant files after the year closes
+    # accrual — what the accountant files after each year closes. Under
+    # Phase 5 every year settles separately (P5 §4.1).
     _cs = base["cost_sheet"]
-    pd.DataFrame([{
-        "year": 2025,
-        "vat_remitted": float(_cs["vat"].sum()),
-        "payroll_tax": float(_cs["payroll_tax"].sum()),
-        "profit_before_tax": base["realized_profit"],
-        "profit_tax": base["profit_tax"],
-        "profit_after_tax": base["realized_after_tax"],
-    }]).to_csv(
+    if base.get("year_results"):
+        _stmt = []
+        for _yr in base["year_results"]:
+            _cy = _cs[_cs["year"] == _yr["year"]]
+            _stmt.append({
+                "year": _yr["year"],
+                "vat_remitted": float(_cy["vat"].sum()),
+                "payroll_tax": float(_cy["payroll_tax"].sum()),
+                "profit_before_tax": _yr["profit_before_tax"],
+                "profit_tax": _yr["profit_tax"],
+                "profit_after_tax": _yr["profit_after_tax"],
+            })
+    else:
+        _stmt = [{
+            "year": 2025,
+            "vat_remitted": float(_cs["vat"].sum()),
+            "payroll_tax": float(_cs["payroll_tax"].sum()),
+            "profit_before_tax": base["realized_profit"],
+            "profit_tax": base["profit_tax"],
+            "profit_after_tax": base["realized_after_tax"],
+        }]
+    pd.DataFrame(_stmt).to_csv(
         path_or_buf = vis / "tax_statement.csv",
         index = False,
     )
@@ -132,12 +157,24 @@ def export(
         path_or_buf = hid / "location_category.csv",
         index = False,
     )
-    w.customers.assign(
+    _cust = w.customers.assign(
         token = [token(
             kind = 0,
             n = int(i),
         ) for i in w.customers.customer_id],
-    ).to_csv(
+    )
+    if "arrival_t" in _cust.columns:
+        # the panel flow's answer key (P5 §3): when each household arrived,
+        # when it left, and whether it was ever going to stay
+        _cust["arrival_date"] = _cust["arrival_t"].map(arg = date_of)
+        _cust["departure_date"] = _cust["departure_t"].map(
+            arg = lambda x: date_of.get(int(x)) if pd.notna(x) else pd.NA,
+        )
+        _cust = _cust.drop(columns = [
+            "arrival_t",
+            "departure_t",
+        ])
+    _cust.to_csv(
         path_or_buf = hid / "customers.csv",
         index = False,
     )
@@ -188,14 +225,14 @@ def export(
     )
     pd.DataFrame(
         data = w.budgets,
-        columns = [f"w{k}" for k in range(1, 53)],
+        columns = [f"w{k}" for k in range(1, w.n_weeks + 1)],
     ).assign(customer_id = w.customers.customer_id).to_csv(
         path_or_buf = hid / "budget_paths.csv",
         index = False,
     )
     pd.DataFrame(
         data = w.spells,
-        columns = [f"w{k}" for k in range(1, 53)],
+        columns = [f"w{k}" for k in range(1, w.n_weeks + 1)],
     ).assign(customer_id = w.customers.customer_id).to_csv(
         path_or_buf = hid / "spell_flags.csv",
         index = False,

@@ -10,7 +10,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from datagen.params import IMPERFECTIONS, PHASE4
+from datagen.keys import token
+from datagen.params import IMPERFECTIONS, OUT, PHASE4
 from datagen.recording import month_end
 
 
@@ -414,6 +415,155 @@ def validate(
     print("\nValidation:")
     for name, okk, detail in checks:
         print(f"  {'PASS' if okk else 'FAIL'}  {name}  {detail}")
+    return all(c[1] for c in checks)
+
+
+def validate_phase5(
+    world,
+    base,
+    out,
+):
+    """The Phase 5 battery (P5 §11, checks 31-35): the year-one identity
+    contract against the published one-year baseline, the panel accounting,
+    and the retained-earnings ledger's reconciliation to the cost sheet."""
+    w = world
+    base_dir = OUT / "scenarios" / "baseline"
+    checks = []
+
+    # (31) year one is byte-for-byte the published baseline: every export
+    # whose schema did not widen must START with the baseline file's text
+    _prefix_files = [
+        "visible/receipts.csv",
+        "visible/procurement.csv",
+        "visible/inventory_eod.csv",
+        "visible/write_offs.csv",
+        "visible/weather.csv",
+        "visible/price_history.csv",
+        "visible/promotions.csv",
+        "visible/calendar.csv",
+        "visible/locations.csv",
+        "hidden/imperfections.csv",
+        "hidden/demand_modifiers.csv",
+        "hidden/tilts.csv",
+        "hidden/cost_paths.csv",
+        "hidden/spoil_factors.csv",
+        "hidden/hidden_demand.csv",
+        "hidden/guests.csv",
+        "hidden/owner_forecasts.csv",
+        "hidden/event_log.csv",
+        "hidden/weather_full.csv",
+        "hidden/decision_t0.csv",
+        "hidden/locations_full.csv",
+        "hidden/location_category.csv",
+    ]
+    _bad = []
+    for _rel in _prefix_files:
+        _a = (base_dir / _rel.replace("/", "\\")).read_text(encoding = "utf-8")
+        _b = (out / _rel.replace("/", "\\")).read_text(encoding = "utf-8")
+        if not _b.startswith(_a):
+            _bad.append(_rel)
+    checks.append((
+        "P5-31 year one is a byte prefix of every unwidened export",
+        not _bad,
+        f"{len(_prefix_files) - len(_bad)}/{len(_prefix_files)} files"
+        + (f", first mismatch {_bad[0]}" if _bad else ""),
+    ))
+    # ... and the widened cost sheet matches the baseline on shared columns
+    _cs = base["cost_sheet"]
+    _cs_b = pd.read_csv(filepath_or_buffer = base_dir / "visible" / "cost_sheet.csv")
+    _y1 = _cs[_cs["year"] == 2025].reset_index(drop = True)
+    _gap = float(np.max(np.abs(
+        _y1[_cs_b.columns].to_numpy(dtype = float) - _cs_b.to_numpy(dtype = float))))
+    checks.append((
+        "P5-31b year-one cost sheet matches the baseline on shared columns",
+        len(_y1) == 12 and _gap < 1e-6,
+        f"max gap {_gap:.2e}",
+    ))
+
+    # (32) panel accounting: nobody shops before arriving or after leaving
+    # (refund lines excepted — a return can straggle past moving day)
+    _cust = w.customers
+    _win = {token(
+        kind = 0,
+        n = int(r.customer_id),
+    ): (
+        int(r.arrival_t),
+        float(r.departure_t) if pd.notna(r.departure_t) else np.inf,
+    ) for r in _cust.itertuples()}
+    rec = base["receipts"]
+    _sales = rec[(rec["qty"] > 0) & (rec["customer_id"] != "")]
+    _viol = 0
+    for _tok, _t in zip(_sales["customer_id"], _sales["t"]):
+        _wd = _win.get(_tok)
+        if _wd is not None and not (_wd[0] <= _t <= _wd[1]):
+            _viol += 1
+    _newcomer_toks = {token(
+        kind = 0,
+        n = int(r.customer_id),
+    ) for r in _cust.itertuples() if int(r.arrival_t) > 1}
+    _n_new_lines = int(_sales["customer_id"].isin(values = _newcomer_toks).sum())
+    checks.append((
+        "P5-32 panel accounting: activity only inside each stay, newcomers do shop",
+        _viol == 0 and _n_new_lines > 100,
+        f"{_viol} out-of-window lines, {_n_new_lines} newcomer lines",
+    ))
+
+    # (33) the RE ledger reconciles to the cost sheet to the cent
+    _rate = PHASE4["profit_tax_rate"]
+    _retain = w.p5["finance"]["retain_ratio"]
+    _open = float(base["year_results"][0]["profit_after_tax"])
+    _re_exp = 0.0
+    _gap33 = 0.0
+    for _r in _cs.itertuples():
+        _m_global = (int(_r.year) - 2025) * 12 + int(_r.month)
+        if _m_global < w.p5["finance"]["formalize_month"]:
+            continue
+        if _m_global == w.p5["finance"]["formalize_month"]:
+            _re_exp = max(0.0, _open)
+        _res = (_r.revenue - _r.procurement - _r.rent - _r.wages - _r.payroll_tax
+                - _r.utilities - _r.storage - _r.flyers - _r.vat
+                - _r.credit_interest - _r.repairs)
+        _pi = _res * (1 - _rate)
+        if _pi > 0:
+            _re_exp += _retain * _pi
+            _gap33 = max(_gap33, abs(_r.owner_draw - (1 - _retain) * _pi))
+        _re_exp -= _r.capex
+        _gap33 = max(_gap33, abs(_r.retained_earnings - _re_exp))
+    checks.append((
+        "P5-33 retained-earnings ledger reconciles (draws, retention, capex)",
+        _gap33 < 1e-6,
+        f"max gap {_gap33:.2e}",
+    ))
+
+    # (34) January settles the prior year's tax in cash
+    _jan = _cs[(_cs["month"] == 1) & (_cs["year"] > 2025)]
+    _tax_by_year = {int(y["year"]): float(y["profit_tax"]) for y in base["year_results"]}
+    _gap34 = float(max(
+        (abs(r.profit_tax_paid - _tax_by_year[int(r.year) - 1]) for r in _jan.itertuples()),
+        default = np.inf,
+    ))
+    checks.append((
+        "P5-34 January pays last year's profit tax to the cent",
+        len(_jan) == 2 and _gap34 < 1e-6,
+        f"{len(_jan)} January closes, max gap {_gap34:.2e}",
+    ))
+
+    # (35) the discounter's defection is heterogeneous by construction:
+    # transients and price-hunters lose more visit probability than rooted
+    if w.p5["competitor"] is not None:
+        _pers = _cust["persistence"].to_numpy()
+        _mt = float(np.mean(w.comp_mult[_pers == "transient"]))
+        _mr = float(np.mean(w.comp_mult[_pers == "rooted"]))
+        _mean = float(np.mean(w.comp_mult))
+        checks.append((
+            "P5-35 defection concentrated in transients; aggregate near target",
+            _mt < _mr and abs(_mean - (1 - w.p5["competitor"]["target_visit_drop"])) < 0.01,
+            f"transient x{_mt:.2f} vs rooted x{_mr:.2f}, mean x{_mean:.3f}",
+        ))
+
+    print("\nPhase 5 validation:")
+    for cname, okk, detail in checks:
+        print(f"  {'PASS' if okk else 'FAIL'}  {cname}  {detail}")
     return all(c[1] for c in checks)
 
 

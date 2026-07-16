@@ -17,12 +17,18 @@ Phase 3  (documents/PHASE3_DETAILS.md -> datagen/phase3.py): the daily
          datagen/recording.py) dirties the visible documents on export.
 Phase 4  (documents/PHASE4_DETAILS.md -> datagen/scenarios.py): the policy
          laboratory — CRN-twin scenario arms under edited macro scripts.
+Phase 5  (documents/PHASE5_DETAILS.md): the three-year arc — panel churn and
+         growth, retained earnings and the endogenous expansion, stepping
+         contracts, and the year-two/three shock scripts. Ships as the
+         scenario arms prefixed 3y_ (3y_baseline + two CRN twins); their
+         year one is byte-identical to the published one-year baseline.
 
 Every arm — the baseline included — lands under data/scenarios/<name>/ with
 its own visible/ and hidden/ split. Reproducible end to end from MASTER_SEED.
 
 Run:  uv run python generate_dataset.py                 (baseline only)
       uv run python generate_dataset.py --scenario war_june
+      uv run python generate_dataset.py --scenario 3y_baseline
       uv run python generate_dataset.py --all-scenarios
 """
 
@@ -38,7 +44,7 @@ from datagen.keys import MASTER_SEED
 from datagen.params import OUT
 from datagen.phase3 import run_year
 from datagen.scenarios import SCENARIOS
-from datagen.validate import validate, validate_scenario
+from datagen.validate import validate, validate_phase5, validate_scenario
 from datagen.world import World
 
 
@@ -157,6 +163,14 @@ def main():
             name = name,
             spec = spec,
         )
+        if "phase5" in spec:
+            # the three-year arms additionally face the P5 battery: year-one
+            # identity, panel accounting, and the RE ledger reconciliation
+            validate_phase5(
+                world = world_s,
+                base = base_s,
+                out = out_s,
+            )
         rows.append(summary_row(
             label = name,
             description = spec["description"],

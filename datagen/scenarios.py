@@ -20,7 +20,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from datagen.params import CATS, OUT, PHASE4
+from datagen.params import CATS, OUT, PHASE4, PHASE5
 
 REDUCED_CATS = "reduced"      # every category not in vat_standard_categories
 
@@ -69,6 +69,54 @@ def _rebate_detail(world, base):
                      / "visible" / "cost_sheet.csv")
     return (f"April revenue baseline {_b.loc[_b.month == 4, 'revenue'].iloc[0]:,.0f} "
             f"-> rebate arm {cs.loc[cs.month == 4, 'revenue'].iloc[0]:,.0f}")
+
+
+def _3y_expect(world, base):
+    cs = base["cost_sheet"]
+    _cap = cs[cs["capex"] > 0]
+    return (len(_cap) == 1 and int(_cap["year"].iloc[0]) == 2026
+            and int(_cap["month"].iloc[0]) >= 9)
+
+
+def _3y_detail(world, base):
+    cs = base["cost_sheet"]
+    _cap = cs[cs["capex"] > 0]
+    if len(_cap) == 0:
+        return "expansion never fired"
+    return (f"expansion {int(_cap['year'].iloc[0])}-{int(_cap['month'].iloc[0]):02d}, "
+            f"RE at that close {float(_cap['retained_earnings'].iloc[0]):,.0f}")
+
+
+def _read_3y_baseline_cs():
+    return pd.read_csv(filepath_or_buffer = OUT / "scenarios" / "3y_baseline"
+                       / "visible" / "cost_sheet.csv")
+
+
+def _no_comp_expect(world, base):
+    # the CRN twin-diff: without the discounter, 2027 revenue must beat the
+    # 3y baseline's 2027 revenue (the twin is generated after the baseline)
+    cs = base["cost_sheet"]
+    _b = _read_3y_baseline_cs()
+    return float(cs.loc[cs.year == 2027, "revenue"].sum()) \
+        > float(_b.loc[_b.year == 2027, "revenue"].sum())
+
+
+def _no_comp_detail(world, base):
+    cs = base["cost_sheet"]
+    _b = _read_3y_baseline_cs()
+    return (f"2027 revenue {_b.loc[_b.year == 2027, 'revenue'].sum():,.0f} (with entry) "
+            f"-> {cs.loc[cs.year == 2027, 'revenue'].sum():,.0f} (without)")
+
+
+def _no_exp_expect(world, base):
+    cs = base["cost_sheet"]
+    return float(cs["capex"].sum()) == 0.0 and float(cs["owner_draw"].sum()) > 0.0
+
+
+def _no_exp_detail(world, base):
+    cs = base["cost_sheet"]
+    return (f"capex {cs['capex'].sum():,.0f}, "
+            f"owner draws {cs['owner_draw'].sum():,.0f}")
 
 
 def _clerk_expect(world, base):
@@ -192,6 +240,44 @@ SCENARIOS = {
             "sales appear in the extended hours and wages are paid",
             _clerk_expect,
             _clerk_detail,
+        ),
+    },
+    # ---- the three-year arc (P5) — the "3y_" prefix keeps these arms apart
+    # ---- from the one-year scenarios in data/scenarios/ ---------------------
+    "3y_baseline": {
+        "description": "three years (P5): growth, churn, an expansion, then a discounter",
+        "phase5": {},
+        "expect": (
+            "the expansion fires exactly once, in autumn 2026",
+            _3y_expect,
+            _3y_detail,
+        ),
+    },
+    "3y_no_competitor": {
+        "description": "the three-year arc without the 2027 discounter (CRN twin)",
+        "phase5": {
+            # no entry, and therefore no scheduled response either (P5 §13.3)
+            "competitor": None,
+            "response": None,
+        },
+        "expect": (
+            "2027 revenue beats the 3y baseline's",
+            _no_comp_expect,
+            _no_comp_detail,
+        ),
+    },
+    "3y_no_expansion": {
+        "description": "the three-year arc with the expansion switched off (CRN twin)",
+        "phase5": {
+            "finance": {
+                **PHASE5["finance"],
+                "expansion_threshold": None,
+            },
+        },
+        "expect": (
+            "no capex, while the owner still draws",
+            _no_exp_expect,
+            _no_exp_detail,
         ),
     },
 }

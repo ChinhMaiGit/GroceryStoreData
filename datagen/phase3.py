@@ -39,7 +39,9 @@ def run_year(
     censoring undone and spoilage priced in (P3 §14). Customer-side draws are
     keyed by (customer, day), so both worlds share their randomness (CRN)."""
     w, p3 = world, PHASE3
+    p5 = w.p5
     n_sku, n_cust = len(w.skus), len(w.customers)
+    n_days = len(w.cal)
     dec = w.milp["decision"]
 
     inv = dec.q0.to_numpy().astype(dtype = float)
@@ -69,6 +71,31 @@ def run_year(
     #   charges them at the monthly close instead, so they are returned here.
     credit = 0.0
     hired = w.hired
+    open_hour = w.open_hour
+    close_hour = w.close_hour
+    clerk_hours = None      # None -> staff are paid for all open hours
+    shelf_mult = 1.0
+    base_rent = float(w.locs.rent[w.milp["location"]])
+    # year-one one-offs, needed early for the January tax settlement (P5 §4)
+    setup_oneoffs = float(w.locs.setup_cost[w.milp["location"]]) \
+        + PHASE1["listing_fee"] * len(w.listed)
+    initial_restock = float((dec.q0.to_numpy() * w.base_cost).sum())
+    # Phase 5 finance state (P5 §4): the RE ledger, the January tax
+    # settlement, and the one possible expansion
+    re_balance = 0.0
+    y1_after_tax = 0.0
+    pending_tax = 0.0
+    year_results = []
+    expanded = False
+    expansion_t = None
+    promo_cover = p3["promo_trigger_cover"]
+    _resp = None
+    if p5 and p5["response"] is not None and p5["competitor"] is not None:
+        # the owner's competitive response is scheduled off the entry script,
+        # never off realized revenue, so the no-competitor twin stays clean
+        # (P5 §13.3) — no entry, no response
+        _resp = p5["response"]
+        _resp_cats = set(_resp["cut_cats"])
 
     def vat_share(
         cat,
@@ -168,12 +195,12 @@ def run_year(
     hour_we /= hour_we.sum()
     guest_share = np.array(object = [BASKET_SHARE[c] for c in CATS])
 
-    # last Sundays (loyalty days)
-    loyalty_days = set()
-    for m in range(1, 13):
-        sundays = [d.t for d in w.cal.itertuples() if d.date.month == m and d.dow == 6]
-        if sundays:
-            loyalty_days.add(sundays[-1])
+    # last Sundays (loyalty days) — grouped by calendar month of each year
+    _last_sunday = {}
+    for d in w.cal.itertuples():
+        if d.dow == 6:
+            _last_sunday[(d.date.year, d.date.month)] = d.t
+    loyalty_days = set(_last_sunday.values())
 
     stockout_sku_days = 0
     listed_days = 0
@@ -189,6 +216,47 @@ def run_year(
         if week != cur_week:
             spent_week[:] = 0.0
             cur_week = week
+
+        if p5:
+            # a newcomer's first morning (P5 §3): a freshly stocked pantry —
+            # they moved in with boxes, not with empty cupboards
+            for i in np.flatnonzero(w.arrival_t_arr == t):
+                g = rng_for(K_CUSTDAY, int(i), 0)
+                pantry[i] = g.uniform(
+                    low = 0,
+                    high = w.target[i],
+                )
+            # the expansion executes on the first of the month (P5 §4.2)
+            if expansion_t == t:
+                _exp = p5["finance"]["expansion"]
+                cash -= p5["finance"]["expansion_capex"]
+                re_balance -= p5["finance"]["expansion_capex"]
+                month_acc["capex"] += p5["finance"]["expansion_capex"]
+                hired += _exp["hired_extra"]
+                clerk_hours = _exp["clerk_hours_per_day"]
+                open_hour = _exp["open_hour"]
+                close_hour = _exp["close_hour"]
+                shelf_mult = _exp["shelf_mult"]
+                expanded = True
+            # the freezer dies overnight (P5 §7): the frozen aisle and part
+            # of the dairy case go in the bin at opening, the repairman bills
+            if t == p5["freezer"]["t"]:
+                _fz = p5["freezer"]
+                for i in w.listed:
+                    _frac = _fz["frozen_loss"] if w.cat_of[i] == "Frozen Foods" \
+                        else _fz["dairy_loss"] if w.cat_of[i] == "Dairy and Eggs" else 0.0
+                    _units = int(inv[i]) if _frac >= 1.0 else int(round(_frac * inv[i]))
+                    if _frac > 0 and _units > 0:
+                        inv[i] -= _units
+                        total_spoiled[i] += _units
+                        writeoffs.append({
+                            "t": t,
+                            "uid": w.uid[i],
+                            "units": _units,
+                            "reason": "damage",
+                        })
+                cash -= _fz["repair_cost"]
+                month_acc["repairs"] += _fz["repair_cost"]
 
         # ---- morning: overnight spoilage, deliveries, prices -------------
         for i in w.listed:
@@ -218,8 +286,13 @@ def run_year(
             alpha = p3["cost_ewma_alpha"]
             _r_day = w.vat_rate[w.cat_of[sku_i]][t - 1]
             cost_ewma[sku_i] = alpha * (ucost / (1 + _r_day)) + (1 - alpha) * cost_ewma[sku_i]
+            _mk = w.markup[sku_i]
+            if _resp is not None and t >= _resp["t"] and w.cat_of[sku_i] in _resp_cats:
+                # the price fight-back (P5 §8): thinner margins on the
+                # price-visible categories, passed through at each delivery
+                _mk = _mk - _resp["markup_cut"]
             candidate = float(charm(
-                p = (1 + w.markup[sku_i]) * cost_ewma[sku_i] * (1 + _r_day),
+                p = (1 + _mk) * cost_ewma[sku_i] * (1 + _r_day),
                 ending = w.price_end[sku_i],
             ))
             if abs(candidate / price[sku_i] - 1) > p3["reprice_threshold"]:
@@ -272,11 +345,19 @@ def run_year(
             lam_t = w.lam[t - 1] * (1 + p3["flyer_lift"] * (flyer_until >= t)) \
                 * (1 + p3["loyalty_traffic_lift"] * (t in loyalty_days))
             hour_w = hour_we if day.dow >= 5 else hour_wd
+            _act = w.active[t - 1] if p5 else None
+            _ramp = w.comp_ramp[t - 1] if p5 else 0.0
             arrivals = []
             for i in range(n_cust):
+                if _act is not None and not _act[i]:
+                    continue    # not living here (yet, or anymore) — P5 §3
                 g = rng_for(K_CUSTDAY, i, t)
                 base = (w.customers.adherence.iloc[i] if day.dow == w.customers.primary_day.iloc[i]
                         else w.customers.topup_rate.iloc[i])
+                if _ramp > 0.0:
+                    # the discounter's pull (P5 §8): the outside option got
+                    # better, and more so for the price-sensitive
+                    base = base * (1 - (1 - w.comp_mult[i]) * _ramp)
                 visit = g.random() < min(1.0, base * lam_t)
                 if g.random() < PHASE1["deviation_prob"]:
                     visit = not visit
@@ -292,7 +373,12 @@ def run_year(
             # the passing trade: one-off guests, keyed by day (CRN-safe)
             gg = rng_for(K_GUEST, t)
             _gp = p3["guests"]
-            _n_guest = gg.poisson(lam = _gp["base_per_day"] * _gp["dow_factor"][day.dow] * lam_t)
+            _guest_lam = _gp["base_per_day"] * _gp["dow_factor"][day.dow] * lam_t
+            if p5:
+                # guests scale with the neighborhood, feel the block, the
+                # festival fortnight, and the discounter (P5 §3, §8)
+                _guest_lam = _guest_lam * w.guest_mult_t[t - 1]
+            _n_guest = gg.poisson(lam = _guest_lam)
             for _ in range(_n_guest):
                 arrivals.append((
                     int(gg.choice(
@@ -306,7 +392,7 @@ def run_year(
 
             for hour, i, g in arrivals:
                 if i == -1:  # ---- a guest: small basket, no pantry, no profile
-                    if hour < w.open_hour or hour >= w.close_hour:
+                    if hour < open_hour or hour >= close_hour:
                         continue
                     _budget_g = g.lognormal(
                         mean = _gp["visit_budget"][0],
@@ -419,7 +505,7 @@ def run_year(
                                   out = np.zeros_like(shortfall),
                                   where = w.target[i] > 0)
                 primary = day.dow == w.customers.primary_day.iloc[i]
-                if hour < w.open_hour or hour >= w.close_hour:
+                if hour < open_hour or hour >= close_hour:
                     for ci in np.argsort(a = -ratio):
                         if ratio[ci] > (1 - p3["list_threshold"] if primary else 1 - 0.2):
                             hidden.append({
@@ -654,7 +740,7 @@ def run_year(
                     # censoring undone (uncensored demand MA) + true seasonal
                     # anticipation via the known modifier path (P3 §14)
                     M = w.M[c]
-                    m_next = float(M[t - 1: min(t + 8, 365)].mean())
+                    m_next = float(M[t - 1: min(t + 8, n_days)].mean())
                     m_past = float(M[max(0, t - 29): t - 1].mean()) if t > 2 else 1.0
                     Dw = float(np.mean(a = cat_demand_hist[c][-p3["ma_weeks"]:])) * m_next / m_past
                     hist = demand_hist
@@ -681,17 +767,25 @@ def run_year(
                         + PHASE1["eta"] * 30 / 7 * max(0.0, 1 - 4 * lam_w)
                 else:
                     cm = cover_mult
+                # while the freezer is being repaired (P5 §7) only half the
+                # frozen shelf exists — the owner orders to what he can store
+                _fz_scale = 1.0
+                if p5 and c == "Frozen Foods":
+                    _fz = p5["freezer"]
+                    if _fz["t"] <= t < _fz["t"] + _fz["cap_days"]:
+                        _fz_scale = _fz["frozen_cap_mult"]
                 for j, sh in zip(idx, share):
                     tgt = cm * Dw * sh
                     need = tgt - inv[j] - sum(qq for dd, lst in pending.items()
                                               for jj, qq, _ in lst if jj == j)
+                    need = need * _fz_scale
                     if need >= 1:
                         order.append((j, int(round(need))))
             # invoice costs: category path times idiosyncratic per-line noise —
             # real supplier invoices never move in perfect unison
             ucost = {
                 j: w.base_cost[j]
-                * w.cost_mult[w.cat_of[j]][min(t + p3["lead_days"], 365) - 1]
+                * w.cost_mult[w.cat_of[j]][min(t + p3["lead_days"], n_days) - 1]
                 * math.exp(rng_for(K_COST, int(j), t).normal(
                     loc = 0,
                     scale = 0.025,
@@ -704,7 +798,7 @@ def run_year(
             scale = min(1.0, headroom / bill) if bill > 0 else 1.0
             # shelf capacity cap (P3 §8): physical stock peaks just after the
             # Wednesday delivery — project on-hand then, using his own forecast
-            shelf_cap = float(w.locs.shelf_capacity_units[w.milp["location"]])
+            shelf_cap = float(w.locs.shelf_capacity_units[w.milp["location"]]) * shelf_mult
             at_delivery = max(0.0, float(inv[w.listed].sum())
                               - p3["lead_days"] * Dw_total / 7) \
                 + sum(qq for lst in pending.values() for _, qq, _ in lst)
@@ -726,14 +820,16 @@ def run_year(
                     month_acc["procurement"] += q2 * ucost[j]
                     month_acc["vat_in"] += q2 * ucost[j] * vat_share(
                         cat = w.cat_of[j],
-                        day_ix = min(t + p3["lead_days"], 365) - 1,
+                        day_ix = min(t + p3["lead_days"], n_days) - 1,
                     )
 
-            # markdown trigger (P3 §9)
+            # markdown trigger (P3 §9); the P5 §8 response loosens the cover
+            if _resp is not None and t >= _resp["t"]:
+                promo_cover = _resp["promo_trigger_cover"]
             for c in CATS:
                 Dw = float(np.mean(a = sales_hist[c][-p3["ma_weeks"]:]))
                 on = sum(inv[j] for j in w.cat_listed[c])
-                if Dw > 0 and on / Dw > p3["promo_trigger_cover"]:
+                if Dw > 0 and on / Dw > promo_cover:
                     idx = sorted(w.cat_listed[c],
                                  key = lambda j: np.mean(a = sku_hist[j][-p3["ma_weeks"]:]))
                     slow = idx[: max(1, len(idx) // 3)]
@@ -760,21 +856,55 @@ def run_year(
 
         # ---- monthly close --------------------------------------------------
         nxt = day.date + dt.timedelta(1)
-        if nxt.month != day.date.month or t == len(w.cal):
+        if nxt.month != day.date.month or t == n_days:
             days_in_m = day.date.day
             rate = w.rates[w.rates.t == t].iloc[0]
-            open_hours = w.close_hour - w.open_hour
-            wages = hired * rate.wage_rate * open_hours * days_in_m
+            open_hours = close_hour - open_hour
+            # the P5 §4.2 hire works a fixed part-time shift; every other
+            # staffing arrangement (P4 policy arms) covers the open hours
+            _paid_h = clerk_hours if clerk_hours is not None else open_hours
+            wages = hired * rate.wage_rate * _paid_h * days_in_m
             payroll = wages * PHASE4["payroll_rate"]
             utils = rate.utility_rate * open_hours * days_in_m
             storage = float(inv[w.listed].sum()) * rate.storage_rate
-            rent = float(w.locs.rent[w.milp["location"]])
+            rent = base_rent
+            if p5 and t >= p5["contracts"]["rent_mult_from_t"][0]:
+                # the two-year contract renews (P5 §5): the landlord watched
+                # the shop succeed and reprices to market
+                rent = base_rent * p5["contracts"]["rent_mult_from_t"][1]
             # VAT collected at the till, minus VAT paid on invoices, leaves
             # the till at the monthly close (P4 §2) — real cash, like rent
             vat_due = month_acc["vat_out"] - month_acc["vat_in"]
             cash -= wages + payroll + utils + storage + rent + vat_due
             interest = credit * PHASE3["credit_apr"] / 12
             cash -= interest
+            month_result = (month_acc["revenue"] - month_acc["procurement"]
+                            - rent - wages - payroll - utils - storage
+                            - month_acc["flyers"] - vat_due - interest
+                            - month_acc["repairs"])
+            draw = 0.0
+            profit_tax_paid = 0.0
+            if p5:
+                _fin = p5["finance"]
+                _m_global = (day.date.year - 2025) * 12 + day.date.month
+                if _m_global == _fin["formalize_month"]:
+                    # the books formalize (P5 §4.1): the first year's surplus
+                    # is declared the opening retained-earnings balance
+                    re_balance = y1_after_tax
+                if _m_global >= _fin["formalize_month"]:
+                    # the owner pays himself out of good months only; the
+                    # retained share stays in the till, earmarked for growth
+                    _pi = month_result * (1 - PHASE4["profit_tax_rate"])
+                    if _pi > 0:
+                        draw = (1 - _fin["retain_ratio"]) * _pi
+                        re_balance += _fin["retain_ratio"] * _pi
+                        cash -= draw
+                if day.date.month == 1 and pending_tax > 0:
+                    # last year's profit tax leaves the till in January —
+                    # cash-basis now, not the P4 accrual idealization (P5 §4.1)
+                    profit_tax_paid = pending_tax
+                    cash -= pending_tax
+                    pending_tax = 0.0
             if cash < 0:                        # draw on the credit line
                 credit += -cash
                 cash = 0.0
@@ -782,11 +912,32 @@ def run_year(
                 pay = min(credit, cash)
                 credit -= pay
                 cash -= pay
-            ytd_result += (month_acc["revenue"] - month_acc["procurement"]
-                           - rent - wages - payroll - utils - storage
-                           - month_acc["flyers"] - vat_due - interest)
-            tax_reserve = PHASE4["profit_tax_rate"] * max(0.0, ytd_result)
-            costsheet.append({
+            ytd_result += month_result
+            if p5 and day.date.month == 12:
+                # the year closes: settle the taxable result (year one also
+                # absorbs the opening one-offs), accrue the January bill
+                _oneoffs = setup_oneoffs + initial_restock if day.date.year == 2025 else 0.0
+                _taxable = ytd_result - _oneoffs
+                _tax = PHASE4["profit_tax_rate"] * max(0.0, _taxable)
+                year_results.append({
+                    "year": day.date.year,
+                    "profit_before_tax": _taxable,
+                    "profit_tax": _tax,
+                    "profit_after_tax": _taxable - _tax,
+                })
+                if day.date.year == 2025:
+                    y1_after_tax = max(0.0, _taxable - _tax)
+                pending_tax = _tax
+                ytd_result = 0.0
+            tax_reserve = PHASE4["profit_tax_rate"] * max(0.0, ytd_result) + pending_tax
+            if (p5 and not expanded and expansion_t is None
+                    and p5["finance"]["expansion_threshold"] is not None
+                    and re_balance >= p5["finance"]["expansion_threshold"]
+                    and cash - tax_reserve >= p5["finance"]["expansion_capex"]):
+                # enough capital, honestly counted — the expansion goes ahead
+                # on the first of next month (P5 §4.2)
+                expansion_t = t + 1
+            row = {
                 "month": day.date.month,
                 "revenue": month_acc["revenue"],
                 "procurement": month_acc["procurement"],
@@ -800,11 +951,20 @@ def run_year(
                 "credit_interest": interest,
                 "credit_balance": credit,
                 "cash": cash,
-            })
+            }
+            if p5:
+                # the capital-flow columns (P5 §4.1); the one-year baseline
+                # keeps its published schema untouched
+                row["year"] = day.date.year
+                row["repairs"] = month_acc["repairs"]
+                row["owner_draw"] = draw
+                row["retained_earnings"] = re_balance
+                row["capex"] = month_acc["capex"]
+                row["profit_tax_paid"] = profit_tax_paid
+            costsheet.append(row)
             month_acc = defaultdict(float)
 
     cs = pd.DataFrame(costsheet)
-    initial_restock = float((dec.q0.to_numpy() * w.base_cost).sum())
     _cost_cols = [
         "procurement",
         "rent",
@@ -816,16 +976,22 @@ def run_year(
         "vat",
         "credit_interest",
     ]
+    if p5:
+        _cost_cols.append("repairs")
     realized = float(cs.revenue.sum() - cs[_cost_cols].sum().sum()
                      - w.locs.setup_cost[w.milp["location"]]
                      - PHASE1["listing_fee"] * len(w.listed)
                      - initial_restock)
-    # profit tax (P4 §2): accrued on the positive result at the year's close,
-    # paid the following January — a statement line, not an in-year cash move
-    profit_tax = max(0.0, realized) * PHASE4["profit_tax_rate"]
+    # profit tax (P4 §2): accrued on the positive result at the year's close;
+    # under Phase 5 each year settles separately and January pays it in cash
+    if p5:
+        profit_tax = float(sum(y["profit_tax"] for y in year_results))
+    else:
+        profit_tax = max(0.0, realized) * PHASE4["profit_tax_rate"]
     return {
         "profit_tax": profit_tax,
         "realized_after_tax": realized - profit_tax,
+        "year_results": year_results,
         "receipts": pd.DataFrame(receipts),
         "hidden": pd.DataFrame(hidden),
         "procurement": pd.DataFrame(proc),

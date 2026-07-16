@@ -27,6 +27,62 @@ def dirty_layer(
     world,
     frames,
 ):
+    """Corrupt the documents, one calendar year at a time (P5 §2).
+
+    A real back office runs on yearly binders, and so does this one: each
+    365-day block of the exports passes through `_dirty_block` with its own
+    per-year keyed streams, so the first block's defects are draw-for-draw
+    the published one-year baseline's, whatever the horizon. Book drift
+    never crosses a year boundary — the December stock count trues it up."""
+    n_years = getattr(world, "n_years", 1)
+    if n_years == 1:
+        return _dirty_block(
+            world = world,
+            frames = frames,
+            year_key = 0,
+        )
+    _date_col = {
+        "receipts": "date",
+        "inventory_eod": "date",
+        "procurement": "delivery_date",
+        "promotions": "start_date",
+        "write_offs": "date",
+        "weather": "date",
+    }
+    y0 = frames["weather"]["date"].iloc[0].year
+    out_frames = {name: [] for name in frames}
+    ledgers = []
+    for y in range(n_years):
+        block = {
+            name: df[df[_date_col[name]].map(arg = lambda d: d.year) == y0 + y]
+            .reset_index(drop = True)
+            for name, df in frames.items()
+        }
+        bframes, bledger = _dirty_block(
+            world = world,
+            frames = block,
+            year_key = y,
+        )
+        for name in frames:
+            out_frames[name].append(bframes[name])
+        ledgers.append(bledger)
+    return (
+        {name: pd.concat(
+            objs = parts,
+            ignore_index = True,
+        ) for name, parts in out_frames.items()},
+        pd.concat(
+            objs = ledgers,
+            ignore_index = True,
+        ),
+    )
+
+
+def _dirty_block(
+    world,
+    frames,
+    year_key,
+):
     """Corrupt the *documents*, never the physics (Phase 3 §20).
 
     The simulation is reality and is already finished when this runs; every
@@ -38,6 +94,11 @@ def dirty_layer(
     Returns the corrupted frames plus a ledger of every injected defect
     (the hidden answer key for the data-cleaning grade)."""
     imp = IMPERFECTIONS
+
+    def _g(stream):
+        # year one consumes the original keys (P5 §2); later binders their own
+        return rng_for(K_DIRT, stream) if year_key == 0 else rng_for(K_DIRT, stream, year_key)
+
     ledger = []
     events = []      # (uid, date, book-minus-true delta) from document defects
 
@@ -54,7 +115,7 @@ def dirty_layer(
     # The wrong item is a real product at that day's real shelf price (drawn
     # from another receipt of the same day); +q then -q nets to zero, so
     # there is no economic or inventory effect — only till-tape noise.
-    g11 = rng_for(K_DIRT, 11)
+    g11 = _g(stream = 11)
     vids = g11.choice(
         a = rids,
         size = round(len(rids) * imp["void_pair_rate"]),
@@ -101,7 +162,7 @@ def dirty_layer(
         ignore_index = True,
     )
 
-    g2 = rng_for(K_DIRT, 2)
+    g2 = _g(stream = 2)
     glitch = g2.choice(
         a = rids,
         size = round(len(rids) * imp["hour_glitch_rate"]),
@@ -117,7 +178,7 @@ def dirty_layer(
         "note": "hour overwritten with the 0 placeholder",
     } for r in glitch]
 
-    g3 = rng_for(K_DIRT, 3)
+    g3 = _g(stream = 3)
     vic = g3.choice(
         a = rids,
         size = round(len(rids) * imp["payment_variant_rate"]),
@@ -146,7 +207,7 @@ def dirty_layer(
     # "every distinct line's multiplicity is even" — is only sound if no
     # legitimate receipt already has that property, so such receipts are
     # excluded from the candidate pool (the reference year has none).
-    g1 = rng_for(K_DIRT, 1)
+    g1 = _g(stream = 1)
     _cols = list(rec.columns)
     _mult = rec.groupby(
         by = _cols,
@@ -187,7 +248,7 @@ def dirty_layer(
 
     # ---- procurement: D6 posting lag, D4 double postings, D5 missing lines --
     pr = frames["procurement"].copy()
-    g6 = rng_for(K_DIRT, 6)
+    g6 = _g(stream = 6)
     lags, probs = imp["posting_lag"]
     # one lag per delivery: the clerk keys a delivery's paperwork in one
     # sitting, with the odd straggler line entered a few days later
@@ -206,7 +267,7 @@ def dirty_layer(
 
     # a duplicate must be keyed in before the month-end count that will
     # correct it, or the paper trail runs backwards in time
-    g4 = rng_for(K_DIRT, 4)
+    g4 = _g(stream = 4)
     _room = np.array([(month_end(d = d) - p).days
                       for d, p in zip(pr["delivery_date"], pr["posted_date"])])
     _elig4 = np.flatnonzero(_room >= 2)
@@ -232,7 +293,7 @@ def dirty_layer(
             "note": "invoice posted twice",
         })
 
-    g5 = rng_for(K_DIRT, 5)
+    g5 = _g(stream = 5)
     mi = sorted(g5.choice(
         a = np.array([i for i in range(len(pr)) if i not in set(di)]),
         size = imp["n_missing_invoices"],
@@ -256,8 +317,13 @@ def dirty_layer(
 
     # ---- write-offs: D7 unrecorded tosses, plus the reason label ------------
     wo = frames["write_offs"].copy()
-    wo["reason"] = "spoilage"
-    g7 = rng_for(K_DIRT, 7)
+    if "reason" in wo.columns:
+        # the freezer failure's rows (P5 §7) arrive labeled "damage" from the
+        # simulation; everything unlabeled is the ordinary nightly toss
+        wo["reason"] = wo["reason"].fillna(value = "spoilage")
+    else:
+        wo["reason"] = "spoilage"
+    g7 = _g(stream = 7)
     ui = sorted(g7.choice(
         a = len(wo),
         size = round(len(wo) * imp["unrecorded_spoilage_rate"]),
@@ -314,7 +380,7 @@ def dirty_layer(
             ignore_index = True,
         )
 
-    g8 = rng_for(K_DIRT, 8)
+    g8 = _g(stream = 8)
     _elig = np.flatnonzero((on >= 10) & (_di >= 1) & (_di <= n_days - 2))
     _cand = g8.choice(
         a = _elig,
@@ -349,7 +415,7 @@ def dirty_layer(
 
     # ---- weather: D9 sensor outages ------------------------------------------
     wx = frames["weather"].copy()
-    g9 = rng_for(K_DIRT, 9)
+    g9 = _g(stream = 9)
     starts = sorted(g9.choice(
         a = np.arange(5, len(wx) - 5),
         size = imp["n_weather_outages"],
@@ -379,11 +445,14 @@ def dirty_layer(
     pm = frames["promotions"].copy()
     good, bad = imp["promo_typo"]
     _rows = pm.index[pm["category"] == good].to_numpy()
-    g10 = rng_for(K_DIRT, 10)
+    g10 = _g(stream = 10)
     pick = g10.choice(
         a = _rows,
         size = min(imp["n_promo_typos"], len(_rows)),
         replace = False,
+    ) if len(_rows) else np.array(
+        object = [],
+        dtype = int,
     )
     pm.loc[pick, "category"] = bad
     ledger += [{

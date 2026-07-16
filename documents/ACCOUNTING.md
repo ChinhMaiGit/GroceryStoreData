@@ -199,7 +199,7 @@ stock-count rows measure bookkeeping drift. Mixing them double-counts.
 | `revenue` | Σ till lines that month, **net of refunds** |
 | `procurement` | Σ invoice bills for orders *placed* that month (cash-basis, order date) |
 | `rent` | fixed monthly rent of the chosen location |
-| `wages` | hired staff × hourly wage × opening hours × days in month. Wage rate rises 4% from July 1. **The owner is unpaid** — this store needs one person, who is the owner, so wages are €0 and every "profit" figure is really the owner's own compensation |
+| `wages` | hired staff × hourly wage × paid hours × days in month — paid hours are the opening hours, except the P5 expansion hire, who works a fixed 8-hour shift. Wage rate rises 4% from July 1, 2025 (and, on the three-year horizon, +4% Jul 2026, +5% Jul 2027). **The owner is unpaid** — this store needs one person, who is the owner, so wages are €0 until the 2026 expansion hires the first clerk, and every "profit" figure is really the owner's own compensation |
 | `payroll_tax` | employer contributions at 25% of gross wages — €0 while the owner works alone, real money in staffing scenarios |
 | `utilities` | hourly utility rate × opening hours × days; the rate carries inflation **and the Q4 energy-crisis spike** |
 | `storage` | end-of-month on-hand units × unit storage rate (€0.02 × inflation) |
@@ -216,6 +216,24 @@ binds *upstream*, in the ordering rule (Section 5, step 3): the owner never plac
 an order his cash plus remaining credit room cannot cover, so the sweep itself
 never needs to enforce the cap.
 
+**Three-year arms only (P5 §4)** — the `3y_*` scenarios widen the sheet with six
+columns; the published one-year baseline keeps its schema untouched:
+
+| Column | Definition |
+|---|---|
+| `year` | calendar year of the row (`month` stays the integer 1–12) |
+| `repairs` | one-off maintenance hits (the Feb-2026 freezer repair, €1,800) — an expense, deducted from the month's result |
+| `owner_draw` | from Jan 2026: the owner pays himself half of each *positive* month's after-tax result — `0.5 × max(0, result × 0.8)` — leaving cash before the sweep; €0 in loss months and throughout year one (the founder lived off savings) |
+| `retained_earnings` | the running RE ledger: opens at year one's after-tax result when the books formalize (Jan 2026), grows by the retained half of good months, and is debited by capex |
+| `capex` | investment outlays (the €14,000 expansion fit-out) — **not** an expense: excluded from the month's result and from taxable profit (no depreciation is modeled; documented idealization) |
+| `profit_tax_paid` | the *prior* year's profit tax, leaving the till at the January close — the cash-basis settlement that replaces the P4 accrual idealization on the three-year horizon |
+
+**The expansion decision** (P5 §4.2): at any close from 2026 on, if
+`retained_earnings ≥ €52,000` **and** `cash − tax jar ≥ €14,000`, the owner
+expands on the first of the next month — the first clerk (a fixed 8-hour
+shift), hours 07–21, shelf capacity ×1.2, €14,000 capex from cash and RE. It
+can fire at most once; in the reference path it fires November 1, 2026.
+
 ### 7.2 Annual realized profit
 
 ```
@@ -230,6 +248,13 @@ profit after tax  = profit before tax − profit tax
 *(reference year: ≈ €36,479 before tax, €7,296 profit tax, €29,183 after tax;
 the hidden answer key stores the believed / realized / oracle triptych with
 after-tax lines.)*
+
+On the three-year horizon each year settles separately: the one-time openings
+are charged to 2025, repairs are expensed in their month, capex is not
+deducted, and `tax_statement.csv` carries one row per year. Reference
+(`3y_baseline`, seed 20260712): 2025 +36,479 / 2026 +48,756 / 2027 −2,080
+before tax — the growth year funds the expansion, and the squeeze year poses
+the renew-or-close question the dataset was built to ask (P5 §15).
 
 ### 7.3 The tax layer (P4 §2)
 
@@ -303,7 +328,15 @@ What an analyst should expect each check to return, on the shipped data:
 - Procurement is cash-basis at order date; there are no payment terms or accounts payable.
 - Refund fraud, partial-basket returns and restocked returns are not modeled; every
   refund is a destroy-on-return of 1–2 units of one line.
-- The profit tax is accrued, not paid in-year. The owner is tax-*aware* in his
-  accounting (net-margin pricing, employer-priced hiring, the tax jar) but never
-  tax-*strategic*: no cross-category margin rebalancing when rates diverge, no
-  elasticity-aware pass-through — the documented gap the prescriptive layer can price.
+- The profit tax is accrued, not paid in-year — **on the one-year baseline
+  only**; the three-year arms pay it in cash each January (P5 §4.1). The owner
+  is tax-*aware* in his accounting (net-margin pricing, employer-priced hiring,
+  the tax jar) but never tax-*strategic*: no cross-category margin rebalancing
+  when rates diverge, no elasticity-aware pass-through — the documented gap the
+  prescriptive layer can price.
+- Capex is expensed against nothing: no depreciation schedule exists, so the
+  €14,000 expansion reduces cash and retained earnings but never taxable
+  profit (P5 §4).
+- On the three-year arms, year one shows no customer churn (the panel flow
+  starts month 13 to preserve the published baseline byte-for-byte, P5 §2),
+  and the recording layer runs per calendar-year binder.

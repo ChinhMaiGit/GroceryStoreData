@@ -1,0 +1,12 @@
+event_id,type,start,ramp,decay,utility_peak,categories,peaks
+0,energy_crisis,274.0,14,90,0.35,Frozen Foods|Dairy and Eggs,0.150|0.100
+1,commodity_spike,173.24012365511098,14,60,0.0,Bakery and Bread|Pantry Staples and Packaged Goods,0.111|0.111
+2,import_disruption,63.77036626340005,14,60,0.0,Seafood|Alcoholic Beverages,0.178|0.178
+3,import_disruption,162.54251762120037,14,60,0.0,Seafood|Alcoholic Beverages,0.196|0.196
+4,commodity_spike,181.5781338047939,14,60,0.0,Bakery and Bread|Pantry Staples and Packaged Goods,0.062|0.062
+5,import_disruption,367.4416587684082,14,60,0.0,Seafood|Alcoholic Beverages,0.125|0.125
+6,commodity_spike,500.3960203753849,14,60,0.0,Bakery and Bread|Pantry Staples and Packaged Goods,0.114|0.114
+7,commodity_spike,546.7177496050709,14,60,0.0,Bakery and Bread|Pantry Staples and Packaged Goods,0.152|0.152
+8,import_disruption,870.728559256044,14,60,0.0,Seafood|Alcoholic Beverages,0.159|0.159
+9,avian_flu,470.0,14,56,0.0,Dairy and Eggs,0.180
+10,commodity_spike_2027,994.0,14,70,0.0,Pantry Staples and Packaged Goods|Bakery and Bread,0.140|0.140

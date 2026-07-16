@@ -18,6 +18,7 @@ K_COST = 6
 K_GUEST = 7
 K_DIRT = 8      # the recording layer (P3 §20) — document defects, never sim draws
 K_REFUND = 9    # refunds (P3 §21) — keyed per receipt, CRN-safe across replays
+K_PANEL = 10    # the panel flow (P5 §3) — persistence, churn, replacement arrivals
 
 
 def rng_for(*key: int) -> np.random.Generator:
