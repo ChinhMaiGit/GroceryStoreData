@@ -180,7 +180,10 @@ trusted (the one-year baseline arm remains the pipeline's exact
 regression anchor).
 `analyses/analysis_workbook.py` walks a single narrative through Layers 0–4
 at survey depth; `analyses/catalog_walkthrough.py` demonstrates the grading
-loop with one scored question per layer; Layer 7 is covered by its own
+loop with one scored question per layer; **Layers 0–1 are done at full
+depth** in `analyses/clean_and_describe.py` (every defect family graded,
+the reconciliation contract run live, all eight descriptive questions);
+Layer 7 is covered by its own
 trio — `analyses/three_year_review.py` (7.1–7.5, 7.10–7.11 posed),
 `analyses/competitor_entry_study.py` (7.3–7.6), and
 `analyses/expansion_review.py` (7.9, 7.11 answered). The catalog is the
