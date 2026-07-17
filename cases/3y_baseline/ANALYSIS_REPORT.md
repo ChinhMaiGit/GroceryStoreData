@@ -1,0 +1,229 @@
+# Malm's Market — Three-Year Review
+
+*Prepared for Henrik Malm by his independent analyst, February 2028.
+Every number below is computed from the records you handed over — your
+receipts, invoices, stock counts, and your own monthly ledger — and the
+full working, cell by cell, sits alongside this report in
+`analysis_notebook.py` so you can check anything that surprises you.*
+
+---
+
+## The one paragraph you asked for first
+
+**You're right that 2027 went flat. You're wrong about why.** I can't
+find a measurable dent from Spara+ anywhere in your top-line numbers —
+revenue, units sold, and shopping trips all stayed right on the trend
+they were already on before the discounter opened. What I *can* find,
+priced to the euro from your own ledger, is that the second hire and the
+extended hours you took on in November 2026 have cost roughly €82,000
+against about €3,300 of extra gross profit so far. That gap — not the
+competitor, not the rent review — is why a record sales year handed you
+nothing. **Renew the lease. The lease was never the problem. The
+staffing decision is.**
+
+---
+
+## 1 · Where the money actually goes
+
+![Three years, one picture](figures/01_pnl_waterfall.png)
+
+Revenue grew every year — €743.0k, €771.3k, €814.3k. So did the cost of
+running the shop. What was left for you: **+€36,057 in 2025, +€49,941 in
+2026 (your best year), and −€481 in 2027.** Your own account of it —
+record sales, nothing left over — is exactly right.
+
+Before charting any of this, I tied your cleaned till receipts to your
+own monthly ledger, year by year. They match to within a few euros in
+each year, and I tracked that residue down to a specific cause rather
+than writing it off: two single receipts (one in 2025, one in 2026)
+where the same product was rung up twice in two identical scans — a
+genuine double-scan or a two-unit purchase split across two lines, not a
+processing fault. Once named, the gap disappears entirely. **Confidence:
+high.** Your ledger is right, and now I can show you exactly why the raw
+till doesn't look like it agrees with it at first glance.
+
+## 2 · Am I really growing, or does it just feel that way?
+
+![Trend vs season](figures/02_trend_season.png)
+
+Both — and they're worth pulling apart. Once I remove the ordinary
+summer-versus-winter swing (and set your opening month aside, since you
+told me yourself it was pantry-filling, not normal trade), the
+underlying growth rate is **roughly +4.5% a year.**
+
+That growth is real, not an illusion of rising prices: units sold grew
+about 6% from 2025 to 2027, while your average shelf price only drifted
+about 3% over the same span. And it shows up mainly as **bigger baskets
+per visit, not more visits** — the same core of customers trusting you
+with more of their list each time, rather than a flood of new footfall.
+**Confidence: high** on the trend estimate; the growth *composition*
+(basket size over visit frequency) is a secondary read and slightly
+less certain, but consistent across all three years.
+
+## 3 · The shrinkage — and whether it's theft
+
+![Write-offs by cause](figures/03_writeoffs.png)
+
+Three years of write-offs come to **€125,045**, about 5.4% of sales —
+and 95% of that is spoilage, the ordinary cost of running a full fresh
+range, which crept up a little as your fresh volumes grew and through a
+couple of hot summers. The freezer accident is exactly what you
+described: one isolated event in February 2026, never repeated.
+
+The month-end count corrections — the part that would show theft, if it
+existed — total under €5,000 across three years, and I traced your
+single largest correction month directly to a specific cause: that
+month, four supplier invoices were posted to your books twice (same
+product, quantity, and dates, entered on two different days), and those
+duplicated lines alone account for most of that month's "missing" stock.
+It was never on the shelf to begin with. **My verdict: no theft signal.**
+Every correction I can trace, traces to paperwork. **Confidence: high**
+on the decomposition and the "no theft" conclusion; the exact euro
+split between ordinary counting noise and undiscovered duplicate
+postings in the smaller months is closer to a well-informed estimate.
+
+## 4 · What did Spara+ actually cost me?
+
+![Competitor counterfactual](figures/04_competitor_trend.png)
+
+This is the one where I have to slow down, because your instinct and my
+job are not the same thing. I took only the eleven months of your own
+history *before* Spara+ opened, fit your trend and season to it, and
+asked what the rest of 2027 "should" have looked like if nothing new had
+entered the picture. Then I compared that to what actually happened.
+
+**The gap is essentially zero** — about €35 over ten months, against a
+shop whose ordinary month-to-month wobble is far larger than that on its
+own. Units sold and shopping trips tell the same story: both landed
+almost exactly on the pre-entry trend, not below it.
+
+I also tested the shelves you specifically cut prices on — drinks,
+snacks, household goods — against everything else, controlling for the
+same trend and season. The difference is small and not statistically
+distinguishable from zero. That result cuts both ways: it doesn't clear
+Spara+, because your own May 2027 price cut on exactly those shelves
+means I can't tell "the competitor didn't hurt this category" apart from
+"your price cut is masking that it did."
+
+**My honest conclusion:** I cannot find a reliable, measurable dent from
+Spara+ in your numbers. That is not the same as "it cost you nothing" —
+a competitor six hundred metres away is certainly taking some trade, and
+an effect of a few thousand euros in either direction would be invisible
+to any method working from monthly totals. What I can say with
+confidence is that it is **not large enough to explain why a record
+revenue year netted almost nothing.** Section 5 is where that year's
+result actually came from. **Confidence: medium-high** that the
+top-line effect is small; I would not put a precise euro figure on it
+beyond "smaller than a few thousand a year, and swamped by what's in
+Section 5."
+
+## 5 · Was the expansion worth it?
+
+![Expansion cost/benefit](figures/05_expansion_waterfall.png)
+
+This one prices directly from your own ledger. Over the fourteen months
+since November 2026: Ana's wages cost **€52,720**, payroll tax on top
+another **€13,180**, the extended hours' share of the electricity bill
+roughly **€2,245**, plus the **€14,000** fit-out — **€82,145 in total.**
+
+Revenue did rise faster than your pre-expansion trend alone would
+predict — about €20,000 extra over the period. But at your shop's
+overall margin (about 16% after the cost of goods), that only turns into
+**€3,295 of actual gross profit.** The mechanism is simple arithmetic: a
+wage is a euro-for-euro cost every month, but a euro of extra revenue
+only keeps about sixteen cents of margin — so covering Ana's wages and
+payroll tax alone (€65,900) needs roughly **€404,000** of genuinely new
+revenue, not the shop's existing turnover. The extended hours brought in
+about €20,000 — roughly twenty times less than that. **Net so far:
+approximately −€78,850.**
+
+To be fair to the decision itself: November 2026 was your best month
+ever, the freezer scare was behind you, and the money was genuinely
+saved, not borrowed. Taking on help after a record year is a reasonable
+read of the business at the time. The numbers say it hasn't paid for
+itself yet — not that it was a foolish bet. **Confidence: high** on the
+cost side (it comes straight from your ledger); **medium** on the
+revenue-lift estimate, since it depends on the same trend-projection
+method as Section 4, though the conclusion is not close enough to
+change even at the edges of that uncertainty.
+
+## 6 · Which customers am I losing, and who replaced them?
+
+![Customer flow](figures/06_customer_flow.png)
+
+Card codes let me follow individual customers, anonymously, across three
+years. **289 tokens** shop here often enough (at least 10 receipts
+somewhere in three years) to call "regulars." By the end of 2027, **48 of
+them** — about one in six — have gone quiet for 90 days or more.
+
+That is real turnover, and I'm not going to bury it under the healthy
+total. But it is a **flow, not a one-way leak**: your regular count still
+grew net across the three years, because new households — plausibly
+including some from the apartment building that filled up in 2026 — kept
+becoming regulars faster than the old ones went quiet. One honest
+caveat: a handful of the 48 who only went quiet in the last couple of
+months of 2027 might simply be between visits when my data ends — I
+can't yet tell a slow customer from a lost one at the very edge of the
+window, so that count is probably a slight overstatement of true,
+permanent departures. **Confidence: medium-high** on the flow story;
+the precise year-end count carries the right-censoring caveat above.
+
+## 7 · What should I expect 2028 to look like?
+
+![2028 forecast](figures/07_forecast_2028.png)
+
+If nothing changes — same hours, same staffing, the lease renewed on the
+terms on the table — my model (fitted on your own three years, and
+noticeably more accurate on your recent months than simply repeating
+last year's figures would have been) puts 2028 revenue at
+**€835,000, with a realistic range of roughly €783,000 to €891,000.**
+
+Converted to profit using 2027's own cost structure, that range comes
+out to **roughly −€4,700 to +€9,900, centered near +€2,400.** In plain
+terms: if nothing changes, 2028 looks like another 2027 — a coin flip
+between a small profit and a small loss, not a rebound and not a
+collapse. **Confidence: medium.** The revenue range is well-grounded;
+the profit range additionally assumes next year's cost structure
+resembles this year's, which is a reasonable but not certain
+assumption.
+
+## 8 · Renew, close, or change something?
+
+| What changed in 2027 | Estimated effect on that year's profit |
+| --- | --- |
+| The rent review (contractual, +12% from January) | **−€1,671** |
+| Spara+ opening in March | **no measurable effect** — real, almost certainly, but too small to find, and not the reason the year went flat |
+| The November 2026 hire, in its first full year | **the dominant driver** — costing roughly €70,000 a year against the shop's thin margin |
+
+**Renew the lease.** Twelve percent on a contract you already knew about,
+in a shop growing 4.5% a year net of season, is not what turned €50,000
+of profit into nothing. Walking away over a rent review you agreed to
+going in — while the thing that actually explains the year is one you're
+free to change — would be solving the wrong problem.
+
+**Revisit the staffing decision, not the tenancy.** That doesn't have to
+mean letting Ana go. Two honest options, both worth pricing properly
+before you choose:
+
+- Pull the hours back toward what they were, and keep Ana for the
+  busiest shifts and the jobs that were piling up on you alone —
+  cutting the payroll cost without giving up the help entirely.
+- Keep the current hours, but treat this coming year as the one where
+  you find out whether they can be made to pay — through what actually
+  moves at 7am and 9pm, not a blanket extension.
+
+**What I would not do** is fight Spara+ harder. Cutting margin further on
+the shelves they advertise is a fight the numbers say you are not
+currently losing, at a real cost to the margin you do have.
+
+**One year ahead, if nothing changes:** a coin flip between a small
+profit and a small loss, because the cost structure that produced 2027
+carries straight into 2028 untouched. The lease decision and the
+staffing decision are two different decisions — on this evidence, only
+one of them needs to change.
+
+---
+
+*Full workings — every query, every regression, every chart, and the
+honest caveats behind each — are in `analysis_notebook.py`. Nothing in
+either document uses information you did not hand over.*
