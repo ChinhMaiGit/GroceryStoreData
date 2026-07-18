@@ -273,11 +273,11 @@ def validate(
     # the tax layer (P4 §2): the remittance ties to the rate map applied
     # independently to actual sales and purchases, and the statement closes
     _catmap = dict(zip(w.skus["uid"], w.skus["category"]))
-    _rs = rec.assign(cat = rec["uid"].map(arg = _catmap))
+    _rs = rec.assign(cat = rec["uid"].map(func = _catmap))
     _rshare = np.array(object = [w.vat_rate[c][t - 1] / (1 + w.vat_rate[c][t - 1])
                                  for c, t in zip(_rs["cat"], _rs["t"])])
     _vout = float((_rs["qty"] * _rs["unit_price"] * _rshare).sum())
-    _pr = base["procurement"].assign(cat = base["procurement"]["uid"].map(arg = _catmap))
+    _pr = base["procurement"].assign(cat = base["procurement"]["uid"].map(func = _catmap))
     # clamp guards a delivery landing one day past the horizon's last day
     # (e.g. an order placed near year-end); this must be the run's own
     # length, not a hardcoded 365 — on a 3-year run with a dated VAT change,

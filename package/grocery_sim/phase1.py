@@ -18,7 +18,7 @@ from .params import BASKET_SHARE, BRAND_LEVEL, CATS, MARKUP, PHASE1, PHASE4, ROO
 def load_skus() -> pd.DataFrame:
     df = pd.read_excel(io = ROOT / "SKUs.xlsx")
     df = df.dropna(subset = ["retail_base_price_EUR"]).reset_index(drop = True)
-    df["brand"] = df["brand_level"].map(arg = BRAND_LEVEL)
+    df["brand"] = df["brand_level"].map(func = BRAND_LEVEL)
     df["cost"] = df["retail_base_price_EUR"].astype(dtype = float)
     df["idx"] = np.arange(len(df))
     return df
@@ -112,27 +112,27 @@ def solve_milp(
         name = "owner_t0",
         sense = pulp.LpMaximize,
     )
-    y = pulp.LpVariable.dicts(
+    y = prob.add_variable_dicts(
         name = "y",
         indices = range(nl),
         cat = "Binary",
     )
-    x = pulp.LpVariable.dicts(
+    x = prob.add_variable_dicts(
         name = "x",
         indices = uid,
         cat = "Binary",
     )
-    q = pulp.LpVariable.dicts(
+    q = prob.add_variable_dicts(
         name = "q",
         indices = uid,
         lowBound = 0,
     )
-    u = pulp.LpVariable.dicts(
+    u = prob.add_variable_dicts(
         name = "u",
         indices = uid,
         lowBound = 0,
     )
-    Eh = pulp.LpVariable(
+    Eh = prob.add_variable(
         name = "hired",
         lowBound = 0,
     )   # owner works unpaid (P1 §7)

@@ -33,31 +33,31 @@ def export(
     # --- visible: the analyst's dataset, passed through the recording layer ---
     rec = base["receipts"].copy()
     date_of = dict(zip(w.cal.t, w.cal.date))
-    rec["date"] = rec["t"].map(arg = date_of)
+    rec["date"] = rec["t"].map(func = date_of)
     rec.loc[rec.customer_id == "", "customer_id"] = pd.NA
     rec["ref_receipt_id"] = rec["ref_receipt_id"].astype(dtype = "Int64")
     rec = rec.drop(columns = "t")
     inv = base["inventory"].copy()
-    inv["date"] = inv["t"].map(arg = date_of)
+    inv["date"] = inv["t"].map(func = date_of)
     inv = inv.drop(columns = "t")
     pr = base["procurement"].copy()
-    pr["order_date"] = pr["order_t"].map(arg = date_of)
-    pr["delivery_date"] = pr["delivery_t"].map(arg = date_of)
+    pr["order_date"] = pr["order_t"].map(func = date_of)
+    pr["delivery_date"] = pr["delivery_t"].map(func = date_of)
     pr = pr.drop(columns = [
         "order_t",
         "delivery_t",
     ])
     pm = base["promotions"].copy()
     if len(pm):
-        pm["start_date"] = pm["start_t"].map(arg = date_of)
-        pm["end_date"] = pm["end_t"].map(arg = lambda x: date_of.get(x, w.cal.date.iloc[-1]))
+        pm["start_date"] = pm["start_t"].map(func = date_of)
+        pm["end_date"] = pm["end_t"].map(func = lambda x: date_of.get(x, w.cal.date.iloc[-1]))
         pm = pm.drop(columns = [
             "start_t",
             "end_t",
         ])
     wo = base["write_offs"].copy()
     if len(wo):
-        wo["date"] = wo["t"].map(arg = date_of)
+        wo["date"] = wo["t"].map(func = date_of)
         wo = wo.drop(columns = "t")
         # keep the published column order (uid, units, date[, reason]) so the
         # P5 §2 prefix contract sees the same header whatever the horizon
@@ -70,7 +70,7 @@ def export(
             _wo_cols.append("reason")
         wo = wo[_wo_cols]
     wxv = w.wx.copy()
-    wxv["date"] = wxv["t"].map(arg = date_of)
+    wxv["date"] = wxv["t"].map(func = date_of)
     _wx_cols = [
         "date",
         "temp_C",
@@ -94,7 +94,7 @@ def export(
             index = False,
         )
     ph = base["price_history"].copy()
-    ph["date"] = ph["t"].map(arg = date_of)
+    ph["date"] = ph["t"].map(func = date_of)
     ph.drop(columns = "t").to_csv(
         path_or_buf = vis / "price_history.csv",
         index = False,
@@ -168,9 +168,9 @@ def export(
     if "arrival_t" in _cust.columns:
         # the panel flow's answer key (P5 §3): when each household arrived,
         # when it left, and whether it was ever going to stay
-        _cust["arrival_date"] = _cust["arrival_t"].map(arg = date_of)
+        _cust["arrival_date"] = _cust["arrival_t"].map(func = date_of)
         _cust["departure_date"] = _cust["departure_t"].map(
-            arg = lambda x: date_of.get(int(x)) if pd.notna(x) else pd.NA,
+            func = lambda x: date_of.get(int(x)) if pd.notna(x) else pd.NA,
         )
         _cust = _cust.drop(columns = [
             "arrival_t",

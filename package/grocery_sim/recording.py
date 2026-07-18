@@ -54,7 +54,7 @@ def dirty_layer(
     ledgers = []
     for y in range(n_years):
         block = {
-            name: df[df[_date_col[name]].map(arg = lambda d: d.year) == y0 + y]
+            name: df[df[_date_col[name]].map(func = lambda d: d.year) == y0 + y]
             .reset_index(drop = True)
             for name, df in frames.items()
         }
@@ -192,7 +192,7 @@ def _dirty_block(
     for r in vic:
         opts = imp["payment_variants"][pay_of[r]]
         var_map[r] = opts[int(g3.integers(len(opts)))]
-    rec["payment"] = rec["receipt_id"].map(arg = var_map).fillna(value = rec["payment"])
+    rec["payment"] = rec["receipt_id"].map(func = var_map).fillna(value = rec["payment"])
     ledger += [{
         "kind": "payment_variant",
         "table": "receipts",
@@ -368,7 +368,7 @@ def _dirty_block(
                 adjcum[c:] += a
                 prior = arr[c]
         book_delta[uid] = arr - adjcum
-    _di = inv["date"].map(arg = tix).to_numpy()
+    _di = inv["date"].map(func = tix).to_numpy()
     on = inv["on_hand"].to_numpy().astype(dtype = float)
     for uid, bd in book_delta.items():
         m = (inv["uid"] == uid).to_numpy()
