@@ -10,9 +10,11 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
-    # the suite runs real multi-year simulations (not mocks), so this is
-    # a slow job by design — see package/README.md's Testing section
-    timeout-minutes: 60
+    # the suite runs real multi-year simulations (not mocks), so this is a
+    # slow job by design — see package/README.md's Testing section. Its
+    # first real run on GitHub's shared runners took ~54 min (vs. ~24 min
+    # locally); 90 min leaves real headroom instead of riding the edge.
+    timeout-minutes: 90
     defaults:
       run:
         working-directory: package
