@@ -201,6 +201,9 @@ simulation-backed tests are slow (each one is a real multi-year run); the
 suite reuses a handful of session-scoped fixtures rather than re-simulating
 per test, but a full run still takes tens of minutes.
 
+CI (`.github/workflows/tests.yml`) runs this same suite on every push and
+pull request against `main`.
+
 ## Known limitations (read before relying on these)
 
 - **`basic.year` only supports `1` or `3`.** The three-year arc's holiday

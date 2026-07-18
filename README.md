@@ -1,5 +1,7 @@
 # GroceryStoreData
 
+[![tests](https://github.com/ChinhMaiGit/GroceryStoreData/actions/workflows/tests.yml/badge.svg)](https://github.com/ChinhMaiGit/GroceryStoreData/actions/workflows/tests.yml)
+
 A structural microsimulation of a small neighborhood grocery store —
 customers, an owner, a calendar of weather and macro shocks, a daily
 market, and a full paper trail (receipts, invoices, a ledger, a tax
