@@ -9,3 +9,6 @@ __pycache__/
 # workbook build artifact (rebuilt from data/visible on first run)
 data/store.duckdb
 data/store.duckdb.wal
+
+# marimo's own local session cache (not notebook content)
+__marimo__/

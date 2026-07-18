@@ -9,7 +9,8 @@ grocery store, usable as a library.
     sim.data()               # in-memory tables (SimulationData)
     sim.db()                 # a duckdb connection over the same tables
     sim.erd()                # a Mermaid ER diagram string
-    sim.describe()           # a business-case brief, from settings only
+    sim.describe()           # a business-case brief: a fictional owner
+                              # narrating this run's real events and results
     sim.settings              # the resolved settings dict
     sim.create_analysis(path)  # a scaffolded marimo notebook
 
@@ -33,7 +34,9 @@ or one cross-cutting concern:
                    independently dated, combinable events
     settings.py    the settings schema: defaults, merging, validation
     schema.py      a heuristic ER diagram over one run's exported tables
-    describe.py    a business-case brief template, built from settings only
+    persona.py     a reproducible fictional owner identity (cosmetic only)
+    describe.py    the business-case brief generator, narrating a run's
+                   real settings and results through that persona
     analysis.py    a scaffolded marimo notebook generator
     simulation.py  GroceryStoreSimulation — the public class
 

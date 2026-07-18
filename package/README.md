@@ -83,7 +83,7 @@ sim = GroceryStoreSimulation()
 | `sim.data(include_hidden=False)` | a `SimulationData` object — attribute access per table (`sim.data().receipts`, `.cost_sheet`, ...) plus a compact schema summary as its `repr()` |
 | `sim.db(path=None, include_hidden=False)` | a `duckdb` connection with every table loaded (`path=None` → in-memory) |
 | `sim.erd(include_hidden=False)` | a Mermaid `erDiagram` string, inferred from shared key-like column names across the exported tables |
-| `sim.describe()` | a business-case brief (markdown string), built only from `settings`, never from simulated results |
+| `sim.describe()` | a business-case brief (markdown string): a letter, a Q&A-style intake interview (year-by-year narrative, honest records caveats), a data table, and a question list, all narrated by a reproducible fictional owner persona (name, gender/pronoun, age, prior career — keyed off `random_seed`) around this run's own real events and results. Costs one extra internal simulation on the first call if a competitor/war/operational_hazard event is active (a counterfactual twin, used to ground the owner's guess about the cause); cached after that, so repeated calls are free and return the same text |
 | `sim.settings` | the resolved settings dict (JSON round-trippable) |
 | `sim.validation` | the full validation report: `{"structural_ok": bool, "checks": [...]}` |
 | `sim.create_analysis(path, mode="student")` | writes a scaffolded marimo notebook to `path`; `mode="instructor"` also fills in starter queries |
@@ -195,12 +195,29 @@ specific check's history.
 - **`potential_investment.more_store` is excluded entirely** — see above.
 - **`events.competitor` is single-fire** — see above.
 - **`describe()` and `create_analysis()` are templates, not the full
-  authoring apparatus.** `describe()` gives a narrative skeleton built
-  strictly from `settings`, never from simulated results — deliberate,
-  since that is what keeps it honest about the case method's epistemic
-  firewall. `create_analysis()` scaffolds a condensed slice of the
-  project's analysis catalog with correct, executable starter queries in
-  instructor mode — a running start, not a finished analysis.
+  authoring apparatus.** `describe()` builds a fictional owner (name,
+  gender/pronoun, age, prior career, town — cosmetic only, see
+  `persona.py`) and a narrative brief around this run's *real* settings
+  and results: a letter, a Q&A-style intake interview with one block per
+  year (which events fired, when, what they cost, whether an investment
+  paid for itself), and an honest records-imperfections note computed
+  directly from the exported tables (void/mis-ring counts, duplicate
+  invoice postings, weather-log gaps — never invented, never from the
+  hidden answer key). Every number in the brief is rounded the way an
+  owner would round it in their own head — never a hidden simulation
+  parameter (the case method's epistemic firewall, see `describe.py`'s
+  module docstring). If a competitor, war, or operational-hazard event is
+  active, the owner fixates on it as the likely cause of a bad year — a
+  realistic but not necessarily correct instinct — and `describe()`
+  quietly runs one counterfactual twin (same settings and seed, that
+  event removed) to decide, honestly, how confident the brief's closing
+  "Stakes" section should sound; the computed number itself is never
+  printed. This makes the *first* `describe()` call on a run with such an
+  event noticeably slower (one extra internal simulation); the result is
+  cached on the instance afterwards. `create_analysis()` scaffolds a
+  condensed slice of the project's analysis catalog with correct,
+  executable starter queries in instructor mode — a running start, not a
+  finished analysis.
 - **`db()`'s `random_seed` scoping is process-global, not instance-local.**
   Two `GroceryStoreSimulation` instances with different seeds must be run
   sequentially, not concurrently, in the same process.
@@ -212,7 +229,9 @@ mirrors the original `datagen/` implementation's one-module-per-design-
 document structure (`phase1.py`, `phase2.py`, `phase3.py`, `world.py`,
 `recording.py`, `export.py`, `keys.py`, `params.py`), plus this package's
 own additions: `events.py` (the composer described above), `settings.py`
-(the schema), `schema.py` (the ERD), `describe.py`, `analysis.py`, and
-`simulation.py` (the `GroceryStoreSimulation` class itself). `validate.py`
+(the schema), `schema.py` (the ERD), `persona.py` (the fictional owner
+identity), `describe.py` (the brief built around that persona),
+`analysis.py`, and `simulation.py` (the `GroceryStoreSimulation` class
+itself). `validate.py`
 is the original single-arm validation battery, generalized into the tiered
 structural/core/band report described above.

@@ -19,6 +19,9 @@ K_GUEST = 7
 K_DIRT = 8      # the recording layer (P3 §20) — document defects, never sim draws
 K_REFUND = 9    # refunds (P3 §21) — keyed per receipt, CRN-safe across replays
 K_PANEL = 10    # the panel flow (P5 §3) — persistence, churn, replacement arrivals
+K_STORY = 11    # grocery_sim's own addition: persona/case-brief generation,
+                # never a simulation draw — keeping it a distinct top-level
+                # key means choosing a persona never perturbs the simulation
 
 
 def rng_for(*key: int) -> np.random.Generator:

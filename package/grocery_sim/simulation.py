@@ -16,9 +16,12 @@ Wraps the phase1 -> phase2 -> phase3 -> recording -> export pipeline
 
 from __future__ import annotations
 
+import copy
+import io
 import json
 import shutil
 import tempfile
+from contextlib import redirect_stdout
 from pathlib import Path
 
 import pandas as pd
@@ -74,12 +77,16 @@ class GroceryStoreSimulation:
         self._oracle = None
         self._out_dir: Path | None = None
         self._own_tmp = False
+        self._persona: dict | None = None
+        self._misguide: dict | None = None
 
     # ------------------------------------------------------------------ setup
     def setup(self, settings: dict | None = None) -> "GroceryStoreSimulation":
         """Validate and resolve `settings` against the schema in settings.py.
         Does not run anything — call .simulate() next."""
         self.settings = _resolve_settings(settings)
+        self._persona = None
+        self._misguide = None
         return self
 
     # --------------------------------------------------------------- simulate
@@ -188,12 +195,60 @@ class GroceryStoreSimulation:
 
     # ---------------------------------------------------------------- describe
     def describe(self) -> str:
+        """The business-case brief: a fictional owner (persona.py), telling
+        the real story of this run's own settings and results. Reproducible
+        per random_seed (see keys.K_STORY). The first call on a run with an
+        active competitor/war/operational_hazard event costs one extra
+        internal simulation — a silent counterfactual twin, used only to
+        decide how confidently the owner's own guess about the cause should
+        read (see describe.py's module docstring) — cached afterwards."""
         self._require_simulated()
+        from . import persona as _persona
         from .describe import build_brief
 
-        text = build_brief(settings = self.settings)
+        if self._persona is None:
+            rng = _keys.rng_for(_keys.K_STORY, 0)
+            self._persona = _persona.generate_persona(rng)
+            self._misguide = self._compute_misguide()
+
+        text = build_brief(
+            settings = self.settings,
+            persona = self._persona,
+            tables = self.data(),
+            misguide = self._misguide,
+        )
         print(text)
         return text
+
+    def _compute_misguide(self) -> dict:
+        """Ground the owner's likely misattribution against a counterfactual
+        twin — same settings and seed, the blamed event removed — rather
+        than asserting it outright. Only run when a misguide candidate
+        (competitor / war / operational_hazard) is actually active."""
+        from .describe import pick_misguide_candidate
+
+        candidate = pick_misguide_candidate(self.settings["events"])
+        if candidate is None:
+            return {"candidate": None, "grounded": None}
+
+        cf_settings = copy.deepcopy(self.settings)
+        cf_settings["events"][candidate] = None
+        cf_sim = GroceryStoreSimulation()
+        with redirect_stdout(io.StringIO()):
+            cf_sim.setup(cf_settings).simulate()
+
+        real_data, cf_data = self.data(), cf_sim.data()
+        real_profit = float(real_data.tax_statement["profit_after_tax"].sum())
+        cf_profit = float(cf_data.tax_statement["profit_after_tax"].sum())
+        total_revenue = float(real_data.cost_sheet["revenue"].sum())
+        cf_sim.cleanup()
+
+        # "grounded" = removing the blamed event would have recovered a
+        # meaningful share of the business's own scale (>5% of total
+        # revenue) — not just statistical noise between two runs.
+        swing = cf_profit - real_profit
+        grounded = total_revenue > 0 and swing > 0.05 * total_revenue
+        return {"candidate": candidate, "grounded": grounded}
 
     # --------------------------------------------------------------- analysis
     def create_analysis(
