@@ -183,6 +183,24 @@ already-tight calibration (left as-is). See the inline comments beside
 each check in `validate.py` for the full account if you need to trust a
 specific check's history.
 
+## Testing
+
+```bash
+uv pip install -e ".[test]"
+pytest
+```
+
+`tests/` is a real regression suite, not the ad hoc scripts used during
+development: settings-validation errors (`test_settings.py`), `persona.py`
+in isolation (`test_persona.py`), `describe.py`'s pure logic
+(`test_describe_unit.py`), and full simulations across a spread of
+settings — every event individually, every investment individually, all
+of them combined, several seeds, reproducibility, and `describe()` against
+real results (`test_simulation.py`, `test_describe_integration.py`). The
+simulation-backed tests are slow (each one is a real multi-year run); the
+suite reuses a handful of session-scoped fixtures rather than re-simulating
+per test, but a full run still takes tens of minutes.
+
 ## Known limitations (read before relying on these)
 
 - **`basic.year` only supports `1` or `3`.** The three-year arc's holiday
