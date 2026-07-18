@@ -30,7 +30,19 @@ def test_misguide_none_on_all_none():
 def test_round_money_owner_plausible():
     assert _round_money(1_234_567) == "about 1,235,000 euros"
     assert _round_money(-1_234_567) == "about 1,235,000 euros"
-    assert _round_money(120) == "about 100 euros"
+    assert _round_money(1_840) == "about 1,800 euros"
+    assert _round_money(120) == "about 120 euros"
+
+
+def test_round_money_preserves_small_percentage_differences():
+    # a real ~12% rent step (typically a few hundred euros) must not
+    # collapse to the same displayed figure on both sides -- regression
+    # guard for exactly that bug, reported from a generated brief that
+    # said "went up 12 percent, from about 700 euros to about 700 euros"
+    before, after = _round_money(660), _round_money(739)
+    assert before != after
+    assert before == "about 660 euros"
+    assert after == "about 740 euros"
 
 
 def test_round_pct():

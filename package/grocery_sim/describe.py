@@ -121,11 +121,19 @@ def _decompose_capex(total: float, allowed: list[str]) -> list[str]:
 
 def _round_money(x: float) -> str:
     """An owner-plausible rounding: no number in the brief should carry
-    more precision than an owner would actually carry in their head."""
+    more precision than an owner would actually carry in their head.
+    Below 1,000 this rounds to the nearest 10 rather than the nearest
+    100 — coarser than that would routinely collapse a genuine ~10-15%
+    rent step (typically a few hundred euros) into the same displayed
+    figure on both sides of a "from X to Y" comparison."""
     x = abs(x)
     if x >= 10_000:
-        return f"about {round(x / 1000) * 1000:,.0f} euros"
-    return f"about {round(x / 100) * 100:,.0f} euros"
+        step = 1000
+    elif x >= 1_000:
+        step = 100
+    else:
+        step = 10
+    return f"about {round(x / step) * step:,.0f} euros"
 
 
 def _round_pct(x: float) -> str:
