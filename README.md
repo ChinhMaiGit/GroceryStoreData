@@ -1,165 +1,59 @@
-# Business Data Generator
+# GroceryStoreData
 
-A Python simulation of a small neighborhood grocery store, built from microeconomic first principles, that produces realistic business datasets with a **known causal ground truth**. The generating mechanisms are fully specified by the author but hidden from the analyst, so the resulting data can honestly demonstrate the complete analytics value chain — from raw transactions to causal inference to optimized decisions, over one year or three.
+A structural microsimulation of a small neighborhood grocery store —
+customers, an owner, a calendar of weather and macro shocks, a daily
+market, and a full paper trail (receipts, invoices, a ledger, a tax
+filing) — with a fully known, documented causal ground truth. Every
+number in the output has a traceable cause; nothing is sampled from a
+convenient distribution and called a business.
 
-**Status (July 2026).** The world, its dataset, and its analysis catalog are complete. Five settled design phases underpin a realism-audited generator; a *recording layer* makes the raw paperwork imperfect the way real paperwork is (duplicates, unlogged waste, typos, refunds) while keeping every defect exactly cleanable against a hidden answer key; a *tax layer* adds differential VAT with emergent pass-through, payroll contributions, and profit tax; a *policy laboratory* of CRN-twin scenario arms (war, typhoon, VAT reform, tax rebate, staffing) makes every difference from the baseline causally attributable by construction; and a *three-year arc* (Phase 5, arms prefixed `3y_`) adds customer churn and neighborhood growth, retained earnings funding an endogenous expansion, stepping contracts, and scripted shocks — a freezer failure, a heatwave, an apartment block, a discounter opening — whose year one replays the published baseline's exogenous script (weather, costs, events byte-identical) with a live customer panel.
+The simulator ships as **`grocery_sim`**, a standalone, installable
+Python package with a small object API:
 
-`generate_dataset.py` produces the baseline year in ~40 s with 30 built-in validations; `--all-scenarios` adds the eight reference arms (five one-year, three three-year) and a comparison table (~8 min). **Every layer of `documents/ANALYSIS_CATALOG.md` — Layers 0 through 7 — now has a full-depth, gradeable Marimo notebook**, the original survey workbook has been retrofitted to the three-year arm, and `analyses/configurator.py` ties generation and analysis together in one tool (see Roadmap).
+```python
+from grocery_sim import GroceryStoreSimulation
 
-**Repository contents**
+sim = GroceryStoreSimulation()
+sim.setup(settings)   # a scripted macro calendar + endogenous investment toggles
+sim.simulate()         # builds the world, performs the year(s), validates the result
+sim.data()             # receipts, invoices, the ledger, the tax filing, ...
+```
 
-| File | Purpose |
+**→ [`package/README.md`](package/README.md)** is the package's own
+documentation: installation, the full object API, the settings schema
+(every scriptable event and endogenous investment), and the validation
+battery run automatically on every `simulate()` call.
+
+**→ [`paper/paper.pdf`](paper/paper.pdf)** is the theoretical paper: why
+the model is built the way it is, every distributional choice defended,
+the causal structure behind the scripted/emergent split, and a literature
+review positioning it against other approaches to synthetic business data.
+
+## Install
+
+```bash
+cd package
+uv pip install -e .
+```
+
+## Repository layout
+
+| Path | Contents |
 | --- | --- |
-| `draft/Chinh - 20260414 - Data Generation Process.py` | **Archived original draft** of the idea — the Marimo design notebook with the first structural causal model (SCM) and MILP formulation; superseded by `documents/` and `generate_dataset.py`, kept as a historical artifact |
-| `SKUs.xlsx` | Hand-crafted product catalog: 708 SKUs across 12 categories (`uid`, `name`, `brand_level`, `category`, `product_type`, `unit`, `weight_g`, `retail_base_price_EUR`); any one arm lists 128 of them |
-| `documents/PHASE1_DETAILS.md` … `documents/PHASE5_DETAILS.md` | The design documents: the world at t=0, the exogenous script of the year, the daily market loop, the policy laboratory (scenarios + the tax layer), and the three-year arc (panel flow, retained earnings and the expansion, the year-two and year-three shock scripts) — every distribution defended, every parameter documented |
-| `documents/ACCOUNTING.md` | How every euro and every unit moves: revenue recognition, procurement, inventory books, the monthly ledger, the recording layer, and the reconciliation contract |
-| `documents/ANALYSIS_CATALOG.md` | The question bank: gradeable questions across eight layers (0 cleaning, 1 descriptive, 2 diagnostic, 3 predictive, 4 prescriptive, 5 policy laboratory, 6 structural, 7 the three-year arc), each mapped to its method, its visible data, and the answer key that grades it — the specification the notebooks below implement |
-| `documents/CASE_WRITING_GUIDE.md` | Instructions for producing business cases for any arm: the epistemic firewall (owner's information set only), load-bearing persona rules, the confessions and wrong-belief devices, the QA sweep, and the template pipeline for spec-generated cases |
-| `cases/<arm>/` | One business case per scenario arm, folder-bound to `data/scenarios/<arm>/` (frontmatter names the arm, data path, and grading twins). `cases/3y_baseline/` is the canonical case so far: Henrik Malm's letter, the intake interview (brand, persona, the shop's three-year history in the owner's voice, including his one load-bearing wrong belief), the data handover with his confessions, and the eight questions due before the lease deadline — plus the instructor appendix (question-to-catalog map, trap list, reveal staging, rubrics), never distributed with the brief. A worked solution sits alongside it, written entirely from the owner's own information set (no simulation internals): `ANALYSIS_REPORT.md`, the client-facing answer to his eight questions, and `analysis_notebook.py`, the calculation-by-calculation backup — a trend-vs-season split, a pre-entry counterfactual for the competitor, a wage-vs-margin accounting of the expansion, and a token-silence churn read, each rejecting the naive read before proposing a better one |
-| `generate_dataset.py` | Entry point; run `uv run python generate_dataset.py` to regenerate the baseline arm and its 30 validations, byte-reproducible from the master seed; `--scenario <name>` / `--all-scenarios` for the policy arms |
-| `datagen/` | The generator package, one module per design document: `keys` (RNG discipline), `params` (single source of truth), `phase1`–`phase3` (the three phases), `world`, `scenarios` (the policy laboratory), `recording` (the recording layer), `export`, `validate` |
-| `analyses/analysis_workbook.py` | Marimo workbook: the fast, non-technical survey tour on the three-year baseline — how the shop runs then vs. now, a from-scratch database build with an ERD, three years of P&L against the retained-earnings fund that financed the expansion, weekly rhythms, and a trend-vs-season split, plus a one-paragraph headline (with a pointer to the full-depth notebook) for every question that already has one: cleaning, weather/price/promotions, stockouts/spoilage, customers/churn, forecasting, and priorities |
-| `analyses/catalog_walkthrough.py` | Marimo workbook: a graded walkthrough of `ANALYSIS_CATALOG.md` — one representative question per layer on the one-year baseline, answered from `visible/` and scored against the hidden answer key or a CRN-twin arm |
-| `analyses/clean_and_describe.py` | Marimo workbook: catalog **Layers 0–1** at full depth on the three-year baseline (`3y_baseline`) — the cleaning built step by step with every defect family graded against the answer key (including the dedup rule's two natural false positives, detected and corrected from visible data alone), the reconciliation contract incl. the capital-columns cash walk run end to end, then the eight descriptive questions on the proven-clean views |
-| `analyses/diagnose_causes.py` | Marimo workbook: catalog **Layer 2** at full depth on the three-year baseline — weather and pre-holiday effects (HAC regression graded against the scripted traffic coefficients), the three cost-shock episodes and their lagged pass-through, SKU-vs-category price elasticity with a cost instrument, an instrument-validity autopsy of the energy crisis, the 2025 markdowns' naive-vs-DiD verdict, the 5%-Sunday's honest break-even arithmetic, spoilage-vs-temperature, and the card-vs-cash representativeness test |
-| `analyses/predict_and_warn.py` | Marimo workbook: catalog **Layer 3** at full depth on the three-year baseline — the one-week forecast bench on the untouched 2027 holdout (where the owner's trailing average humbles both challengers), censored-demand imputation graded against the hidden unmet-demand ledger, the autopsy of the owner's self-blinding order sheet, a Monday stockout watchlist, and the down-trading early-warning screen |
-| `analyses/prescribe.py` | Marimo workbook: catalog **Layer 4** at full depth on the three-year baseline — the ordering-policy backtest whose paper gain lands on the hidden oracle ceiling (and whose middle bar shows the forecast fix ALONE loses money), the newsvendor arithmetic for perishables, a per-category repricing menu priced against Layer 2's elasticities, the near-null delisting audit, the working-capital floor, and the one-page prescription sheet |
-| `analyses/policy_lab.py` | Marimo workbook: catalog **Layer 5** — the five one-year CRN-twin arms differenced against the one-year baseline: VAT-cut incidence (the cut reaches the tags in weeks), the rebate's emergent MPC and pantry payback, the war shock's "inflation is not profit" decomposition, the typhoon as a timing event, the external-validity failure of the observational elasticity under a broad shock, and the second-clerk verdict (closed-door demand is deferred, not lost) |
-| `analyses/learn_structure.py` | Marimo workbook: catalog **Layer 6** at full depth on the three-year baseline — a conditional logit on the beverage shelf graded against every customer's true price sensitivity, four seasonality estimators (raw/shrinkage/pooled/test-then-pool) graded against the hidden script, a marketing-mix model and the endogenous promo confound it cannot escape, the four-cause hidden-demand reconstruction, a two-population visit-count mixture graded against the guest register, and four tests of the documented causal graph's implied independencies — including the one violation planted on purpose |
-| `analyses/three_year_review.py` | Marimo workbook: catalog **Layer 7**, the three-year business review of `3y_baseline` — trend vs. seasonality, churn read from token silence and graded against the answer key, the invisible March-2027 entry, the owner's capital story, and the renew-or-close question |
-| `analyses/competitor_entry_study.py` | Marimo workbook: catalog **Layer 7**, the entry study — `3y_baseline` against its `3y_no_competitor` CRN twin: the entry's exact cost, who defected (graded), the owner's price response, and the endogeneity trap it sets |
-| `analyses/expansion_review.py` | Marimo workbook: catalog **Layer 7**, the investment audit — `3y_baseline` against `3y_no_expansion`: what the expansion bought, what it cost, the euro-by-euro decomposition, and the verdict on the owner's bet |
-| `data/scenarios/<name>/visible/` | One arm's analyst dataset: receipts (including voids and refunds), book-inventory snapshots, procurement invoices, price history, promotions, cost sheets, write-offs with stock-count corrections, tax statement, calendar, weather — realistically imperfect records; `documents/ACCOUNTING.md` defines what reconciles with what |
-| `data/scenarios/<name>/hidden/` | That arm's answer key: customer parameters, demand modifiers and tilts, cost paths, budget paths, event log, the hidden-demand ledger (unmet-demand events across four causes), owner forecasts, the believed/realized/oracle profit triptych (pre- and after-tax), and the ledger of every injected data defect (`imperfections.csv`) |
-| `data/scenarios/` | Every arm, the **baseline included** (`baseline/` is the one-year reference arm), plus CRN twins under edited macro scripts — war, typhoon, VAT reform, tax rebate, staffing — the **three-year arc** under the `3y_` prefix (`3y_baseline/` and its `3y_no_competitor/`, `3y_no_expansion/` twins, P5), and `comparison.csv` across arms; run `uv run python generate_dataset.py --all-scenarios` |
-| `analyses/configurator.py` | Marimo app: the scenario front end — a table of every reference arm with its generation status and its dedicated notebook(s), a dropdown to pick an arm (with its CRN-twin co-requisite flagged automatically), a button that runs `generate_dataset.py` for it, and a launcher that opens the matching graded notebook in its own `marimo edit` server |
-| `main.py` | Entry point (placeholder) |
+| `package/` | The `grocery_sim` package — install and use this |
+| `paper/` | The theoretical paper (LaTeX source + compiled PDF) |
+| `documents/` | The design documents the paper and package are built from: `PHASE1..5_DETAILS.md`, `ACCOUNTING.md`, `ANALYSIS_CATALOG.md`, `CASE_WRITING_GUIDE.md` |
+| `datagen/` | The original, non-packaged reference implementation behind the pre-generated arms and cases below; frozen as a historical reference — `package/grocery_sim/` is the actively developed copy |
+| `data/scenarios/` | Pre-generated reference arms (the baseline, CRN-twin policy scenarios, and the three-year arc), each with its `visible/` analyst dataset and `hidden/` answer key |
+| `cases/` | Business cases built on specific arms — a client-facing brief, an instructor appendix, and a worked analysis notebook per case |
+| `analyses/` | Marimo notebooks working through the analysis catalog on the reference arms |
+| `draft/` | The archived original design notebook, superseded by `documents/` and the package |
 
-## Purpose
+## Which one do I want?
 
-The dataset is built to support a complete, gradeable analytics engagement, laid out end to end in `documents/ANALYSIS_CATALOG.md` as eight layers over seven core business questions:
-
-| Layer | What it does | Core question |
-| --- | --- | --- |
-| 0 — Clean | Recover the true records from realistically imperfect paperwork, graded row-by-row against the injected-defect ledger | — |
-| 1 — Describe | Understand the current state of the business: margins, rhythms, seasonality, the customer mix | 1. What is the current situation? |
-| 2 — Diagnose | Causal inference on weather, cost shocks, pricing, and promotions — with instrument-validity and selection-bias traps built in | 2–3. What co-occurs? What causes it? |
-| 3 — Predict | Demand forecasting, censored-demand recovery, stockout and down-trading risk | 4. What is expected to happen? |
-| 4 — Prescribe | Inventory and pricing optimization, graded against a hidden believed/realized/oracle profit ceiling | 6. What actions maximize revenue? |
-| 5 — Policy laboratory | CRN-twin scenario arms turn "what if" into an exact difference with zero sampling error | 5. What would an intervention have changed? |
-| 6 — Structural | Discrete choice, partial pooling, marketing-mix decomposition, and tests of the documented causal graph itself | 7. What can we learn about preferences and structure? |
-| 7 — The three-year arc | Trend vs. seasonality, churn, structural breaks, regime-change forecasting, and capital decisions — only askable once a business has more than one year of history | all seven, replayed over time |
-
-Every question in Layers 0–4 and 6 is answerable on *any* arm, one-year or three-year, and gradeable against that arm's own hidden answer key; Layer 5's questions are about arm *pairs* by construction (a scenario arm minus the baseline); Layer 7 exists only for the three-year arms. Each layer now has at least one full-depth Marimo notebook implementing it (see the repository table above) — the catalog document is the specification, the notebooks are the graded proof that the specification is actually answerable from the data.
-
-## Technical requirements
-
-  1. The simulation is written entirely in Python.
-  2. The project splits across three kinds of executable artifact: the original **Marimo design notebook** (SCM and MILP formulation, archived in `draft/`), a plain reproducible **generator script** (`generate_dataset.py` — a stateful agent-based loop is clearer as a script than as reactive cells), and a series of **Marimo analysis notebooks** for the interactive, analyst-facing side.
-  3. **Data generation uses NumPy** (`numpy.random.Generator` seeded via `SeedSequence` streams keyed by stable identity — customer, SKU, day, receipt, and year for the three-year arc — so counterfactual replays are common-random-numbers valid). The simulation is a stateful, forward, agent-based process (inventory carries over, stockouts feed back into demand, the owner reacts to outcomes). The analysis notebooks use Polars, DuckDB, Plotly, statsmodels, and scikit-learn; this split mirrors reality — the world that generates the data and the tools that analyze it are not the same.
-  4. The owner's opening decision (location, assortment, quantities, staffing, prices) is solved as a MILP with **PuLP** (CBC solver); at this scale (~10 locations, 708 SKUs) it solves in seconds.
-  5. Comprehensive documentation lives in `documents/`: the five phase documents defend every distribution and parameter (support → generative story → maximum entropy), each contains its causal DAG, `ACCOUNTING.md` specifies every money and goods flow together with the reconciliation contract the records obey, and `ANALYSIS_CATALOG.md` specifies every gradeable question the data supports.
-  6. The generator validates itself on every run: 30 checks covering exact conservation identities, the tax arithmetic, forensic-realism fingerprints (charm-price mix, repricing cadence, revenue autocorrelation, seasonal patterns), and the recoverability of every injected recording defect — plus a structural-and-fingerprint subset for each scenario arm, and five additional checks (year-one byte-identity, panel accounting, retained-earnings reconciliation, expansion timing, competitor-defection concentration) for the three-year arc.
-
-## Philosophy of the case design
-
-The design is guided by a clear philosophy: present a simple yet meaningful scenario, explained thoroughly enough to be accessible to readers without a statistical or technical background. The simulation demonstrates three principles:
-
-  1. Data analytics is not an esoteric discipline reserved for specialists; it comprises systematic practices employed daily by businesses of all sizes.
-  2. Data collection, analytical reasoning, and decision-making form a natural progression that occurs in any business environment.
-  3. The core concepts of data analytics are inherently intuitive — structured extensions of everyday business judgment.
-
-A business frequently originates from a straightforward concept that expands rapidly as the owner confronts practical operational challenges. Consider an entrepreneur who opens a small grocery store to generate income for their family. The core idea fits in one sentence, but implementing it requires answering several essential questions:
-
-  1. Where should the shop be located? (This determines monthly fixed costs such as rent.)
-  2. What products should the shop offer? (This shapes the product portfolio, inventory management, storage requirements, variable costs, and the associated optimization problems.)
-  3. How should inventory be replenished, managed, and maintained? (Inventory optimization and demand forecasting.)
-  4. Which information should be recorded, and in what format? (Performance tracking, accounting, and compliance.)
-  5. How much initial capital is available? (This constrains the scale of operations and financial planning.)
-  6. How does the business change as it survives past its first year? (Growth, churn, reinvestment, and shocks — the three-year arc's questions.)
-
-These questions, though seemingly elementary, are critical to business viability. Each can be formulated as an optimization, explanatory, or predictive problem — and each often admits a straightforward solution once the business context and underlying drivers are understood.
-
-Accordingly, the simulation is built around a small neighborhood grocery store — the one-year baseline covers its first twelve months of operation; the three-year arc follows the same shop through its first three years, including one endogenous expansion and one competitive shock. The case shows how routine business decisions naturally generate data that can be analyzed into actionable insights.
-
-The analytical process begins with the systematic recording of business activities — *what* occurred, *where*, and *when*. These transactional records are the raw data virtually every business produces: voluminous, noisy, and requiring careful processing — accurately reflecting the daily reality faced by managers, accountants, and analysts.
-
-## Simulation process
-
-The system is built bottom-up from microeconomic elements — customer preferences, location characteristics, and the owner's decision process — whose interactions create the aggregate forces of supply and demand, perturbed by stochastic factors such as weather and market shocks. The economic behavior follows concrete rules throughout: demand curves slope downward (price increases reduce quantity demanded according to each customer's price sensitivity), customers respect their budget constraints, and substitution occurs within categories when preferred items are unavailable or too expensive.
-
-Construction proceeds in five phases, documented in `documents/PHASE1_DETAILS.md` through `PHASE5_DETAILS.md`.
-
-### Phase 1 — Basic components of the system
-
-  * **Supply side:** the owner profile, with a fixed initial budget.
-  * **Demand side:** the set of candidate locations (each with rent and neighborhood characteristics) and the customer profiles (preferences and budgets) of people living near each location.
-
-The owner's budget constrains the location choice and initial inventory; the customer profiles determine individual budgets and consumption choices, which aggregate into the latent demand of the location. Together these establish available supply and latent demand, waiting for interaction and realization.
-
-Each customer profile has a fixed weekly schedule — they shop for groceries only on certain days of the week, with a small probability of deviation. For example, a customer usually restocks on Saturday or Sunday, but occasionally needs something mid-week and drops by. Customer demand is realistic: each has a weekly shopping list spanning categories such as food and drink, hygiene, and household cleaning products, plus items that appear randomly depending on circumstances.
-
-This phase produces one owner profile and many customer profiles — the pool of potential customers near the chosen store location.
-
-### Phase 2 — Stochastic elements at the macro level
-
-  * **Seasonal effects on demand:** season shifts individual demand for certain goods in certain periods (e.g., ice cream demand is higher in summer, lower in winter). Weather (temperature, precipitation) modulates both foot traffic and category demand day to day.
-  * **Supply shocks from macro factors:** events such as war or energy shortages raise the cost of certain goods. Customers react to the resulting price increases according to their preferences and budgets.
-  * **Idiosyncratic shocks at the individual level:** shocks that shrink or expand an individual customer's budget, affecting that period's consumption.
-
-These stochastic factors introduce noise that makes the data realistic and hard to work with. From the owner's perspective they are business risk, complicating the optimization problem and forcing the owner to account for them when refinancing to keep the store running.
-
-### Phase 3 — Market interaction
-
-The simulation runs on a daily basis; each day has a day-of-week, day-of-month, and season, and is affected by the predetermined shock paths from Phase 2. Each visit draws an arrival hour from a two-peak daily profile (after-work on weekdays, late morning on weekends); predetermined and stochastic events then unfold:
-
-  * The owner sets opening and closing hours (predetermined). Customers may arrive outside opening hours and be turned away — these lost visits are one source of **hidden demand**.
-  * Whether a customer arrives in a given hour is random, and which customer arrives is also random. Once selected, the customer acts according to their predetermined preferences, with a small probability of deviation. Sales draw down the owner's stock; when demand cannot be met from available supply (stockouts), it creates hidden, constrained demand — recorded internally as latent truth, invisible in the sales data.
-  * Periodically the owner restocks and performs a cost–revenue optimization. This is deliberately solved as an *imperfect* optimization (a heuristic minimum-inventory rule tied to location characteristics — see the SCM in the notebook), leaving room for the analyst to find genuine improvements later. The owner can also run **promotions** (temporary discounts, flyers, a loyalty discount day) to clear inventory; customers respond to price changes according to their price sensitivity. Promotion timing, depth, and cost are recorded, providing the marketing instrument data required for the Marketing Mix Model.
-  * Customers pay by cash or card according to their profile: a customer who prefers card pays by card most of the time (e.g., 95%) and by cash otherwise, and vice versa. **Card transactions carry customer identity (a hashed POS token); cash transactions are anonymous.** A stream of one-off **guest** shoppers with single-use tokens passes through as well. This is the dataset's realistic missing-data mechanism: customer-level analysis is only partially possible, exactly as in real retail data.
-  * Occasionally a customer brings an item back: **refunds** post as their own till transactions (negative quantity, refunded at the price actually paid, referencing the original receipt via `ref_receipt_id`). Money flows backwards through the till and the monthly ledger; the returned item is destroyed, not restocked.
-  * Finally, everything above passes through a **recording layer** before export: the shop's *paperwork* errs even though its physics doesn't. Receipts get re-uploaded by POS retries, invoices get double-posted or never entered, spoilage gets tossed without logging (surfacing later as month-end stock-count shrinkage), a clerk mistypes the odd shelf count, payment labels drift, the weather sensor goes dark for a few days. Every defect is injected from its own keyed stream, logged to a hidden ledger, and provably cleanable — the data-cleaning exercise is graded, not decorative.
-
-### Phase 4 — The policy laboratory
-
-A scenario is a declarative set of edits to the exogenous script and the owner's policy knobs (see `datagen/scenarios.py`) — never to an RNG key — replayed through the identical keyed market loop, so every difference from the baseline is causally attributable by construction. This phase also adds the **tax layer**: differential VAT by category (with emergent, menu-cost-limited pass-through — the owner is tax-*aware* but not tax-*strategic*), payroll contributions, and an accrued profit tax. Five one-year scenario arms exist alongside the baseline: a broad supply shock (`war_june`), a short storm (`typhoon_september`), a VAT cut (`food_vat_cut_july`), a household tax rebate (`tax_rebate_spring`), and a staffing decision (`second_clerk`) — each a common-random-numbers twin of the baseline, so the arm-minus-baseline difference is the causal effect with zero sampling error between arms.
-
-### Phase 5 — The three-year arc
-
-The customer panel becomes a flow: 80% of customers are rooted (long-tenure, slow to leave), 20% are transient (monthly churn and replacement), and the neighborhood grows slowly. The owner's balance sheet — retained earnings, owner draws, a cash-settled profit tax — funds an endogenous second-clerk expansion once retained earnings and cash both clear a threshold. Contracts step realistically (a rent renewal, wage revisions, a utility tariff reset). Year one replays the published one-year baseline's exogenous script byte-for-byte with a live customer panel; years two and three carry a scripted sequence of shocks — a freezer failure, an avian-flu cost spike, a heatwave, a new apartment block, a discounter opening with heterogeneous customer defection, a scheduled (non-endogenous) competitive price response, a street festival, a commodity spike — closing on a renew-or-close capital decision. Two CRN twins isolate the two biggest capital bets: `3y_no_competitor` (the discounter never opens) and `3y_no_expansion` (the second clerk is never hired).
-
-### Recorded data (what the analyst receives)
-
-  * Receipt line items (date, hour, SKU, quantity, price paid, promo flag, payment method, customer token for card payments only, `ref_receipt_id` on refunds) — including the till's warts: voided mis-rings, duplicate uploads, placeholder timestamps
-  * Nightly **book-inventory** snapshots and procurement invoice lines (order, delivery, and posting dates)
-  * Write-off log: recorded spoilage plus monthly stock-count shrinkage corrections, labeled by reason
-  * Promotion log (category, discount depth, start/end dates, flyer cost)
-  * Shelf-price history, the owner's monthly ledger (revenue net of refunds, procurement, rent, wages plus payroll tax, utilities, storage, flyers, VAT remittance, credit line — plus, on the three-year arc, retained earnings, owner draws, and capex), and the annual tax statement
-  * Calendar and weather table (date, day-of-week, season, holiday flags, temperature, precipitation — with a few sensor-outage gaps) — the *effects* of weather remain hidden; only the observable conditions are shared
-
-`documents/ACCOUNTING.md` documents every one of these flows and the reconciliation contract between them (what ties to the cent after which cleaning step, and which gaps are supposed to remain).
-
-What the analyst does **not** receive: customer preference parameters, true demand functions, shock effect sizes, the owner's decision rules, unmet-demand records, and the defect ledger. These constitute the ground truth against which the analyses can be validated.
-
-## Known limitations and deliberate design choices
-
-  * **One seasonal cycle on the one-year arms.** Twelve months of history yields 52 weekly cycles but only a single annual cycle — realistic for a one-year-old business and itself a teachable point. The `3y_` arms (Phase 5) lift this: three annual cycles, year-over-year growth, churn from day one, and structural breaks, with year one sharing the one-year baseline's exogenous script.
-  * **Suboptimal owner by design.** The owner's heuristic inventory rule and simple markup policy leave measurable money on the table (the oracle replay prices the gap at roughly €7.9k for the one-year baseline, and roughly €10.2k over the three-year arc — about €3.4k a year), so the prescriptive layer has a genuine optimization gap to find.
-  * **Partial customer identifiability.** Only card transactions link to customers — a deliberate, realistic missing-data mechanism, verified MAR so the analyst's own missingness test passes.
-  * **No supplier dimension.** Invoices cannot be attributed to individual vendors; posting batches and cost shocks are observable but not vendor-linked.
-  * **Fixed assortment and delivery cadence.** The 128 stocked SKUs and the weekly Wednesday delivery never change within an arm — protecting the censored-demand evidence and keeping the panel clean, even across three years.
-  * **Simple financial plumbing.** Procurement is cash-basis at order date (no payment terms or accounts payable); refunds are destroy-on-return of one line, with no fraud or restocking; capital assets (the expansion's capex) are not depreciated.
-
-## Roadmap
-
-  1. **Iteration 1 — done:** SCM and owner's MILP, location and SKU tables, the opening decision (Phase 1).
-  2. **Iteration 2 — done:** customer profiles and demand model; the daily market loop over 12 months; recorded-data export; stochastic cost paths, weather, and macro events (Phases 2–3).
-  3. **Iteration 3 — done:** promotions and MMM instrumentation, the owner's adaptive weekly behavior, the oracle counterfactual — plus additions beyond the original plan: guest shoppers, menu-cost repricing, weather-linked spoilage, the recording layer of realistic data defects, refunds, and the accounting documentation.
-  4. **Iteration 4 — done:** the policy laboratory (Phase 4): the tax layer (differential VAT with a tax-aware but non-strategic owner, payroll contributions, profit tax) and CRN-twin scenario arms with the baseline as one arm among them.
-  5. **Iteration 5 — done:** the three-year arc (Phase 5): the customer panel becomes a flow (rooted/transient churn, replacements, slow growth), the owner's balance sheet (retained earnings, owner draws, cash-settled profit tax) funds an endogenous expansion, contracts step (rent renewal, wage revisions, tariff resets), and years two and three carry scripted shocks — freezer failure, avian flu, heatwave, an apartment block, a discounter with heterogeneous defection, a scheduled competitive response, a street festival, a commodity spike — graded by the `3y_no_competitor` and `3y_no_expansion` CRN twins.
-  6. **Iteration 6 — done:** the business-case layer (`documents/CASE_WRITING_GUIDE.md`, `cases/`): a canonical brand and persona (Henrik Malm, Malm's Market), an owner-voice intake interview with one load-bearing wrong belief, and an instructor appendix — folder-bound to a data arm so future arms can carry their own re-told case.
-  7. **Iteration 7 — done:** the full analysis catalog. Every layer of `documents/ANALYSIS_CATALOG.md` (0 through 7) now has at least one full-depth graded notebook: `clean_and_describe` (0–1), `diagnose_causes` (2), `predict_and_warn` (3), `prescribe` (4), `policy_lab` (5), `learn_structure` (6), and the three-year trio `three_year_review` / `competitor_entry_study` / `expansion_review` (7).
-  8. **Iteration 8 — done:** `analysis_workbook.py` retrofitted to the three-year baseline — its own sections (operations, the database build, the P&L and capital story, weekly rhythms, trend-vs-season) rewritten for three years of history, and the sections that now duplicate a full-depth notebook (cleaning, weather/price/promotions, stockouts/spoilage, customers, forecasting, priorities) condensed to a headline plus a pointer.
-  9. **Iteration 9 — done:** `analyses/configurator.py`, the scenario front end — pick any reference arm, generate it with one click, and launch the notebook(s) that already target it. Deliberately does not parameterize the graded notebooks themselves (each stays hand-written and graded against its one arm); picking an arm with no notebook listed still generates real, gradeable data, starting point `documents/ANALYSIS_CATALOG.md`.
-  10. **Remaining / deferred:** none currently planned.
+- **Generate your own data under your own scenario** → `package/`, the
+  `grocery_sim` package.
+- **Understand why the model is built the way it is** → `paper/paper.pdf`.
+- **See a worked, full-depth business-analytics engagement on
+  pre-generated data** → `cases/` and `analyses/`, built on the reference
+  arms in `data/scenarios/`.
