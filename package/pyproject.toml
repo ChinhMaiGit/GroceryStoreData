@@ -1,0 +1,24 @@
+[project]
+name = "grocery-sim"
+version = "0.1.0"
+description = "A standalone structural microsimulation of a neighborhood grocery store, with a fully known generating process."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb>=1.5.4",
+    "marimo>=0.23.1",
+    "numpy>=2.5.1",
+    "openpyxl>=3.1.5",
+    "pandas>=2.2",
+    "pulp>=3.3.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatchling.build.targets.wheel]
+packages = ["grocery_sim"]
+
+[tool.hatchling.build.targets.wheel.force-include]
+"grocery_sim/SKUs.xlsx" = "grocery_sim/SKUs.xlsx"
