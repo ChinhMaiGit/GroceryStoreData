@@ -1,25 +1,40 @@
 # grocery-sim
 
-A standalone, installable Python package that simulates three years in the
-life of a small neighborhood grocery store — customers, an owner, a
+[![PyPI](https://img.shields.io/pypi/v/grocery-sim.svg)](https://pypi.org/project/grocery-sim/)
+
+A standalone, installable Python package that simulates one or three years
+in the life of a small neighborhood grocery store — customers, an owner, a
 calendar of weather and macro shocks, a daily market, and a full paper
 trail (receipts, invoices, a ledger, a tax filing) — and hands the result
-back as an object with a small, fixed API.
+back as an object with a small, fixed API. The one-year horizon is the
+default; the three-year arc (customer turnover, retained earnings, an
+endogenous expansion decision) is opt-in via `basic.year = 3` — see
+"Possible scenarios" below.
 
 Every number it produces has a documented, traceable cause; nothing is
 sampled from a convenient distribution and called a business. **The theory
 behind why the model is built this way — the distributional choices, the
 causal structure, the exogenous/endogenous split — is not repeated here.**
-See `paper/paper.pdf` (and `documents/PHASE1..5_DETAILS.md` for the
-underlying design documents) in the parent project for that. This README
-only covers the package: how to run it, what you can configure, and what
-each method returns.
+This package is developed inside the
+[GroceryStoreData](https://github.com/ChinhMaiGit/GroceryStoreData)
+monorepo — see
+[`paper/paper.pdf`](https://github.com/ChinhMaiGit/GroceryStoreData/blob/main/paper/paper.pdf)
+there for the theoretical paper, and `documents/PHASE1..5_DETAILS.md` for
+the underlying design documents. This README only covers the package
+itself: how to run it, what you can configure, and what each method
+returns.
 
 ## Install
 
-From this directory:
+```bash
+pip install grocery-sim
+# or: uv add grocery-sim
+```
+
+From a checkout of the monorepo instead (for development):
 
 ```bash
+cd package
 uv pip install -e .
 # or: pip install -e .
 ```
@@ -58,20 +73,15 @@ other in the reverse direction:
   allow or forbid a decision, but you cannot script when or whether it
   actually happens — that stays the model's own emergent output.
 
-The practical consequence: two runs that differ only in one scripted event
-being present or absent are otherwise identical (the same customers make
-the same choices on the same days), so the difference between them is an
-exact causal effect, not a correlation. This is also why nothing in the
-package lets one event *cause* another — a "war causes a government
-response two months later" story has to be authored by you as two
-separately dated events; the model has no mechanism for one event to
-trigger another, on purpose, because real macro causation is exogenous
-from a single shop's point of view too.
+One practical consequence of this split: nothing in the package lets one
+event *cause* another. A "war causes a government response two months
+later" story has to be authored by you as two separately dated events in
+`settings.events`.
 
 ## The object API
 
 ```python
-from grocery_sim import GroceryStoreSimulation, ValidationError
+from grocery_sim import GroceryStoreSimulation
 
 sim = GroceryStoreSimulation()
 ```
@@ -83,7 +93,7 @@ sim = GroceryStoreSimulation()
 | `sim.data(include_hidden=False)` | a `SimulationData` object — attribute access per table (`sim.data().receipts`, `.cost_sheet`, ...) plus a compact schema summary as its `repr()` |
 | `sim.db(path=None, include_hidden=False)` | a `duckdb` connection with every table loaded (`path=None` → in-memory) |
 | `sim.erd(include_hidden=False)` | a Mermaid `erDiagram` string, inferred from shared key-like column names across the exported tables |
-| `sim.describe()` | a business-case brief (markdown string): a letter, a Q&A-style intake interview (year-by-year narrative, honest records caveats), a data table, and a question list, all narrated by a reproducible fictional owner persona (name, gender/pronoun, age, prior career — keyed off `random_seed`) around this run's own real events and results. Costs one extra internal simulation on the first call if a competitor/war/operational_hazard event is active (a counterfactual twin, used to ground the owner's guess about the cause); cached after that, so repeated calls are free and return the same text |
+| `sim.describe()` | a business-case brief (markdown string): a persona-narrated letter, intake interview, data table, and question list built from this run's real events and results — see "Known limitations" for what it costs and doesn't do |
 | `sim.settings` | the resolved settings dict (JSON round-trippable) |
 | `sim.validation` | the full validation report: `{"structural_ok": bool, "checks": [...]}` |
 | `sim.create_analysis(path, mode="student")` | writes a scaffolded marimo notebook to `path`; `mode="instructor"` also fills in starter queries |
@@ -94,6 +104,63 @@ sim = GroceryStoreSimulation()
 the hidden answer-key tables (customer-level true parameters, the demand
 modifiers, the profit triptych, ...) — useful for building or checking an
 analysis, never appropriate to hand to a student working the case cold.
+
+`simulate()` raises `ValidationError` (importable from `grocery_sim`)
+only when a structural invariant breaks — a generator bug, never an
+expected consequence of your settings — so it is safe to leave uncaught
+in ordinary use; catch it only if you want to handle that failure
+mode explicitly:
+
+```python
+from grocery_sim import GroceryStoreSimulation, ValidationError
+
+sim = GroceryStoreSimulation()
+try:
+    sim.setup(settings).simulate()
+except ValidationError as exc:
+    print(f"generator bug, please report: {exc}")
+```
+
+**Working with `sim.data()`** — a `SimulationData` object, one pandas
+`DataFrame` per table, addressable either as an attribute or by name:
+
+```python
+data = sim.data()
+print(data)                        # repr(): every table, its row count, its columns
+data.receipts.head()               # receipt_id, hour, payment, customer_id,
+                                    # uid, qty, unit_price, promo, ref_receipt_id, date
+data.cost_sheet[["month", "revenue", "procurement", "rent", "wages"]]
+data["cost_sheet"]                 # same table, looked up by name instead of attribute
+list(data.keys())                  # every table name actually exported this run
+```
+
+**Working with `sim.db()`** — a live `duckdb` connection with every table
+already loaded, for anyone who'd rather write SQL than pandas:
+
+```python
+con = sim.db()
+con.sql("""
+    SELECT date, SUM(qty * unit_price) AS revenue
+    FROM receipts
+    GROUP BY date
+    ORDER BY date
+""").df()                          # -> a pandas DataFrame, one row per day
+```
+
+**Working with `sim.erd()`** — a plain Mermaid `erDiagram` string, not an
+image; `print()` it for readable text, or render it anywhere that
+understands Mermaid syntax:
+
+```python
+print(sim.erd())                   # readable as-is in a terminal
+
+# in a marimo notebook, this renders as an actual diagram:
+import marimo as mo
+mo.mermaid(sim.erd())
+
+# or paste the printed text into https://mermaid.live, a GitHub
+# markdown code fence tagged ```mermaid, or VS Code's Mermaid preview
+```
 
 ## Possible scenarios: the settings schema
 
@@ -149,7 +216,30 @@ even as `False`, raises `SettingsError`.
 For a worked example that pushes nearly every one of these at once — three
 wars, three typhoons, three equipment failures, both tax cuts, a competitor
 entry, and an endogenous expansion, all in one three-year run — see
-`cases/extreme_stress_test/analysis_notebook.py`.
+[`cases/extreme_stress_test/analysis_notebook.py`](https://github.com/ChinhMaiGit/GroceryStoreData/blob/main/cases/extreme_stress_test/analysis_notebook.py)
+in the monorepo (not shipped inside this package's own distribution).
+
+## What kind of analysis does this support?
+
+`documents/ANALYSIS_CATALOG.md` in the monorepo lists concrete, gradeable
+questions across eight layers — cleaning, description, causal diagnosis,
+prediction, prescription, a policy lab (CRN-twin counterfactuals), and,
+on the three-year arc, trend/churn/capital analysis. Its own suggested
+methods lean econometric: conditional logit, hierarchical Bayesian
+demand models, STL trend-seasonality decomposition, survival analysis
+for churn, marketing-mix decomposition.
+
+Standard ML — gradient boosting, bagging, clustering — fits just as
+well even though the catalog doesn't frame it that way: stockout-risk
+prediction and (on the three-year arc) customer churn are ordinary
+classification problems; customer segmentation via clustering is a
+natural fit for the behavioral features in `receipts`. What makes any
+of this more than a generic tabular exercise is that the generating
+mechanism is fully known: a model can be graded not just on held-out
+accuracy but on whether it recovered the *true* structure (do a
+classifier's feature importances match the real generative drivers? do
+clusters actually separate on the same lines as the hidden true price
+sensitivity or persistence type?) — a check no real dataset can offer.
 
 ## Validation
 
@@ -175,33 +265,19 @@ prints a three-part report. Checks are tiered:
 Access the summary directly: `sim.validation["structural_ok"]` and
 `[c for c in sim.validation["checks"] if c["tier"] == "core"]`.
 
-Two bands ("realized capture near 0.65 target" and "repricing cadence
-realistic") were found running consistently out of range on multi-year
-runs during development; one turned out to be a real denominator bug in
-the validator (now fixed), the other was genuine seed variance on an
-already-tight calibration (left as-is). See the inline comments beside
-each check in `validate.py` for the full account if you need to trust a
-specific check's history.
-
-## Testing
+## Testing (from a monorepo checkout)
 
 ```bash
+cd package
 uv pip install -e ".[test]"
 pytest
 ```
 
-`tests/` is a real regression suite, not the ad hoc scripts used during
-development: settings-validation errors (`test_settings.py`), `persona.py`
-in isolation (`test_persona.py`), `describe.py`'s pure logic
-(`test_describe_unit.py`), and full simulations across a spread of
-settings — every event individually, every investment individually, all
-of them combined, several seeds, reproducibility, and `describe()` against
-real results (`test_simulation.py`, `test_describe_integration.py`). The
-simulation-backed tests are slow (each one is a real multi-year run); the
-suite reuses a handful of session-scoped fixtures rather than re-simulating
-per test, but a full run still takes tens of minutes.
-
-CI (`.github/workflows/tests.yml`) runs this same suite on every push and
+Not needed to use the package — only relevant if you're modifying
+`grocery_sim` itself. `tests/` covers settings validation, `persona.py`
+and `describe.py` in isolation, and full simulations across a spread of
+settings; the simulation-backed tests are slow (each is a real run), so
+a full pass takes tens of minutes. CI runs this suite on every push and
 pull request against `main`.
 
 ## Known limitations (read before relying on these)
@@ -243,16 +319,6 @@ pull request against `main`.
   Two `GroceryStoreSimulation` instances with different seeds must be run
   sequentially, not concurrently, in the same process.
 
-## Package layout
-
-See `grocery_sim/__init__.py` for the module-by-module map. The package
-mirrors the archived `archive/datagen/` implementation's one-module-per-design-
-document structure (`phase1.py`, `phase2.py`, `phase3.py`, `world.py`,
-`recording.py`, `export.py`, `keys.py`, `params.py`), plus this package's
-own additions: `events.py` (the composer described above), `settings.py`
-(the schema), `schema.py` (the ERD), `persona.py` (the fictional owner
-identity), `describe.py` (the brief built around that persona),
-`analysis.py`, and `simulation.py` (the `GroceryStoreSimulation` class
-itself). `validate.py`
-is the original single-arm validation battery, generalized into the tiered
-structural/core/band report described above.
+For the module-by-module internals (only relevant if you're extending
+the package rather than using it), see `grocery_sim/__init__.py`'s own
+docstring.

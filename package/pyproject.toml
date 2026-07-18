@@ -1,6 +1,6 @@
 [project]
 name = "grocery-sim"
-version = "0.1.0"
+version = "0.1.2"
 description = "A standalone structural microsimulation of a neighborhood grocery store, with a fully known generating process."
 readme = "README.md"
 license = "MIT"
