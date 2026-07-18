@@ -51,8 +51,8 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning, arrows.meta, shapes.geometric, fit, backgrounds}
 
-\title{\textbf{A Structural Microsimulation of a Neighborhood Grocery Store:\\
-Theoretical Foundations, Model Architecture, and Design Rationale}}
+\title{\textbf{Two Layers of an Economy:\\
+Decisions, Scripts, and the Anatomy of a Simulated Grocery Store}}
 \author{Chinh Mai}
 \date{July 2026}
 
@@ -61,801 +61,474 @@ Theoretical Foundations, Model Architecture, and Design Rationale}}
 \maketitle
 
 \begin{abstract}
-This paper documents the theoretical foundations of a synthetic business data
-generator built to produce a three year history of a small neighborhood
-grocery store together with a fully known generating process. Rather than
-sampling numbers directly, the generator constructs a world: a street with
-locations, households with preferences and budgets, an owner with capital and
-beliefs, a calendar of seasons and shocks, and a daily market in which the two
-sides interact hour by hour. Every distributional choice in that world is
-defended by the same three question discipline, namely what the variable's
-support permits, what generative story produces it, and which distribution
-adds the least unwarranted structure beyond what is claimed. This paper
-consolidates that reasoning across the five construction phases, from the
-opening decision solved as a mixed integer program through the three year
-panel of customer turnover and capital accumulation, and explains why each
-structural choice was made rather than merely what it computes. The result is
-intended as a companion reference for readers who want to understand the
-model itself, independent of the software that implements it.
+This paper tells the story of a simulated small grocery store from the
+ground up: not by walking through the software that builds it, but by
+walking through the economic decisions that give it its shape. Every
+number this construction produces --- a receipt, an invoice, a monthly
+ledger, a tax filing --- is the residue of somebody choosing something. A
+customer chooses between two cartons of milk. An owner chooses where to
+open a store before a single customer has walked through the door. The
+same owner chooses, later, whether to hire, and whether to expand, under
+capital he does not have room to lose. This paper follows each of those
+choices from the plain human intuition behind it to the precise
+mathematical object that intuition becomes, and does the same for the one
+thing in this world that is never a choice at all: the weather, the
+calendar, and the macroeconomic shocks that are scripted in advance and
+never listen to anything the simulated people do. That distinction ---
+between what is chosen and what is merely scripted --- is not a modeling
+convenience. It is what allows a later reader to ask what would have
+happened without the storm, or without the competitor, and receive an
+answer that is exactly true rather than merely estimated. The result is
+intended as a companion for anyone who wants to understand this
+simulated economy in its own right, whether or not they ever open the
+software that runs it; readers who want the precise specification of
+every mechanism, at a level suitable for reimplementation, should consult
+\texttt{documents/PHASE1\_DETAILS.md} through \texttt{PHASE5\_DETAILS.md}
+in the project repository, which this paper deliberately does not
+duplicate.
 \end{abstract}
 
 \clearpage
 
-\section{Introduction}
+\section{Two Layers of an Economy}
+\label{sec:intro}
 
-Every real business dataset is the residue of a world. Behind a spreadsheet of
-receipts and invoices sit people with habits and budgets, a street with rents
-and foot traffic, and an owner with limited capital and imperfect information,
-all colliding day after day until the paperwork accumulates. A dataset built
-to teach or test data analysis honestly should therefore not be built by
-drawing numbers from convenient distributions and calling the result a
-business. It should be built the other way around: construct the world first,
-with its people, its constraints, and its causal structure, and let the
-paperwork fall out of the world's own operation.
+Suppose you hand a new analyst a spreadsheet and tell her it is real. She
+has no way to check whether her conclusions are correct, only whether
+they sound reasonable, because nobody --- not her, not you, not the
+business itself --- actually knows the true mechanism that produced the
+numbers. Now suppose instead you hand her a spreadsheet you generated
+yourself, by drawing every column from a convenient distribution. She can
+check her work against your generating code, but there is nothing
+underneath the numbers worth discovering: no owner who misread a signal,
+no competitor who actually mattered less than everyone assumed, no honest
+mess in the paperwork to clean up before the real question can even be
+asked. Teaching data analysis with either kind of data teaches half the
+job.
 
-This paper documents the theoretical reasoning behind such a construction. The
-subject is a simulated small grocery store, run by a single owner over three
-years, generating the full range of records a real shop produces: till
-receipts, supplier invoices, shelf price histories, promotional campaigns,
-monthly ledgers, and a tax filing. What distinguishes the dataset from an
-arbitrary spreadsheet of plausible numbers is that every number has a
-traceable cause. Prices respond to costs, costs respond to shocks, shoppers
-respond to prices according to individually varying tastes, and the owner
-responds to what he observes, which is never the same as what is true. The
-gap between what the owner believes, what actually happens, and what a
-perfectly informed operator could have achieved is not injected noise; it is
-the mechanical consequence of a chain of modeling decisions, each of which
-this paper defends on its own terms.
+This paper is about a third option: build the business first, as a world
+with people, budgets, and a street, and only afterward let the paperwork
+fall out of what that world actually did. Do that carefully enough, and
+you get something rare --- a dataset messy enough to feel real, and yet
+one where every number still has a traceable cause, so a conclusion can
+be checked not just for plausibility but for truth.
 
-The construction proceeds in five phases, summarized in Figure~\ref{fig:pipeline}
-and detailed in the sections that follow. The first phase builds the world as
-it exists the moment before the store opens: a street of candidate locations,
-a population of households with preferences, and an owner who must decide
-where to open, what to stock, and how much capital to commit, all before a
-single customer has walked through a door. The second phase writes the
-script of the year that follows, meaning every exogenous influence on the
-world, such as the weather, the calendar, and macroeconomic shocks, decided in
-advance and independent of anything the simulated agents do. The third phase
-performs that script: customers and the owner interact hour by hour, and
-every transaction, stockout, and promotional decision is recorded. The fourth
-phase turns the single performed year into a laboratory, allowing the same
-world to be replayed under edited conditions so that the causal effect of a
-tax reform or a competitive shock can be measured exactly rather than
-estimated. The fifth phase extends the horizon to three years, adding customer
-turnover, capital accumulation, and a sequence of scripted events that a real
-small business might plausibly encounter.
+\subsection{An economy is a collection of decisions}
 
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[
-    node distance = 10mm and 8mm,
-    box/.style = {rectangle, draw, rounded corners, align=center, minimum width=2.6cm, minimum height=1.15cm, font=\small},
-    lbl/.style = {font=\scriptsize, align=center, text width=2.6cm},
-    arrow/.style = {-{Latex[length=2mm]}, thick}
-]
-    \node[box] (p1) {Phase 1\\[2pt]The world\\at $t=0$};
-    \node[box, right=of p1] (p2) {Phase 2\\[2pt]The script\\of the year};
-    \node[box, right=of p2] (p3) {Phase 3\\[2pt]The daily\\market loop};
-    \node[box, right=of p3] (p4) {Phase 4\\[2pt]The policy\\laboratory};
-    \node[box, below=of p4] (p5) {Phase 5\\[2pt]Three years:\\panel and capital};
+Every column in a business's ledger is the fossil record of somebody
+choosing something: a customer choosing a shelf, an owner choosing a
+price, a bank choosing a loan. \emph{If data is going to teach real
+analysis, it has to model the choosing, not the ledger.} This construction
+takes that literally. It contains no column that was not produced by a
+decision --- a customer's, an owner's, or in one case a whole population's
+slow drift in and out of a neighborhood --- and every decision is built
+the same way, in three steps that recur throughout this paper: first the
+plain economic intuition behind the choice, in language you would use to
+explain it to a friend; then the nature of the choice itself, meaning what
+kind of decision problem it structurally is, a discrete pick among a
+handful of options, a one-shot allocation of scarce capital, a threshold
+crossed or not; and finally the precise stochastic process that
+intuition becomes once it is written in the language of mathematics.
 
-    \draw[arrow] (p1) -- (p2);
-    \draw[arrow] (p2) -- (p3);
-    \draw[arrow] (p3) -- (p4);
-    \draw[arrow] (p4) -- (p5);
+Meet Henrik Fjeld. He is not a real person --- his name, his age, and the
+street he lives on are invented for each run of this simulation, chosen
+fresh from a small cast of possibilities every time someone generates a
+new store. But everything that happens to his shop is not invented at
+all: it is the exact, computed consequence of decisions made by
+simulated people responding to a simulated world, the same way a real
+ledger is the consequence of decisions made by real people responding to
+a real one. Consider one such decision, small enough to hold in your
+head. A customer walks into Henrik's shop wanting a carton of milk. Two
+sit on the shelf: a familiar national brand at \texttt{\euro{}1.89}, and
+the store's own cheaper label at \texttt{\euro{}1.49}. She does not
+compute anything --- she just knows, the way you know at the supermarket,
+that today the cheaper one will do just fine, but last week, buying for a
+dinner guest, only the brand name felt right. That is the entire
+economic content of the decision: a comparison between an option's price
+and how much she happens to want the thing the price difference buys.
+Section~\ref{sec:micro} turns that comparison into the single equation
+that governs every purchase in this economy, and Table~\ref{tab:milk}
+there shows the same customer, the same two cartons, and the one thing
+that actually changed between two different Tuesdays.
 
-    \node[lbl, below=2mm of p1] {locations, customers,\\the opening decision};
-    \node[lbl, below=2mm of p2] {calendar, weather,\\macro shocks};
-    \node[lbl, below=2mm of p3] {transactions,\\hidden demand};
-    \node[lbl, above=2mm of p4] {edited scripts,\\taxes};
-    \node[lbl, below=2mm of p5] {churn, retained\\earnings, growth};
-\end{tikzpicture}
-\caption{The five phase construction. Each phase consumes the outputs of the ones before it and adds one new kind of structure to the world.}
-\label{fig:pipeline}
-\end{figure}
+\subsection{What is scripted and what is chosen must never be confused}
 
-The remainder of this paper is organized around that same five phase
-structure. Section~\ref{sec:literature} positions this construction against
-the other ways synthetic and case study business data are currently produced,
-and discusses what the resulting dataset makes possible, both analytically
-and pedagogically. Section~\ref{sec:principles} states the design principles
-and notational conventions that recur throughout the model. Sections
-\ref{sec:phase1} through \ref{sec:phase5} treat each phase in turn, explaining
-not only how each mechanism is built but why it was built that way rather
-than some simpler or more elaborate alternative. Section~\ref{sec:accounting}
-describes the accounting layer that ties every euro and every unit of stock
-to a specific artifact, including the deliberate imperfections that make the
-raw records disagree until they are cleaned. Section~\ref{sec:discussion}
-reflects on the architecture as a whole, and Section~\ref{sec:conclusion}
-closes the paper.
+Multiply Henrik's customer's decision by three hundred households, three
+years, and every shelf in the store, and you get something that looks,
+from the outside, exactly like a real small business: a ledger with good
+months and bad ones, a competitor who opens down the street and costs
+the owner something --- though maybe not what he thinks it costs him ---
+and a set of records honest enough to contain the ordinary mistakes a
+real bookkeeper makes. From the inside, though, every one of those
+numbers still traces back to a decision like Henrik's customer and her
+milk: a person, a comparison, a choice.
+
+This is also where the model draws a line that is never allowed to
+blur. A storm, a tax change, a competitor's arrival are written into the
+world in advance, on a specific date, independent of anything anyone in
+the simulation does. A customer's purchase, an owner's price, an owner's
+decision to hire are never written down anywhere at all --- they emerge,
+fresh, from the decision-maker's own situation each time the world is
+run. \emph{What is scripted and what is chosen are never allowed to be
+confused.} Keeping that line sharp is what lets a later section ask
+``what would have happened without the storm?'' and get back an answer
+that is exactly true, rather than merely estimated, because nothing
+about the storm could possibly have been caused by anything the shop's
+own people did.
+
+Two layers follow from this one distinction, and this paper is organized
+around exactly the two of them. Section~\ref{sec:micro}, \textbf{the
+micro layer}, walks through every kind of decision this simulated world
+contains: what a customer wants, what an owner believes before he has a
+single sale to go on, when an owner dares to expand, and who stays a
+customer and who drifts away. Nothing in this layer is written down in
+advance; everything in it is computed fresh, each time the world is run,
+from the situation the decision-maker actually faces.
+Section~\ref{sec:macro}, \textbf{the macro layer}, covers everything
+that \emph{is} written down in advance: the calendar, the weather,
+macroeconomic shocks, and the tax code the whole economy operates
+under. Section~\ref{sec:counterfactual} explains why keeping these two
+layers from ever talking to each other in the wrong direction is what
+makes this world useful for more than description --- it is what lets
+a later reader ask a genuine causal question and trust the answer.
+Section~\ref{sec:recording} covers a third thing that is neither a
+decision nor a script: the paperwork itself, which is allowed to be
+wrong in small, realistic ways even though the world underneath it never
+is. Section~\ref{sec:literature} places this construction against the
+other ways synthetic and case-study business data are made today, and
+Section~\ref{sec:discussion} steps back to ask what the whole
+architecture buys, and for whom.
+
+The goal of everything that follows is not to prove a theorem. It is to
+leave a reader able to open Henrik Fjeld's ledger, or the ledger of the
+next store this same machinery generates under a different roll of the
+dice, and already know, before running a single regression, what kind
+of story could possibly be hiding inside it.
 
 \section{Related Approaches and the Case for Structural Synthesis}
 \label{sec:literature}
 
 Synthetic business data is not a new idea, and it is worth being precise
-about where this construction sits relative to the approaches already in
-routine use, rather than presenting it as though it emerged in a vacuum.
-Four traditions dominate the current landscape, each built to optimize for
-something other than what this project optimizes for.
+about where this construction sits relative to approaches already in
+routine use. Four traditions dominate the current landscape, each built
+to optimize for something other than what this project optimizes for.
 
-\subsection{Rule based generators}
+\subsection{Rule-based generators}
 
-The simplest and most widely used tools, such as Faker and Mockaroo, fill a
-schema with plausible looking field values: names, addresses, dates,
-amounts drawn from simple parametric distributions attached independently to
-each column. These tools are fast, require no seed data, and are entirely
-adequate for their actual purpose, which is populating a database or testing
-a software pipeline against realistically shaped inputs. They are not built
-to support analysis practice, because each column is generated
-independently of every other: there is no mechanism linking a customer's
-income to their basket size, no mechanism linking weather to foot traffic,
-and no sense in which the resulting numbers were caused by anything. A
-student who regresses one generated column on another is not discovering a
-relationship, because none was ever built in; every correlation
-Section~\ref{sec:phase1} through Section~\ref{sec:phase5} of this paper
-painstakingly justifies is, in a rule based generator, simply absent by
-construction.
+The simplest and most widely used tools, such as Faker and Mockaroo, fill
+a schema with plausible-looking field values: names, addresses, dates,
+amounts drawn from simple parametric distributions attached
+independently to each column. These tools are fast and entirely adequate
+for their actual purpose, populating a database or testing a software
+pipeline against realistically shaped inputs. They are not built to
+support analysis practice, because each column is generated independently
+of every other: there is no mechanism linking a customer's income to
+their basket size, no mechanism linking weather to foot traffic, and no
+sense in which the resulting numbers were caused by anything. A student
+who regresses one generated column on another is not discovering a
+relationship, because none was ever built in.
 
 \subsection{Statistical and generative model synthesizers}
 
 A more sophisticated family of tools learns to imitate the statistical
 shape of a real dataset rather than sampling columns independently.
 Conditional generative adversarial networks such as CTGAN, variational
-autoencoders, and copula based tools bundled in synthesis libraries such as
-the Synthetic Data Vault (\hyperlink{ref:patki2016}{Patki, Wedge, and
+autoencoders, and copula-based tools bundled in synthesis libraries such
+as the Synthetic Data Vault (\hyperlink{ref:patki2016}{Patki, Wedge, and
 Veeramachaneni, 2016}; \hyperlink{ref:xu2019}{Xu, Skoularidou,
-Cuesta-Infante, and Veeramachaneni, 2019}) are trained on a real
-seed dataset and learn to reproduce its marginal distributions and pairwise
-correlations closely enough to substitute for it in downstream use, often
-motivated by a differential privacy guarantee
-(\hyperlink{ref:dwork2006}{Dwork, 2006}) that lets an
-organization share a synthetic look-alike without exposing real customer
-records. This is a genuine and valuable technology for its actual purpose,
-which is privacy preserving data sharing. It is a poor fit for teaching data
-analysis for three specific reasons. First, it requires an existing real
-dataset to imitate, so it cannot manufacture a genuinely new case; every
-synthetic version is a shadow of something that already happened elsewhere.
-Second, the generator itself is a black box: a neural network or a fitted
-copula reproduces a distribution's shape without asserting any mechanism
-that produced it, so there is no known ground truth against which a
-student's causal claim, elasticity estimate, or forecast can be graded,
-only the observed data the student was already given. Third, and most
-importantly for this project's purposes, a distribution matching model has
-no way to answer a counterfactual question, because it was never given a
-reason for any number, only a shape to reproduce; asking such a model what
-revenue would have been without a tax change is not merely hard, it is
-category confusion, since the model has no representation of a tax change
-to remove in the first place.
+Cuesta-Infante, and Veeramachaneni, 2019}) are trained on a real seed
+dataset and learn to reproduce its marginal distributions and pairwise
+correlations closely enough to substitute for it in downstream use,
+often motivated by a differential privacy guarantee
+(\hyperlink{ref:dwork2006}{Dwork, 2006}). This is a genuine and valuable
+technology for privacy-preserving data sharing, and a poor fit for
+teaching data analysis, for three reasons. It requires an existing real
+dataset to imitate, so it cannot manufacture a genuinely new case. The
+generator itself is a black box, reproducing a distribution's shape
+without asserting any mechanism that produced it, so there is no known
+ground truth against which a causal claim can be graded. And a
+distribution-matching model has no way to answer a counterfactual
+question at all, because it was never given a reason for any number,
+only a shape to reproduce; asking such a model what revenue would have
+been without a tax change is not merely hard, it is category confusion.
 
 \subsection{The business case method}
 
-Business schools have long taught with hand authored cases: a narrative
+Business schools have long taught with hand-authored cases: a narrative
 description of a company's situation accompanied by a set of exhibits,
-built by a case writer around a specific pedagogical point. This tradition,
-associated most closely with Harvard Business School's case method, remains
-the gold standard for teaching judgment under ambiguity, and the case
-narrative structure adopted for this project's own teaching materials
-borrows directly from it. Its limitation is not narrative quality but
-process: each case is bespoke, manually tuned by its author to make the
-numbers come out right, produced once, and then reused unchanged for years.
-There is no underlying generative process to interrogate, no way to produce
-a counterfactual twin of the same company under a different tax regime, and
-no way to grade a student's causal claim against a documented mechanism,
-because the case writer's spreadsheet is the only ground truth that exists
-and it was authored to support a conclusion rather than to allow one to be
-discovered.
+built by a case writer around a specific pedagogical point. This
+tradition, associated most closely with Harvard Business School's case
+method, remains the gold standard for teaching judgment under ambiguity,
+and the persona-and-letter device this project's own case briefs use
+(Section~\ref{sec:micro}) borrows directly from it. Its limitation is not
+narrative quality but process: each case is bespoke, manually tuned by
+its author to make the numbers come out right, produced once, and reused
+unchanged for years. There is no underlying generative process to
+interrogate, no way to produce a counterfactual twin of the same company
+under a different tax regime, and no way to grade a causal claim against
+a documented mechanism, because the case writer's spreadsheet is the only
+ground truth that exists, and it was authored to support a conclusion
+rather than to allow one to be discovered.
 
 \subsection{Structural microsimulation}
 
 The methodological tradition closest to this project's own is structural
 microsimulation, founded by \hyperlink{ref:orcutt1957}{Orcutt's (1957)}
-proposal to model an economy as
-a population of individual units following explicit behavioral rules rather
-than as aggregate equations, and carried forward today in tax and benefit
-microsimulation models such as EUROMOD and in agent based market and
-transport simulations across applied economics. These models share this
-project's central commitment: agents obey genuine, documented behavioral
-rules, so a policy change can be replayed through an unchanged population
-and the difference is a true causal effect rather than an estimated one,
-exactly the property Section~\ref{sec:phase4} builds into this model's own
-policy laboratory. Where such models typically diverge from this project is
-in what they are built to produce. Their output is usually an aggregated
-statistic destined for a policy briefing, such as a national poverty rate
-or a revenue projection, rather than a transaction level business record;
-and because their audience is professional economists rather than students
-learning to clean and reconcile data, they rarely simulate the imperfect
-paperwork of Section~\ref{sec:phase3}, since a policy model has no reason to
-misfile an invoice. Structural microsimulation gets the causal architecture
-right; it has simply never been aimed at the specific problem of teaching
-an individual analyst to reconstruct a single business's truth from its own
-imperfect records.
+proposal to model an economy as a population of individual units
+following explicit behavioral rules rather than aggregate equations, and
+carried forward today in tax and benefit microsimulation models such as
+EUROMOD and in agent-based market and transport simulations across
+applied economics. These models share this project's central
+commitment: agents obey genuine, documented behavioral rules, so a
+policy change can be replayed through an unchanged population and the
+difference is a true causal effect. Where they typically diverge is in
+what they are built to produce --- an aggregated statistic destined for
+a policy briefing rather than a transaction-level business record --- and
+because their audience is professional economists rather than students
+learning to reconcile data, they rarely simulate imperfect paperwork,
+since a policy model has no reason to misfile an invoice.
 
 \subsection{What this construction combines}
 
-No single tradition surveyed above combines all four of the properties this
-project requires simultaneously. It requires, first, a fully documented
-structural generating process rather than a black box, so that every
-pattern in the data has a named cause, in the spirit of structural
-microsimulation rather than distributional synthesis. It requires, second,
-transaction level business artifacts, till receipts and supplier invoices
-rather than aggregated statistics, carrying deliberately realistic and
-separately documented paperwork imperfections, in the spirit of a genuine
-business record rather than a clean simulation output or a case writer's
-tidy exhibit. It requires, third, exact counterfactual replay at the level
-of individual decisions, made possible only by the keyed randomness
-discipline of Section~\ref{sec:principles}, which neither a hand authored
-case nor a distributional synthesizer can offer at all. It requires,
-fourth, a built in scorecard for the analysis itself: the three profit
-figures of Section~\ref{sec:phase3} turn the abstract idea of analytical
-value into a specific number, the gap between what the owner believed, what
-he actually earned, and what a perfectly informed operator could have
-earned, which is not a feature any of the four traditions above were ever
-designed to provide, because none of them stage a protagonist who is
-wrong in a way that can be measured.
-
-\subsection{The potential of the resulting data}
-
-A dataset built this way supports a genuine progression of analytical
-questions rather than a single fixed exercise, because the same underlying
-mechanisms answer descriptive, diagnostic, predictive, prescriptive, and
-counterfactual questions alike, each gradeable against the hidden truth the
-generator itself recorded. At the descriptive layer, a class can ask where
-the money comes from and goes, when people shop, and what a basket looks
-like, all directly readable from the ledger and the receipts. At the
-diagnostic layer, the same data supports genuine causal questions with
-known answers: whether weather actually moves revenue once the calendar is
-controlled for, exactly the mechanism of Section~\ref{sec:phase2}; how much
-of a wholesale cost shock reaches the shelf and how quickly, measurable
-against the menu cost rule of the same section; and whether a price increase
-loses customers outright or merely redirects them to a close substitute,
-answerable against the discrete choice structure of
-Section~\ref{sec:phase1}. At the predictive layer, a forecasting exercise
-can be benchmarked not only against a held out quarter but against the
-owner's own documented forecasting rule, exposing exactly where and why a
-naive trailing average underperforms, per Section~\ref{sec:phase3}. At the
-prescriptive layer, a class can redesign the ordering policy or the markdown
-trigger and price the redesign in real euros against the oracle figure of
-Section~\ref{sec:phase3}, rather than merely arguing that a better policy
-would probably help. At the counterfactual layer, the scenario twins of
-Section~\ref{sec:phase4} and the three year arc of Section~\ref{sec:phase5}
-let a class ask what a tax cut actually did to prices, what a discounting
-competitor actually cost, and whether an expansion decision paid for itself,
-each answerable as an exact difference between two runs of the same world
-rather than an inference from a single history. No other synthetic data
-source surveyed above supports this particular ladder from description
-through causal counterfactual with a documented answer waiting at every
-rung.
+No single tradition above combines all four of the properties this
+project requires at once: a fully documented structural generating
+process rather than a black box; transaction-level business artifacts
+carrying deliberately realistic, separately documented paperwork
+imperfections; exact counterfactual replay at the level of individual
+decisions, made possible only by the keyed-randomness discipline of
+Section~\ref{sec:counterfactual}; and a built-in scorecard for the analysis
+itself, three profit figures (Section~\ref{sec:micro}) that turn the
+abstract idea of analytical value into a specific, computed number ---
+the gap between what an owner believed, what he actually earned, and
+what a perfectly informed operator could have earned. None of the four
+traditions above stage a protagonist who is wrong in a way that can be
+measured.
 
 \subsection{Value for teaching scientific reasoning, not only data analysis}
 
 The deeper claim behind this construction is that its principal teaching
 value is not technical fluency with a particular software tool but a
-disciplined scientific habit of mind, and that a dataset with a fully known
-generating process is uniquely suited to teaching that habit because it can
-tell a student, definitively, when they are right. An analyst working this
-data is repeatedly placed in a position where a plausible looking pattern is
-a trap rather than a finding: the flat category of Section~\ref{sec:phase2}
-whose apparent seasonality is a budget mediation effect rather than a
-genuine preference, the markdown campaign of Section~\ref{sec:phase3} whose
-naive before and after comparison is contaminated by the very selection rule
-that triggered it, and the energy crisis of Section~\ref{sec:phase2} whose
-use as a price instrument is subtly invalid because it also moves household
-budgets. Each of these traps has a documented, correct resolution, which
-means an instructor can teach the general scientific skill of interrogating
-one's own inference, not by asserting that skepticism is a virtue in the
-abstract, but by handing a student a specific claim, a specific method for
-checking it, and a specific ground truth that reveals whether the checking
-actually worked. The same property extends beyond individual traps to the
-whole discipline of hypothesis formation: because the model is built from
-named mechanisms defended by the three question discipline of
-Section~\ref{sec:principles} rather than fitted after the fact to match a
-target, a student can be asked to propose a mechanism before seeing whether
-the data supports it, and then be told, precisely, whether they were right,
-which is the same discipline a working analyst must apply to a real
-business where no such answer key will ever be handed over. This is,
-ultimately, the justification for building the world first and letting the
-paperwork fall out of its own operation, as this paper's introduction
-proposed: only a dataset built that way can teach an analyst not merely how
-to compute an estimate, but how to know whether an estimate deserves to be
-believed.
+disciplined scientific habit of mind, and that a dataset with a fully
+known generating process is uniquely suited to teaching that habit
+because it can tell a learner, definitively, when they are right. An
+analyst working this data is repeatedly placed in a position where a
+plausible-looking pattern is a trap rather than a finding: a flat
+category (Section~\ref{sec:macro}) whose apparent seasonality is a
+budget-mediation effect rather than a genuine preference, a markdown
+campaign (Section~\ref{sec:micro}) whose naive before-and-after
+comparison is contaminated by the very selection rule that triggered it,
+an energy crisis (Section~\ref{sec:macro}) whose use as a price
+instrument is subtly invalid because it also moves household budgets.
+Each trap has a documented, correct resolution, which means an
+instructor can teach the general scientific skill of interrogating one's
+own inference by handing a learner a specific claim, a specific method
+for checking it, and a specific ground truth that reveals whether the
+checking actually worked.
 
-\section{Design Principles and Notation}
-\label{sec:principles}
+\section{The Micro Layer: Economic Decisions from the Ground Up}
+\label{sec:micro}
 
-\subsection{The three question discipline}
+Everything in this section shares one property: nothing in it is written
+down anywhere in advance. A customer's purchase, an owner's price, an
+owner's decision to hire, a household's decision to move away --- these
+are computed fresh, each time the world is run, from the situation the
+decision-maker actually faces at that moment. This section walks through
+five such decisions, in the order a real small business actually
+encounters them: what a customer wants at the shelf; what an owner
+believes and decides before a single customer exists; how that same
+owner adjusts, day to day, once real customers do exist; when the owner
+dares to risk capital on growing the business; and, last, a kind of
+motion that is not really a decision at all but a population's slow
+drift, which this section includes anyway because it is exactly as
+emergent, and exactly as stochastic, as everything else here.
 
-Every stochastic element of the model, from a customer's weekly grocery
-budget to the day a storm arrives, was chosen by answering the same three
-questions, always in the same order.
+\subsection{The customer's purchase decision}
+\label{sec:micro-customer}
 
-\begin{enumerate}
-\item \textbf{Support.} What values can the variable actually take? A
-      probability must live on $(0,1)$, a count must be a nonnegative
-      integer, a share of a composite basket must live on a simplex, and a
-      cost must be strictly positive. The distribution chosen must respect
-      this support without needing an artificial truncation.
-\item \textbf{Generative story.} What process actually produces the
-      variable? A quantity that arises from many small effects adding
-      together behaves differently from one that arises from many small
-      factors multiplying together, and both differ again from a quantity
-      that arises from a fixed number of independent yes or no trials at a
-      common rate.
-\item \textbf{Maximum entropy.} Once the support and the generative story
-      have narrowed the field, which distribution within that field adds the
-      least unwarranted structure beyond the facts one is actually willing to
-      claim? This is the maximum entropy principle in its practical form: if
-      the only facts asserted about a variable are its mean and its variance,
-      the distribution that respects exactly those two facts and assumes
-      nothing else is the least presumptuous choice available.
-\end{enumerate}
+Consider Henrik Fjeld's customer again. She does not walk in with a
+spreadsheet. She walks in wanting milk, glances at two cartons, and buys
+one, and if you asked her why, she would give you a sentence, not an
+equation: \emph{the cheap one is fine today}, or \emph{I want the good
+one, since I have a guest}. Every real purchase decision this store will
+ever record is, underneath, one of these small sentences, repeated by
+three hundred different people with three hundred different budgets and
+tastes, at every shelf in the store, every day for three years.
 
-This discipline explains a recurring pattern in the model. Wherever a
-quantity is the product of many small positive multiplicative factors, such
-as a household's grocery budget (itself a product of household size, income
-level, and consumption habits), the natural distribution is the LogNormal,
-because summing the logarithms of many small factors is exactly the setting
-in which the central limit theorem produces a Normal distribution, and
-exponentiating a Normal produces a LogNormal that is guaranteed positive.
-Wherever a quantity is a probability, meaning it must live strictly between
-zero and one, the Beta distribution is the natural family, because it is the
-maximum entropy distribution on that support once a shape is fixed, and its
-two parameters give direct control over where the mass concentrates. Wherever
-a quantity counts independent rare events at a common rate, the Poisson
-distribution follows, because it is the maximum entropy distribution for
-counts given only a rate. These are not arbitrary choices repeated by habit;
-each one answers the same three questions afresh in its own context, and each
-answer is defended at the point where the variable first appears.
+Structurally, this is what economists call a discrete choice: a customer
+facing a small, enumerable set of alternatives --- the products on one
+shelf, plus the option of buying nothing here at all --- picks exactly
+one. It is not a continuous decision like choosing how much to spend;
+it is a pick. What makes the pick interesting is that it depends on
+three separate things at once: how much the customer currently needs the
+category at all, how well each product on the shelf actually matches her
+taste, and how much each one costs relative to what she is willing to
+pay. A rich model of this decision has to hold all three considerations
+in the same comparison, rather than resolving need, taste, and price one
+after another as though they did not interact.
 
-\subsection{Notation}
-
-The model follows a McElreath style notation throughout, meaning every
-distribution is written with its natural parameters, and any scale parameter
-is a standard deviation rather than a variance, so that a Normal distribution
-is always written $\text{Normal}(\mu, \sigma)$ and never
-$\text{Normal}(\mu, \sigma^2)$. Three kinds of assignment recur.
-
-\begin{enumerate}
-\item The symbol $\sim$ denotes a stochastic draw, as in $X \sim
-      \text{Beta}(2,2)$, meaning $X$ is a random realization from that
-      distribution.
-\item The symbol $=$ denotes a deterministic definition, as in $D_{cl} =
-      \text{Households}_l \cdot \mu_c$, meaning the left hand side is
-      computed exactly from the right hand side with no additional
-      randomness.
-\item The symbol $\overset{\leftarrow}{=}$ is used specifically where the
-      direction of causation is itself the point being made, most often in
-      the cost equations, to mark that the right hand side causes the left
-      hand side rather than merely equaling it algebraically.
-\end{enumerate}
-
-A hat, written $\hat{\cdot}$, always marks a belief held by the owner, as
-distinct from the corresponding true value that the owner cannot observe.
-Indices recur across the whole model: locations are indexed by $l$,
-categories of merchandise by $c$ (there are twelve, matching a real product
-catalog), individual products or stock keeping units by $s$, customers by
-$i$, and time by $t$, measured in days across a horizon that eventually spans
-three years, with weeks indexed by $w$, months by $m$, and individual shock
-events by $k$. A small number of letters, such as $\alpha$ and $m$, are
-reused across different phases for unrelated quantities, exactly as they are
-reused in the underlying source material; every such reuse is flagged in
-prose at the point where it recurs, and the table below lists each meaning
-separately under the section where it first appears.
-
-Every symbol used in a displayed formula anywhere in this paper is defined
-in prose at the point it first appears. Because the paper is long and a
-symbol's definition can be several pages before a later formula that reuses
-it, Table~\ref{tab:notation} collects every symbol in one place, organized
-by the section in which it is first introduced, purely as a reference for
-checking a formula against its plain language meaning without having to
-search back through the text.
-
-{\footnotesize
-\begin{longtable}{@{}p{2.3cm}p{9.6cm}p{2.3cm}@{}}
-\caption{Notation used throughout the paper, grouped by the section in which each symbol first appears.}
-\label{tab:notation} \\
-\toprule
-\textbf{Symbol} & \textbf{Meaning} & \textbf{First used} \\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Symbol} & \textbf{Meaning} & \textbf{First used} \\
-\midrule
-\endhead
-\bottomrule
-\endfoot
-\multicolumn{3}{@{}l}{\textit{Indices and meta-notation}} \\
-$l$, $c$, $s$, $i$, $t$ & location, category, product/SKU, customer, and day indices & \S\ref{sec:principles} \\
-$w$, $m$, $k$ & week, month, and shock-event indices & \S\ref{sec:phase2}--\ref{sec:phase5} \\
-$\hat{\cdot}$ & a belief held by the owner, as opposed to the true value & \S\ref{sec:principles} \\
-$\sim$, $=$, $\overset{\leftarrow}{=}$ & stochastic draw; deterministic definition; causal definition & \S\ref{sec:principles} \\
-\addlinespace
-\multicolumn{3}{@{}l}{\textit{Phase One --- locations and the opening decision}} \\
-$Q_l$ & latent quality score of location $l$, on $[0,1]$ & \S\ref{sec:phase1} \\
-Households$_l$, Rent$_l$, SetupCost$_l$ & a location's catchment size, monthly rent, and fit-out cost & \S\ref{sec:phase1} \\
-$N_l$ & pool of households at location $l$ who adopt the store & \S\ref{sec:phase1} \\
-$B_i$ & customer $i$'s baseline weekly grocery budget & \S\ref{sec:phase1} \\
-$d_i$, $\pi_i$, $p_i$ & primary shopping day; probability of shopping on it; probability of an extra midweek visit & \S\ref{sec:phase1} \\
-$w_i$, $\alpha$ & basket composition across categories; its Dirichlet concentration vector & \S\ref{sec:phase1} \\
-$\beta_i$ & customer $i$'s price sensitivity & \S\ref{sec:phase1} \\
-$b_i$, $z_i$, $\nu_i$ & brand affinity; standardized log budget; independent brand-affinity noise & \S\ref{sec:phase1} \\
-$T_i$, PaysByCard$_{iv}$ & card-preferring type; whether visit $v$ is paid by card & \S\ref{sec:phase1} \\
-$U_{is}$ & customer $i$'s utility for product $s$ & \S\ref{sec:phase1} \\
-$\theta_{ic}$ & customer $i$'s current need for category $c$ & \S\ref{sec:phase1} \\
-$a_s$, $\gamma$ & product $s$'s unmodeled appeal intercept; weight on brand fit & \S\ref{sec:phase1} \\
-BrandLevel$_s$ & product $s$'s position on the brand spectrum & \S\ref{sec:phase1} \\
-$D_{cl}$, $\mu_c$ & true demand potential for category $c$ at location $l$; mean monthly per-household consumption of category $c$ & \S\ref{sec:phase1} \\
-$\hat{D}_{cl}$, $\delta_c$ & owner's believed demand; his log-scale belief error & \S\ref{sec:phase1} \\
-$m_c$ & category $c$'s fixed retail markup & \S\ref{sec:phase1} \\
-$\eta$, $\rho$ & safety-stock fraction ($0.30$); cap on one product's share of category demand ($0.05$) & \S\ref{sec:phase1} \\
-TotalCost$_0$, FixedCost$_0$, VariableCost$_0$ & opening cost components, decomposed causally & \S\ref{sec:phase1} \\
-$y_l$, $x_s$ & binary location choice; binary listing indicator & \S\ref{sec:phase1} \\
-$q_s$, $u_s$, $E^h_0$ & units purchased at opening; believed units sold; extra staff hired & \S\ref{sec:phase1} \\
-\addlinespace
-\multicolumn{3}{@{}l}{\textit{Phase Two --- calendar, weather, and cost shocks}} \\
-$T_t$, $\mu_T(t)$, $\varepsilon_t$, $\phi$ & day $t$'s temperature; its seasonal cycle; its persistent anomaly; the anomaly's AR(1) persistence ($0.7$) & \S\ref{sec:phase2} \\
-$W_t$, $p_{01}$, $p_{11}$ & whether it rains on day $t$; dry-to-wet and wet-to-wet transition probabilities & \S\ref{sec:phase2} \\
-$R_t$ & rainfall amount on a wet day & \S\ref{sec:phase2} \\
-$M_{ct}$ & demand modifier for category $c$ on day $t$ & \S\ref{sec:phase2} \\
-$a_c$, $\kappa_c$, $h_c$ & category $c$'s seasonal amplitude; weather-anomaly loading; pre-holiday loading & \S\ref{sec:phase2} \\
-$z_t$, $H_t$ & standardized temperature anomaly; pre-holiday flag & \S\ref{sec:phase2} \\
-$\psi_{pt}$, $a_p$, $\kappa_p$ & product-type $p$'s own seasonal tilt, amplitude, and anomaly loading & \S\ref{sec:phase2} \\
-$\Lambda_t$, $\phi^\Lambda$ & daily foot-traffic modifier; its AR(1) persistence ($0.85$) & \S\ref{sec:phase2} \\
-$B_{iw}$, $\xi_{iw}$ & customer $i$'s week-$w$ budget; its small weekly wobble & \S\ref{sec:phase2} \\
-$s_{iw}$, $g_{iw}$ & tight-spell multiplier; splurge multiplier, both on $B_{iw}$ & \S\ref{sec:phase2} \\
-$\bar{g}_t$ (or $\bar{g}_w$) & the scripted energy crisis's own trajectory over time & \S\ref{sec:phase2} \\
-$\text{infl}(t)$ & the continuous annual inflation drift & \S\ref{sec:phase2} \\
-$K$, $\tau_k$ & number of shock events in the year; arrival day of event $k$ & \S\ref{sec:phase2} \\
-$\zeta_k$, $\rho_k$ & peak magnitude of shock $k$; its exponential decay time constant & \S\ref{sec:phase2} \\
-$g_k(t)$, $A_k$ & shock $k$'s effect on day $t$; the set of categories it touches & \S\ref{sec:phase2} \\
-CostMult$_{ct}$ & wholesale cost multiplier for category $c$ on day $t$ & \S\ref{sec:phase2} \\
-$\overline{\text{Cost}}_{s,t}$, $\alpha$ & owner's smoothed invoice-cost trend for product $s$; its EWMA weight ($0.35$, unrelated to the basket $\alpha$ above) & \S\ref{sec:phase2} \\
-\addlinespace
-\multicolumn{3}{@{}l}{\textit{Phase Three --- the daily market and the recording layer}} \\
-$P_{ict}$, $r_{ict}$, $r_{ic}$ & customer $i$'s pantry stock of category $c$; its daily drain rate; the drain rate's undistorted base level & \S\ref{sec:phase3} \\
-$\theta_{ict}$, $P^{\text{tgt}}_{ic}$, $\tau$ & need intensity from pantry shortfall; target pantry level; target days of cover ($10$) & \S\ref{sec:phase3} \\
-$\alpha$ (need shape) & shape constant of the pantry-shortfall need function, unrelated to the two earlier uses of $\alpha$ & \S\ref{sec:phase3} \\
-$\kappa$ (purchase) & random fraction of the shortfall actually purchased, Uniform$(0.7,1.0)$ & \S\ref{sec:phase3} \\
-$\hat{D}^{\text{op}}_{cw}$ & owner's trailing four-week sales forecast for category $c$ & \S\ref{sec:phase3} \\
-Target$_{sw}$, $R$, $L$ & order-up-to target for product $s$; review period ($7$ d); lead time ($2$ d) & \S\ref{sec:phase3} \\
-$\tilde{\sigma}_{sw}$ & product $s$'s smoothed share of its category's recent sales & \S\ref{sec:phase3} \\
-Spoiled$_{st}$, $\lambda_c$, $\lambda^d_c$ & units of product $s$ spoiled overnight; category's weekly base spoilage rate; its converted nightly rate & \S\ref{sec:phase3} \\
-$f_{ct}$, $\kappa^T_c$, $\kappa^E_c$, $\bar{T}$ & spoilage factor; heat-term loading; cold-chain loading; annual mean temperature & \S\ref{sec:phase3} \\
-$D_{st}$, $B_{st}$, $S_{st}$, $A_{sc}$ & book-minus-true discrepancy; book stock; true stock; monthly count correction & \S\ref{sec:phase3} \\
-$\pi_{\text{believed}}$, $\pi_{\text{realized}}$, $\pi_{\text{oracle}}$ & owner's believed profit; the ledger's realized profit; a perfectly informed operator's oracle profit & \S\ref{sec:phase3} \\
-$\Delta_{\text{optimism}}$, $\Delta_{\text{analytics}}$ & cost of the owner's overoptimism; value of better information and decisions & \S\ref{sec:phase3} \\
-\addlinespace
-\multicolumn{3}{@{}l}{\textit{Phase Four --- the policy laboratory and the tax layer}} \\
-$r_c(t)$ & category $c$'s value added tax rate path & \S\ref{sec:phase4} \\
-Tag$_{st}$, $\overline{\text{NetCost}}_{s,t}$ & product $s$'s shelf price tag; its smoothed tax-exclusive invoice cost & \S\ref{sec:phase4} \\
-VAT$_t$ & net value added tax remitted in month $t$ & \S\ref{sec:phase4} \\
-$r^{\text{pay}}$, $r^{\pi}$ & payroll tax rate ($0.25$); profit tax rate ($0.20$) & \S\ref{sec:phase4} \\
-\addlinespace
-\multicolumn{3}{@{}l}{\textit{Phase Five --- the three year panel and capital}} \\
-type$_i$, $h$ & customer $i$'s persistence type (rooted or transient); transient customer's monthly departure hazard ($1/18$) & \S\ref{sec:phase5} \\
-$\rho_{RE}$, $\pi_m$ & retained-earnings share ($0.5$); month $m$'s after-tax profit & \S\ref{sec:phase5} \\
-RE$_m$, capex$_m$ & cumulative retained earnings through month $m$; capital spent that month & \S\ref{sec:phase5} \\
-$K_{\text{exp}}$, $C_{\text{exp}}$ & retained-earnings threshold that triggers expansion; one-time fit-out cost & \S\ref{sec:phase5} \\
-$m_i$, $\tilde{s}_i$ & discounter's visit-probability penalty on customer $i$ (unrelated to the markup $m_c$); customer's price-sensitivity percentile & \S\ref{sec:phase5} \\
-$\chi$, $k_i$ & competitor calibration constant; rooted/transient penalty weight & \S\ref{sec:phase5} \\
-\addlinespace
-\multicolumn{3}{@{}l}{\textit{The accounting layer}} \\
-book$(t)$, deliveries$(t)$ & the book-inventory identity's stock and delivery terms & \S\ref{sec:accounting} \\
-sales$(t)$, write\_offs$(t)$ & the book-inventory identity's sales and write-off terms & \S\ref{sec:accounting} \\
-ProfitBeforeTax, ProfitTax, ProfitAfterTax & the annual profit-and-tax identity's three terms & \S\ref{sec:accounting} \\
-\end{longtable}
-}
-
-\subsection{Reproducibility and the discipline of keyed randomness}
-
-The entire model is driven by a single seeded pseudorandom generator, so
-that the whole three year history can be reproduced exactly from one integer.
-This alone would be unremarkable were it not for a second requirement that
-follows from the model's purpose as a policy laboratory (Section
-\ref{sec:phase4}): the ability to replay the same world under an edited
-script, such as one in which a particular shock never occurred, and to
-attribute every difference between the two runs entirely to the edit.
-
-This requirement imposes a strict discipline on how randomness is consumed.
-If every random draw were taken from one sequential stream, then deleting a
-single event partway through the year would shift every subsequent draw,
-and the comparison between the two runs would be contaminated by reshuffled
-randomness that has nothing to do with the edit itself. The model instead
-keys every draw by the stable identity of the entity it concerns, such as a
-specific customer on a specific day, or a specific product on a specific
-night, using independently spawned child streams. A customer's Tuesday
-decision is drawn from a stream indexed by that customer and that day, so
-that in any counterfactual replay which does not touch that customer, the
-identical draw is reproduced. This is the common random numbers technique
-familiar from the simulation literature, and it is adopted from the first
-line of the implementation rather than retrofitted later, because retrofitting
-it after the fact would require rewriting every random draw in the model.
-
-\section{Phase One: The World at Rest}
-\label{sec:phase1}
-
-Phase One constructs the world as it exists at the instant before the store
-opens. It proceeds from both sides of the market at once. The demand side
-begins with a street, populates it with households, and turns households into
-customers with individually varying tastes, budgets, and shopping schedules.
-The supply side begins with an entrepreneur holding a fixed sum of capital and
-forming beliefs about a demand he cannot directly observe, and ends with his
-first and largest decision: where to open, what to stock, how much of it to
-buy, and how many people to hire, all made at once because each choice
-constrains the others through the shared limits of capital and shelf space.
-
-\subsection{The street and its locations}
-
-Before there are customers, there is geography. The neighborhood offers a
-small number of candidate premises, and they are not equal. Every observable
-feature of a location, its rent, the number of households in its catchment,
-its fit out cost, and its physical capacity, is modeled as flowing causally
-from a single latent quality score $Q_l \in [0,1]$:
-
-\[
-\begin{aligned}
-Q_l &\sim \text{Beta}(2,2) \\
-\text{Households}_l &\sim \text{Normal}(250 + 400\,Q_l,\ 30) \\
-\text{Rent}_l &\sim \text{Normal}(500 + 1800\,Q_l,\ 100) \\
-\text{SetupCost}_l &\sim \text{Normal}(6000\,(1-Q_l),\ 400)
-\end{aligned}
-\]
-
-Quality is modeled with a Beta distribution because a bounded score on
-$[0,1]$ is precisely the support the Beta family occupies, and the symmetric
-$\text{Beta}(2,2)$ shape encodes a defensible claim about real streets: most
-premises are middling, truly excellent or truly dreadful corners are rare,
-and no location is either mathematically perfect or entirely hopeless, since
-the density of a $\text{Beta}(2,2)$ vanishes at both endpoints. A uniform
-distribution would instead claim that a flawless location is exactly as
-common as an average one, which is not a claim anyone would actually want to
-make.
-
-The Normal residuals attached to rent, household count, and setup cost each
-collect the many small unmodeled influences on that quantity, such as
-building size or a landlord's temperament, and the Normal distribution is the
-maximum entropy choice once only a mean and a finite spread are being
-claimed. The economic content of the equations is worth reading separately
-from their distributional form. Household count is the causal bridge from
-geography to demand, and it is the reason good locations command high rent:
-rent and foot traffic share a common cause in location quality, and neither
-directly causes the other. Setup cost falls as quality rises because
-run-down premises with cheap rent need new wiring and refrigeration, which
-plants a negative correlation between two cost components that a naive
-correlation analysis would otherwise misread as a direct relationship, when
-in fact both are consequences of the same underlying quality.
-
-\subsection{Customers: budgets, schedules, and tastes}
-
-Not every household in a location's catchment becomes a customer. The pool of
-potential regulars is drawn as
-$N_l \sim \text{Binomial}(\text{Households}_l,\ 0.6)$, which is not a
-convenience but the actual generative story: each household independently
-either adopts the store into its routine or does not, at a common
-probability, and counting independent yes or no trials is exactly the
-setting in which the Binomial distribution is the maximum entropy choice.
-
-Each customer who does adopt the store is given a weekly grocery budget,
-
-\[
-B_i \sim \text{LogNormal}(\log 85,\ 0.35),
-\]
-
-so that the median customer spends eighty five euros a week with a
-realistic right tail of larger households. The LogNormal is the correct
-shape for the same reason incomes
-are approximately log normal in the population at large: a household's
-budget is the product of several factors, namely household size, income
-level, and consumption habits, and multiplying many small positive factors
-produces a LogNormal distribution by the same central limit argument that
-produces a Normal distribution when factors are added rather than
-multiplied. The parameterization is also directly interpretable, since
-$e^{\mu}$ is exactly the median and the scale $\sigma = 0.35$ places roughly
-ninety five percent of customers between forty two and one hundred seventy
-euros a week.
-
-Shopping rhythm is modeled with a primary day $d_i$ drawn from a categorical
-distribution weighted toward the weekend, together with two further
-probabilities,
-
-\[
-\pi_i \sim \text{Beta}(9, 1.5), \qquad p_i \sim \text{Beta}(1.5, 12),
-\]
-
-where $\pi_i$ is the probability of actually shopping on the primary day
-(schedule adherence) and $p_i$ is the probability of an extra, midweek top
-up visit on any other day. The first piles its mass near one, so that
-habits mostly hold but a minority of customers remain erratic; the second
-piles its mass near zero, so that most days bring no extra visit but the
-possibility is never exactly zero. In both cases the Beta distribution is
-required because the object being modeled is a probability, and in both
-cases the chosen parameters keep the density away from the endpoints, so
-that no customer in the model is a perfectly deterministic machine.
-
-Tastes are represented in three parts. A weekly basket composition across
-the twelve merchandise categories, $w_i \sim \text{Dirichlet}(\alpha)$, is
-the natural generalization of the Beta to a set of shares that must sum to
-one, and its concentration vector $\alpha$ simultaneously fixes the
-population's average basket, through the relative size of its entries, and
-controls how much individual customers deviate from that average, through
-its overall magnitude. Price sensitivity is drawn from
-$\beta_i \sim \text{LogNormal}(0, 0.4)$, which must be strictly positive
-because every demand curve in the model slopes downward, and whose median
-of one anchors the scale of the entire utility function introduced in the
-next subsection. Brand affinity, meaning the pull toward premium or budget
-merchandise, is deliberately constructed to correlate with budget:
-
-\[
-b_i = \text{logistic}(0.6\, z_i + 0.8\, \nu_i), \qquad \nu_i \sim
-\text{Normal}(0, 1),
-\]
-
-where $z_i$ is the customer's standardized log budget and $\nu_i$ is fresh,
-independent noise. This is a standard latent Gaussian device in which an
-unbounded latent trait is built with a controlled correlation and then
-squashed into the unit interval with a logistic transform, and the two
-loadings are chosen so that $0.6^2 + 0.8^2 = 1$, which keeps the latent
-score on a standardized scale and makes the loading on budget, $0.6$,
-exactly equal to the correlation between brand affinity and budget by
-construction. The correlation itself is required because in reality
-wealthier households do lean toward premium brands, and a dataset that
-failed to reproduce it would fail a basic realism check before any analysis
-began.
-
-Finally, payment behavior is built from a persistent type rather than a
-single flat probability, because a flat rate would make payment method pure
-noise, uninformative about who is standing at the till:
-
-\[
-T_i \sim \text{Bernoulli}(0.6), \qquad
-\text{PaysByCard}_{iv} \sim \text{Bernoulli}\big(0.95\,T_i +
-0.10\,(1-T_i)\big) ,
-\]
-
-so that a card preferring customer, $T_i = 1$, pays by card on ninety five
-percent of visits and a cash preferring customer on only ten percent. Card
-payments carry the customer's identity forward into the receipts; cash
-payments do not, which is the single mechanism that gives the eventual
-dataset its realistic, partial customer level visibility.
-
-\subsection{The discrete choice model}
-
-The single most load bearing structure in the entire model is the rule by
-which a customer, standing before a shelf of competing products within one
-merchandise category, decides what to buy. Each product $s$ offers the
-customer a utility
+Put the sentence into the language of mathematics, and it becomes a
+single expression. Each product $s$ offers a customer $i$ a utility
 
 \[
 U_{is} = \theta_{ic} + a_s + \gamma\left(1 - \left|b_i -
 \text{BrandLevel}_s\right|\right) - \beta_i\,\text{Price}_s ,
 \]
 
-where $\theta_{ic}$ is the customer's current need for the category, $\gamma$
-weights the fit between the customer's brand affinity and the product's
-brand level, and $\beta_i$ is the customer's own price sensitivity. The term
-$a_s \sim \text{Normal}(0, 0.8)$ is an unmodeled per-product appeal
-intercept, standing in for the thousand unmodeled reasons one product
-outsells its shelf neighbor, such as packaging or familiarity; a Normal is
-the maximum entropy choice given only a scale, and this particular scale is
-wide enough that a few products in every category sell so little all year
-that they amount to realistic dead stock, a fixture of every real
-assortment. Alongside every stocked product sits an
+where $\theta_{ic}$ is the customer's current need for the category. The
+term $b_i$ is her brand affinity, $\text{BrandLevel}_s$ is the product's
+own position on that same spectrum, and the middle term rewards a good
+match between the two, with $\gamma$ setting how much that match matters.
+$\beta_i$ is her own price sensitivity, and $a_s \sim \text{Normal}(0,
+0.8)$ is an unmodeled per-product appeal intercept, standing in for the thousand
+unmodeled reasons one product outsells its shelf neighbor, such as
+packaging or familiarity. Alongside every stocked product sits an
 outside option, representing the choice to buy nothing here or to buy
-elsewhere, and the customer's actual choice is drawn as
-$\text{choice} \sim \text{Categorical}(\text{softmax}(U_{is_1}, \ldots,
-U_{is_K}, U_0))$.
+elsewhere, and the actual choice is drawn as
+
+\[
+\text{choice} \sim \text{Categorical}\big(\text{softmax}(U_{is_1}, \ldots,
+U_{is_K}, U_0)\big) .
+\]
 
 The softmax form is not a convenient approximation; it is the exact
-consequence of a well known result in discrete choice theory. If each
-product's utility is disturbed by an independent, identically distributed
-Gumbel shock and the customer simply picks the option with the highest
-noisy utility, the resulting choice probabilities are exactly the softmax
-of the mean utilities. This is McFadden's random utility result
-(\hyperlink{ref:mcfadden1974}{McFadden, 1974}), and it
-means the smooth formula above and the human story of a shopper with
-genuine but noisy tastes are the same model described two ways. It also
-means the model the customer is implicitly following is exactly the model a
-real discrete choice analyst would fit to purchase histories, so that
-grading a later analytical exercise against the true parameters is a fair
-comparison of like against like, rather than a comparison against a
-mechanism the analyst was never given a chance to recover.
+consequence of a well-known result in discrete choice theory. If each
+product's utility is disturbed by an independent, identically
+distributed Gumbel shock and the customer simply picks the option with
+the highest noisy utility, the resulting choice probabilities are
+exactly the softmax of the mean utilities --- McFadden's random utility
+result (\hyperlink{ref:mcfadden1974}{McFadden, 1974}). The smooth
+formula above and the human story of a shopper with genuine but noisy
+tastes are the same model described two ways, and it happens to be
+exactly the model a real discrete-choice analyst would fit to purchase
+histories, so grading a later analytical exercise against the true
+parameters is a fair comparison of like against like.
+
+Table~\ref{tab:milk} makes the same point in a different medium. It
+scores Henrik's customer's utility for both cartons on two different
+occasions --- an ordinary Tuesday, and the evening she is shopping for a
+dinner guest --- decomposed into exactly the terms the equation named.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{lcc}
+\toprule
+& Ordinary Tuesday & Dinner guest \\
+\midrule
+Brand match, $\gamma(1-|b_i - \text{BrandLevel}_{\text{brand}}|)$ & $0.60$ & $0.60$ \\
+Brand match, $\gamma(1-|b_i - \text{BrandLevel}_{\text{store}}|)$ & $0.50$ & $0.50$ \\
+Price term, $\beta_i \cdot$ price difference & $-0.40$ & $-0.40$ \\
+$a_s$ (that day's unmodeled pull) & $-0.05$ & $+0.35$ \\
+\midrule
+$U_{\text{brand}} - U_{\text{store}}$ & $-0.35$ & $+0.45$ \\
+Chosen carton & store brand & national brand \\
+\bottomrule
+\end{tabular}
+\caption{One customer, one choice, two occasions. Quality and price
+enter identically both times; only the unmodeled pull term changes ---
+and it alone flips which carton wins.}
+\label{tab:milk}
+\end{table}
+
+Nothing in the table is new information; it is the same equation, the
+same customer, and the same two cartons of milk, rearranged so that the
+one thing that actually changed --- not her taste, not the prices, only
+the part of that day even she could not fully explain --- is the one
+thing the eye lands on first.
 
 This single structure produces, without any additional machinery, four
-properties that a realistic market must have. Demand slopes downward,
-because raising a product's price lowers its utility and therefore its
-choice probability, at a rate set by each customer's own price sensitivity.
+properties a realistic market must have. Demand slopes downward, because
+raising a product's price lowers its utility and therefore its choice
+probability, at a rate set by each customer's own price sensitivity.
 Substitution follows a sensible pattern, because a price increase on one
-product pushes probability mass onto its nearest neighbors in brand level,
-not onto arbitrary alternatives. Budget discipline emerges naturally, because
-a customer works through a shopping list item by item until the budget
-binds. Hidden demand is recorded automatically, because when a customer's
-first choice is out of stock, the original choice is logged as a latent
-truth before the customer re-evaluates the softmax over what remains, giving
-an honest ledger of demand that never appears in the sales data.
+product pushes probability mass onto its nearest neighbors in brand
+level, not onto arbitrary alternatives. Budget discipline emerges
+naturally, because a customer works through a shopping list item by item
+until the budget binds. And hidden demand is recorded automatically:
+when a customer's first choice is out of stock, the original choice is
+logged as a latent truth before she re-evaluates the softmax over what
+remains, giving an honest ledger of demand that never appears in the
+sales data at all.
 
-\subsection{Owner beliefs and the cost of opening}
+That last property deserves its own sentence, because it is what turns
+this decision from a single equation into a genuine daily market. A
+visiting customer's need for a category is driven by a pantry: a latent
+stock that drains at a steady rate and refills only when she actually
+buys more, $P_{ic,t+1} \overset{\leftarrow}{=} \max(0,\ P_{ict} -
+r_{ict}) + \text{units purchased}$, with the drain rate itself scaled by
+the season's demand modifier rather than added to her desire directly,
+so a hot week does not make a household want ice cream in the abstract,
+it makes the household eat the ice cream in the freezer faster. Her need
+for the category, $\theta_{ict} = \alpha\,\max(0,\ P^{\text{tgt}}_{ic} -
+P_{ict})/P^{\text{tgt}}_{ic}$, is exactly the shortfall against a target
+of ten days' comfortable cover, and it is this shortfall, not a fresh
+random draw, that feeds $\theta_{ic}$ in the utility equation above. When
+her chosen product is unavailable, three things happen in order: the
+original intent is logged as a latent truth under the cause
+\texttt{stockout}; the same softmax is re-evaluated with that product
+removed, so probability mass flows to its nearest neighbors exactly as
+the substitution story above predicts; and if the re-evaluated choice
+still lands on the outside option, the store has lost a sale it will
+never observe in its own data. Four distinct causes of invisible demand
+accumulate this way over a year --- an arrival outside opening hours, a
+stockout, an exhausted weekly budget partway through the list, and the
+outside option simply winning on price --- and together they are the
+honest, mechanistic version of the familiar claim that sales data are
+demand data, censored in several distinct ways, each with its own
+recorded cause.
 
-The entrepreneur begins with a fixed sum of capital and three standing
-policies inherited from ordinary small business practice rather than
-optimized from scratch: fixed opening hours; a fixed markup $m_c$ applied
-uniformly within each merchandise category, so that a product's shelf price
-is set mechanically as $\text{Price}_s = \text{charm}\big((1+m_c)\,
-\text{Cost}_s\big)$, with the charm function rounding to the SKU's own
-habitual psychological ending, such as a price ending in nine cents; and a
-flat safety stock rule requiring a constant fraction $\eta = 0.30$ of a
-month's believed category demand to sit on the shelf at all times. A fourth
-belief, that no single product should capture more than a share
-$\rho = 0.05$ of its category's demand, rounds out the policies that the
-opening decision below will actually optimize under.
+\subsection{The owner's opening decision}
+\label{sec:micro-opening}
 
-Before any belief can be formed there is a fact to be believed about. The
-true demand potential of a location for a merchandise category, the
-quantity the whole opening decision ultimately turns on, is defined simply
-as
+Before Henrik Fjeld's shop can sell a single carton of milk, Henrik
+himself has to make a decision unlike any his customers will ever face:
+where to open, what to stock, how much of it to buy, and how many people
+to hire, all at once, with a fixed sum of savings and no sales history
+whatsoever to consult. A customer's decision is repeated thousands of
+times and can afford to be a little wrong on any given Tuesday; an
+owner's opening decision happens exactly once, commits capital he cannot
+easily get back, and has to be made entirely from belief rather than
+observation.
 
-\[
-D_{cl} = \text{Households}_l \cdot \mu_c ,
-\]
+This is not a discrete pick among a handful of alternatives, and it is
+not a repeated decision that averages its own mistakes away over time.
+It is a one-shot, capital-constrained allocation problem: several
+interdependent choices --- which location, which products, how much of
+each, how many staff --- have to be made together, because each one
+tightens or loosens the constraints on all the others, and all of them
+draw on the same finite pool of capital. The single feature that most
+separates this decision from the customer's is that it is optimized
+against a \emph{belief}, not against the truth, because the true demand a
+location could support is a fact about the world that nobody, least of
+all the owner standing in an empty storefront, can yet observe.
 
-where $\mu_c$ is the mean monthly per household consumption of category $c$
-that a store of this kind could realistically capture, already net of the
-households who never adopt the store at all and of the share of spending a
-neighborhood shop can expect to win against larger competitors. This
-quantity is ground truth: nobody in the model, least of all the owner,
-observes it directly.
-
-The owner cannot observe the true demand potential of a location, so his
-belief is modeled as the truth seen through a noisy and mildly optimistic
+The true demand potential of a location for a merchandise category is
+$D_{cl} = \text{Households}_l \cdot \mu_c$, where $\mu_c$ is the mean
+monthly per-household consumption a store of this kind could realistically
+capture. This is ground truth; nobody in the model observes it directly.
+Henrik's belief is the truth seen through a noisy and mildly optimistic
 lens, $\hat{D}_{cl} = D_{cl}\,e^{\delta_c}$ with $\delta_c \sim
-\text{Normal}(0.10, 0.25)$. The error is placed on the logarithmic scale
-because people misjudge quantities in ratios rather than in absolute units;
-nobody thinks their estimate is off by thirty seven boxes, they think demand
-is probably a fifth higher or lower than it looks. Exponentiating a Normal
-error produces a belief that is LogNormal around the truth, automatically
-positive as a demand estimate must be, and the positive mean of $\delta_c$
-encodes a documented behavioral regularity, namely that new business owners
-tend to be mildly overoptimistic. This single design choice is what causes
-the store to systematically overstock in its early period, and the size of
-that overstocking can be computed exactly from the belief error rather than
-being asserted as an unexplained fact about the data.
+\text{Normal}(0.10, 0.25)$. The error lives on the logarithmic scale
+because people misjudge quantities in ratios rather than in absolute
+units --- nobody thinks their estimate is off by thirty-seven boxes,
+they think demand is probably a fifth higher or lower than it looks ---
+and the positive mean encodes a documented behavioral regularity: new
+business owners tend to be mildly overoptimistic. This single choice is
+what causes the store to systematically overstock in its early months,
+and the size of that overstocking can be computed exactly from the
+belief error rather than asserted as an unexplained fact about the data.
 
-The cost of opening the store is written as an explicit structural causal
-model, meaning each cost component is caused by, rather than merely equal to,
-the decisions and location features that produce it:
-
-\[
-\begin{aligned}
-\text{TotalCost}_0 &\overset{\leftarrow}{=} \text{FixedCost}_0 + \text{VariableCost}_0 \\
-\text{FixedCost}_0 &\overset{\leftarrow}{=} \text{Rent}_0 + \text{SetupCost}_0 \\
-\text{VariableCost}_0 &\overset{\leftarrow}{=} \text{RestockCost}_0 + \text{StorageCost}_0 \\
-&\quad {} + \text{OverheadCost}_0 + \text{UtilityCost}_0 + \text{ListingCost}_0
-\end{aligned}
-\]
-
-One detail deserves particular emphasis because it is a solvency condition
-rather than a stylistic one: the owner himself draws no wage in this
-accounting, since a sole proprietor is paid out of profit, not out of
-payroll. A numerical audit of the model confirmed that charging the owner a
-market wage for his own long working days makes every affordable opening
-plan show a believed loss, which no rational entrepreneur would actually
-sign, so leaving the owner unpaid is required for the model to describe a
-decision anyone would make.
-
-\subsection{The opening decision as a mixed integer program}
-
-With beliefs, costs, and policies fixed, the owner's opening decision is
-formulated as a mixed integer linear program, choosing simultaneously which
-location to occupy, which products to list, how much of each to buy, and how
-many additional staff to hire, so as to maximize the profit he believes he
-will earn, subject to the constraints he actually knows about. Five decision
-variables carry the whole problem: $y_l \in \{0,1\}$ marks which single
-location is chosen, $x_s \in \{0,1\}$ marks which products are listed on the
-shelf at all, $q_s \geq 0$ is the quantity of product $s$ purchased at
-opening, $u_s \geq 0$ is the quantity the owner believes he will sell of it
-before the objective ever needs the true answer, and $E^h_0 \geq 0$ is the
-number of additional staff hired beyond the owner himself.
+With beliefs, costs, and a handful of standing policies fixed --- a fixed
+markup $m_c$ per category, a flat safety-stock rule holding a fraction
+$\eta = 0.30$ of a month's believed demand on the shelf at all times, and
+a rule that no single product should capture more than a share $\rho =
+0.05$ of its category's demand --- Henrik's opening decision is a mixed
+integer linear program, choosing simultaneously which location to
+occupy, which products to list, how much of each to buy, and how many
+staff to hire, so as to maximize the profit he believes he will earn:
 
 \[
-\max \;\; \sum_{c}\sum_{s \in S_c} (1+m_c)\,\text{Cost}_s \cdot u_s \;-\; \text{TotalCost}_0
+\max \;\; \sum_{c}\sum_{s \in S_c} (1+m_c)\,\text{Cost}_s \cdot u_s \;-\;
+\text{TotalCost}_0
 \]
 
 subject to
@@ -866,7 +539,7 @@ subject to
 u_s &\leq q_s && \text{(cannot sell what is not stocked)} \\
 \sum_{s \in S_c} u_s &\leq \sum_l y_l\,\hat{D}_{cl} && \text{(believed category demand)} \\
 u_s,\ q_s &\leq \rho \sum_l y_l\,\hat{D}_{cl} && \text{(no product dominates its category)} \\
-\sum_{s \in S_c} q_s &\geq \eta \sum_l y_l\,\hat{D}_{cl} && \text{(the safety stock rule)} \\
+\sum_{s \in S_c} q_s &\geq \eta \sum_l y_l\,\hat{D}_{cl} && \text{(the safety-stock rule)} \\
 \sum_s q_s &\leq \sum_l y_l\,\text{ShelfCapacity}_l && \text{(shelf capacity)} \\
 \sum_s x_s &\leq \sum_l y_l\,\text{ShelfSlots}_l && \text{(shelf slots)} \\
 E^h_0 &\geq \sum_l y_l\,\text{OperationalNeeds}_l - 1 && \text{(minimum staffing)} \\
@@ -874,34 +547,33 @@ E^h_0 &\geq \sum_l y_l\,\text{OperationalNeeds}_l - 1 && \text{(minimum staffing
 \end{aligned}
 \]
 
-Here $\rho = 0.05$ is the owner's flat belief that no
-single product should capture more than a twentieth of its category's
-demand, and $\eta = 0.30$ is the fraction of a month's believed category
-demand he insists on holding as safety stock at all times, the same two
-policy constants introduced at the start of this subsection.
+with $y_l \in \{0,1\}$ marking the chosen location, $x_s \in \{0,1\}$
+marking which products are listed, $q_s \geq 0$ the quantity purchased,
+$u_s \geq 0$ the quantity Henrik believes he will sell, and $E^h_0 \geq
+0$ the additional staff hired beyond himself. A mixed integer program is
+the right tool here, rather than a simpler heuristic, precisely because
+the decision genuinely is joint: location and listing choices are
+binary, purchase quantities are continuous, and every constraint linking
+them is linear once the location is fixed. One detail matters more than
+its size suggests: Henrik draws no wage in this accounting, since a sole
+proprietor is paid out of profit, not payroll, and a numerical audit
+confirmed that charging him a market wage for his own long hours makes
+every affordable opening plan show a believed loss, which no rational
+entrepreneur would actually sign.
 
-A mixed integer linear program is the natural formulation here, rather than a
-simpler heuristic, because the decision genuinely is a joint discrete and
-continuous optimization: the location choice and the listing decision for
-each product are binary, the purchase quantities are continuous, and every
-constraint linking them, such as capital and shelf space, is linear once the
-location is fixed. Solving the joint problem rather than comparing separate
-solutions for each candidate location keeps the model honest about the fact
-that a real entrepreneur weighs locations against each other using the very
-same capital and the very same assortment logic, not eight independent plans
-evaluated in isolation.
-
-This formulation produces several properties without any of them being
-separately engineered. Location choice becomes a genuine trade off between
-rent and believed demand, exactly as a real entrepreneur weighs traffic
-against cost. Product variety emerges from the interaction of beliefs,
-capital, and the no domination constraint, rather than being a hand set
-number: the breadth of the assortment is an equilibrium outcome of the
-optimization, not a parameter. And because the belief error introduced above
+This one optimization produces several properties without any of them
+being separately engineered. Location choice becomes a genuine trade-off
+between rent and believed demand. Product variety emerges from the
+interaction of beliefs, capital, and the no-domination constraint,
+rather than being a hand-set number. And because the belief error above
 carries a positive mean, the optimal solution systematically overstocks
-relative to the truth, so that when the analyst later finds bloated inventory
-in the cost sheets, there is a genuine mechanism behind it rather than an
-injected anomaly.
+relative to the truth, so that when an analyst later finds bloated
+inventory in the cost sheets, there is a genuine mechanism behind it
+rather than an injected anomaly. Figure~\ref{fig:phase1graph} lays out
+the whole causal chain: everything upstream of the decision node is
+generative ground truth Henrik never sees directly; the decision node
+and everything downstream of it is his boundedly rational response to a
+distorted and simplified picture of that truth.
 
 \begin{figure}[htbp]
 \centering
@@ -933,273 +605,332 @@ injected anomaly.
     \draw[arrow] (K) -| (MILP);
     \draw[arrow] (MILP) -- (OUT);
 \end{tikzpicture}
-\caption{The causal skeleton of Phase One. Everything upstream of the decision node is generative ground truth; the decision node and its consequences are the owner's boundedly rational response to it.}
+\caption{The causal skeleton of the opening decision. Everything upstream of the decision node is generative ground truth; the decision node and its consequences are the owner's boundedly rational response to it.}
 \label{fig:phase1graph}
 \end{figure}
 
-\subsection{Why the owner is wrong, and why that is the point}
+Five specific divergences between belief and truth are built into this
+one decision, and each is a documented, discoverable fact rather than an
+arbitrary flaw: optimistic demand beliefs, a flat safety-stock rule
+applied regardless of season, category-level markups that ignore
+individual price sensitivity, static beliefs that never anticipate the
+seasonal cycle of Section~\ref{sec:macro}, and a flat product-share cap
+that ignores genuinely heterogeneous tastes. Section~\ref{sec:micro-adaptive}
+shows what happens once Henrik starts learning from real sales instead
+of belief alone, and Section~\ref{sec:counterfactual} shows exactly how
+much that gap between belief and truth ends up costing him.
 
-Figure~\ref{fig:phase1graph} summarizes the causal structure of Phase One.
-Every arrow upstream of the decision node describes objective features of the
-world; the decision node and everything downstream of it describes the
-owner's response to a distorted and simplified picture of that world. Five
-specific divergences between belief and truth are built into this phase, and
-each is a documented, discoverable fact rather than an arbitrary flaw:
-optimistic demand beliefs, a flat safety stock rule applied identically
-regardless of season, category level markups that ignore individual price
-sensitivity, static beliefs that never anticipate the seasonal cycle
-introduced in the next phase, and a flat product share cap that ignores
-genuinely heterogeneous tastes. Three profit figures eventually exist side by
-side once the later phases are complete: what the owner believed he would
-earn, what he actually earns, and what a perfectly informed operator could
-have earned given the same world. The distances between these three numbers
-are the quantified value of better information and better decisions, and
-producing that comparison honestly, rather than asserting it, is arguably the
-central purpose of the entire construction.
+\subsection{The owner's day-to-day adaptive policies}
+\label{sec:micro-adaptive}
 
-\section{Phase Two: The Exogenous Script of the Year}
-\label{sec:phase2}
+Once the shop is open, Henrik stops guessing and starts watching. He
+cannot see true demand any more now than he could on opening day --- he
+only ever sees what actually sold, which is not the same thing, since a
+stockout hides the sale that would have happened. What he does instead
+is what any real shopkeeper does: he keeps an eye on what has been
+selling lately, orders roughly that much again, marks down whatever is
+piling up on the shelf, and worries about cash before he worries about
+the annual accounts.
 
-Phase One built a world frozen at a single instant. Phase Two supplies its
-motion across the year that follows: the weather, the calendar, macroeconomic
-shocks, and idiosyncratic household budget shocks, all decided in advance and
-independent of anything the simulated agents subsequently do. This
-independence is not a simplification made for convenience; it is what
-licenses treating weather as a natural experiment and cost shocks as
-instruments in later analysis, because nothing about the shop's own behavior
-could possibly have caused the weather.
+This is a genuinely different kind of decision from the opening
+allocation, even though the same person makes both. It is repeated
+weekly rather than made once, it responds to observed history rather than
+to a belief formed in a vacuum, and it is deliberately a heuristic rather
+than a re-optimization: Henrik does not re-solve a mixed integer program
+every Monday morning, he applies a simple, realistic rule of thumb, the
+same way a real shopkeeper does, and the rule's own blind spots are as
+important to the model as its logic.
+
+Once a week Henrik places a restocking order, sized off the simplest
+forecast a real shopkeeper actually runs: a trailing four-week average
+of his own recorded sales,
+
+\[
+\hat{D}^{\text{op}}_{cw} \overset{\leftarrow}{=} \frac{1}{4}\sum_{j=1}^{4}
+\text{Sales}_{c,w-j} .
+\]
+
+He orders up to a target sized for the review and
+lead time ahead of him, plus his standing safety-stock rule,
+$\text{Target}_{sw} = \left(\tfrac{R+L}{7} + \eta\,\tfrac{30}{7}\right)
+\hat{D}^{\text{op}}_{cw}\,\tilde{\sigma}_{sw}$, with $R=7$ days between
+reviews, $L=2$ days of lead time, and $\tilde{\sigma}_{sw}$ the
+product's smoothed recent share of its category. This rule carries two
+realistic flaws built directly into its structure. It is backward
+looking, so a rising seasonal trend is always underestimated by the
+average of the weeks before it rose. And it is blind to censoring,
+because the sales it averages are themselves truncated by the store's
+own past stockouts, producing a self-reinforcing censoring spiral: a
+product that stocks out repeatedly reports weak sales, earns a smaller
+share of the next order, and stocks out again.
+
+Henrik also runs two distinct kinds of promotion, and the contrast
+between them is itself an intended lesson. A markdown campaign triggers
+endogenously whenever a category's weeks of cover exceeds a threshold,
+targeting the slowest-selling third of that category. Because the
+trigger is overstock, and overstock correlates with weak underlying
+demand, any naive before-and-after read of a markdown's effect is
+contaminated by exactly the selection problem that afflicts real-world
+marketing analytics. A separate, calendar-triggered storewide discount
+on the last Sunday of every month is, by contrast, entirely exogenous ---
+announced in advance and correlated with nothing about current stock ---
+providing a clean source of price variation before anyone tries to
+untangle the confounded markdowns.
+
+Perishable stock spoils overnight,
+
+\[
+\text{Spoiled}_{st} \sim \text{Binomial}\big(\text{OnHand}_{st},\
+\min(0.35,\ \lambda^d_{c(s)}\,f_{c(s),t})\big) ,
+\]
+
+with the spoilage factor $f_{ct}$
+built from the same log-additive logic as every other multiplier in this
+paper: a heat term strongest for ambient perishables such as bread and
+produce, a cold-chain strain term loading on the macro shocks of
+Section~\ref{sec:macro} and strongest for frozen and dairy goods, and an
+idiosyncratic batch-luck term standing in for the reality that one
+delivery simply travels worse than another. And Henrik's cash position
+is tracked explicitly, with a credit line available whenever a month's
+close would otherwise take cash below zero; restocking is itself capped
+by available cash and credit headroom, so a struggling store visibly
+thins its own shelves months before any trouble would show up in an
+annual profit figure, exactly as a real distressed retailer's inventory
+often signals difficulty well before its accounts do.
+
+\subsection{The owner's expansion decision}
+\label{sec:micro-expansion}
+
+Sometime in Henrik's second year, if the business has been kind to him,
+he faces a decision every real small-business owner eventually faces:
+whether to risk some of what he has built on growing further. He does
+not commission a discounted-cash-flow analysis of the decision. He
+watches his own savings account. When it has grown past a point that
+feels safe to risk, and only then, he hires his first employee, extends
+his hours, and deepens his shelves.
+
+This is neither the one-shot optimization of the opening decision nor
+the weekly heuristic of ordinary restocking. It is a threshold decision
+under genuine uncertainty about the future, and the threshold is framed
+around what Henrik can actually afford to lose rather than around a
+forecast of what the expansion will return --- much closer to what
+entrepreneurship research calls \emph{effectuation}
+(\hyperlink{ref:sarasvathy2001}{Sarasvathy, 2001}) than to a textbook net-present-value
+calculation: a real small-business owner reasons from the resources
+already in hand and the loss he can tolerate, not from a spreadsheet of
+projected returns he has no reliable way to build.
+
+From the beginning of the second year, Henrik retains a share $\rho_{RE}
+= 0.5$ of every profitable month's after-tax result as declared retained
+earnings, drawing the rest out as his own income,
+$\text{draw}_m = (1-\rho_{RE})\,\max(0, \pi_m)$, and neither draws nor
+retains anything in a loss month. Once retained earnings and available
+cash both cross fixed thresholds, $\text{RE}_m \geq K_{\text{exp}}$ and
+$\text{cash}_m - \text{tax\_reserve}_m \geq C_{\text{exp}}$, he expands
+on the first day of the following month, paying a one-time fit-out cost
+from savings.
+
+The threshold $K_{\text{exp}}$ is calibrated so that, under the realized
+path of the model, the expansion lands in the autumn of the second year
+--- after a scripted local population increase but before a scripted
+competitive entry the following year --- producing a specific and
+analytically important narrative: the expansion looks entirely sensible
+at the moment it is made, based on everything Henrik could reasonably
+have known at the time, and only becomes questionable in hindsight once
+a later, unrelated shock arrives. A counterfactual twin of the model, in
+which the expansion threshold is disabled entirely, reveals that the
+expansion's true cost across its first fourteen months substantially
+exceeds the additional margin the extra hours and capacity actually
+generate, because the fixed cost of an additional wage is paid in full
+while the additional revenue it produces is diluted by the ordinary
+grocery margin. This is a deliberately reproduced version of one of the
+most common capital-allocation mistakes in small retail --- investing at
+what retrospectively turns out to be the peak of the opportunity ---
+generated here from the interaction of an ordinary retention rule, an
+ordinary calibrated threshold, and an otherwise unrelated later shock,
+rather than scripted as an explicit narrative choice.
+
+\subsection{Population dynamics: the customer panel as a stochastic flow}
+\label{sec:micro-panel}
+
+Not every micro-level movement in this world is a decision in the sense
+the last four sections meant. A neighborhood is not static: households
+move in, households move out, and a shop's regulars are a population
+in slow motion, not a fixed cast of characters. This is included in the
+micro layer anyway, because it is exactly as emergent and exactly as
+stochastic as everything above it, even though nobody is really
+``choosing'' to leave the way Henrik chooses a price.
+
+Structurally this is a renewal process: each customer has a type fixed
+at creation that determines whether they are subject to departure risk
+at all, departures happen at a constant hazard rate rather than on a
+fixed schedule, and each departure is eventually replaced, so the
+population's size is roughly stable even as its individual membership
+turns over completely.
+
+Each regular customer is given a persistence type drawn once,
+rooted with probability $0.80$ and transient with probability $0.20$. A
+rooted customer never leaves the neighborhood within the three-year
+window at all; a transient customer faces an ongoing monthly hazard of
+departure $h = 1/18$, a mean tenure of eighteen months. Every departure
+is matched, after a delay of $1 + \text{Geometric}(0.5)$ months, by a
+fresh household moving into the vacated home, and a slow trickle of
+genuinely new arrivals, $\text{Poisson}(4)$ per year, represents modest
+organic growth on top of straightforward replacement. Newly arrived
+customers are drawn with an even fifty percent chance of either
+persistence type, reflecting the reasonable assumption that a household
+which has just moved once is more likely to move again than the settled
+population it replaces.
+
+Nothing about this churn is announced anywhere in the visible data; a
+customer's card token simply stops appearing in the receipts one month
+and never returns, and a new token begins appearing elsewhere. An
+analyst must infer departure from silence, taking care not to confuse a
+customer who has genuinely left with one merely visiting less often for
+other reasons --- a distinction that becomes especially difficult near
+the very end of the observed window, where a recently silent customer
+cannot yet be told apart from one who will return next month. This is a
+form of the right-censoring problem familiar from survival analysis, and
+it is a genuine, unavoidable feature of any panel observed for a finite
+length of time, reproduced here rather than glossed over.
+
+\section{The Macro Layer: The Deterministic Script}
+\label{sec:macro}
+
+Everything in the previous section was computed fresh, each time the
+world is run, from a decision-maker's own situation. Everything in this
+section is the opposite: written down in advance, on a specific date,
+completely independent of anything any customer or owner in the
+simulation does. Weather does not care whether Henrik had a good month.
+A competitor does not time its entry to Henrik's cash position. This
+independence is not a simplifying convenience; it is what allows weather
+to function as a natural experiment and a cost shock to function as an
+instrument in later analysis, because nothing about the shop's own
+behavior could possibly have caused the weather.
 
 \subsection{Calendar and weather}
 
-The simulated year runs three hundred sixty five days, aligned to a real
-calendar year so that seasons, holidays, and an analyst's ordinary intuitions
-all line up, including two days on which the store is legally closed.
+The simulated year runs three hundred sixty-five days, aligned to a real
+calendar so seasons, holidays, and an analyst's ordinary intuitions all
+line up, including two days on which the store is legally closed.
+Temperature follows a deterministic annual cycle plus a persistent
+stochastic anomaly, $T_t = \mu_T(t) + \varepsilon_t$ with $\mu_T(t) = 12
++ 9\cos\!\left(\tfrac{2\pi(t-200)}{365}\right)$ and $\varepsilon_t =
+\phi\,\varepsilon_{t-1} + \text{Normal}(0,\sigma_\varepsilon)$,
+$\phi=0.7$, an autoregressive form chosen because it is the maximum
+entropy stationary process consistent with exactly the two facts about
+weather worth encoding: a stable typical spread, and warm or cold spells
+that persist for several days rather than resetting each morning. The
+decomposition into a deterministic cycle and a stochastic anomaly is
+itself a causal design choice: it lets a later analysis distinguish the
+predictable effect of season from the genuinely surprising effect of
+weather, since the anomaly is built orthogonal to the calendar, while in
+raw data the two are thoroughly entangled, because July is warm
+precisely because it is July.
 
-Temperature is modeled as a deterministic annual cycle plus a persistent
-stochastic anomaly, $T_t = \mu_T(t) + \varepsilon_t$, with $\mu_T(t) = 12 + 9
-\cos\left(\tfrac{2\pi(t-200)}{365}\right)$ and the anomaly following a
-first order autoregressive process, $\varepsilon_t = \phi\,\varepsilon_{t-1}
-+ \text{Normal}(0,\sigma_\varepsilon)$ with $\phi = 0.7$. The autoregressive
-form is chosen because it is the maximum entropy stationary process
-consistent with exactly two facts about weather that are worth encoding and
-no more: it has a stable typical spread around the seasonal mean, and warm or
-cold spells persist for several days rather than resetting independently each
-morning. The decomposition into a deterministic cycle and a stochastic
-anomaly is not a cosmetic convenience either; it is the causal design that
-allows later analysis to distinguish the predictable effect of season from
-the genuinely surprising effect of weather, since the anomaly is constructed
-to be orthogonal to the calendar by design, while in raw data the two are
-thoroughly entangled because July is warm precisely because it is July.
+Rainfall needs two separate decisions, whether it rains at all and how
+much, each with its own natural distribution. Occurrence follows a
+two-state Markov chain, $W_t \mid W_{t-1} \sim \text{Bernoulli}\big(
+p_{01}(1-W_{t-1}) + p_{11}\,W_{t-1}\big)$ with $p_{01}=0.25$,
+$p_{11}=0.55$, because weather fronts pass through and wet days genuinely
+cluster, which an independent coin flip at every day cannot represent;
+these transitions imply a stationary wet-day frequency of about
+thirty-six percent and wet spells averaging just over two days, both
+ordinary for a temperate climate. Given rain, the amount follows
+$R_t \mid W_t{=}1 \sim \text{Gamma}(1.4, \text{mean}=5\text{ mm})$, the
+standard meteorological choice, producing the realistic pattern of many
+light drizzles and few genuine downpours.
 
-Rainfall requires two separate decisions, whether it rains at all and how
-much, and each has its own natural distribution. Occurrence follows a two
-state Markov chain rather than an independent coin flip at each day,
+\subsection{Category demand and foot traffic}
 
-\[
-W_t \mid W_{t-1} \sim \text{Bernoulli}\big(p_{01}(1-W_{t-1}) +
-p_{11}\,W_{t-1}\big), \qquad p_{01} = 0.25,\ \ p_{11} = 0.55 ,
-\]
+A daily, per-category demand modifier $M_{ct}$ scales how strongly the
+neighborhood wants a given category on a given day, built log-additively
+from three genuinely distinct causal channels, $\log M_{ct} = a_c
+\cos\!\left(\tfrac{2\pi(t-200)}{365}\right) + \kappa_c\, z_t + h_c\, H_t$,
+where $z_t$ is the standardized temperature anomaly and $H_t$ flags days
+before a major holiday. The seasonal amplitude $a_c$ captures the
+predictable annual cycle; the anomaly loading $\kappa_c$ captures the
+pure weather effect, an unseasonably warm week moving demand right now
+regardless of the calendar; the holiday loading $h_c$ captures the
+stock-up surge before a major holiday. One category is deliberately
+given all-zero loadings, so nothing in preferences makes it more or less
+wanted at any time of year; its observed sales are nevertheless not
+perfectly flat, because every category draws from the same household
+budget, and when other categories surge seasonally they crowd the flat
+category out. An analyst who finds an apparent seasonal pattern here and
+stops has mistaken a budget-mediation effect for a genuine preference
+effect. A small number of specific product types whose seasonality
+flagrantly contradicts their category's average, such as ice cream,
+receive their own finer-grained tilt, $\log \psi_{pt} = a_p
+\cos\!\left(\tfrac{2\pi(t-200)}{365}\right) + \kappa_p\, z_t$, entering
+the discrete-choice utility of Section~\ref{sec:micro-customer} directly
+as $U_{ist} = U_{is} + \log\tilde{\psi}_{p(s),t}$.
 
-because weather fronts pass through and wet days genuinely cluster
-together, which an independent process cannot represent; these transition
-probabilities imply a stationary wet day frequency of about thirty six
-percent and wet spells averaging just over two days, both ordinary for a
-temperate climate. Given that it rains, the amount is drawn from a Gamma
-distribution, $R_t \mid W_t{=}1 \sim \text{Gamma}(1.4, \text{mean}=5\text{
-mm})$, the standard meteorological choice and the maximum entropy
-distribution on the positive real line once a mean and a mean logarithm are
-fixed, producing the realistic pattern of many light drizzles and few
-genuine downpours.
+Weather does not only change what people buy; it changes whether they
+come at all. A daily traffic modifier, $\log \Lambda_t = -0.20\,W_t +
+0.15\,H_t + \varepsilon^{\Lambda}_t$ with the same autoregressive
+persistence as temperature ($\phi^\Lambda = 0.85$), scales every
+customer's visit probability down by about eighteen percent on a wet
+day and up by about sixteen percent before a major holiday. A subtle
+consequence follows automatically from the pantry mechanism of
+Section~\ref{sec:micro-customer}: because a customer's need for a
+category grows with time since their last purchase, a customer rained
+off on one day simply arrives hungrier a few days later. The familiar
+retail pattern of a dip on the rainy day followed by a rebound emerges
+purely from two mechanisms that never reference each other, with no
+separate rebound parameter anywhere in the model.
 
-\subsection{Category demand modifiers}
+Household budgets move too. Each week's budget is $B_{iw} = B_i \cdot
+e^{\xi_{iw}} \cdot s_{iw} \cdot g_{iw}$, with an ordinary weekly wobble
+$\xi_{iw} \sim \text{Normal}(0, 0.12)$ and two rarer, more consequential
+terms: a tight spell sets $s_{iw}=0.65$ for a genuine hardship such as a
+job loss, beginning with probability $0.004(1+2\bar{g}_w)$ per week and
+persisting a memoryless $\text{Geometric}(1/6)$ further weeks, where
+$\bar{g}_w$ is the scripted energy crisis's own trajectory below; a
+splurge sets $g_{iw}=1.5$ for a single week with probability $0.01$. The
+tight spell's entry rate is deliberately coupled to the crisis
+trajectory, tripling at its peak, because a real energy crisis squeezes
+household heating bills at the same time as it squeezes a retailer's
+refrigeration costs.
 
-The central object of this phase is a daily, per category demand modifier
-$M_{ct}$ that scales how strongly the neighborhood wants a given category of
-merchandise on a given day. It is built log additively from three separate
-causal channels:
+\subsection{Macroeconomic cost shocks}
 
-\[
-\log M_{ct} = a_c \cos\left(\frac{2\pi(t-200)}{365}\right) + \kappa_c\, z_t +
-h_c\, H_t ,
-\]
+Beneath the everyday weather sits a slower-moving layer of wholesale
+cost shocks, and beneath that a continuous inflation drift,
+$\text{infl}(t) = e^{\pi t /365}$ with $\pi=0.025$ a year. Shocks proper
+arrive as a marked point process: $K \sim \text{Poisson}(1.5)$ events,
+each at $\tau_k \sim \text{Uniform}(1,365)$, a Poisson count because it
+is the maximum entropy distribution for a number of rare independent
+events given only a rate, with a well-known property of the Poisson
+process guaranteeing that, given the count, arrival times are
+conditionally uniform across the year --- a theorem, not an additional
+assumption. One large event, an autumn energy crisis, is scripted rather
+than drawn at random, so every run tells a genuinely interesting
+supply-side story. Each event's peak magnitude is $\zeta_k \sim
+\text{LogNormal}(\log\zeta_0,\ 0.3)$, and its effect over time is
+$g_k(t) = \zeta_k \cdot \min(1, (t-\tau_k)/14) \cdot \exp(-(t-\tau_k-14)_+/\rho_k)$,
+ramping up over two weeks and decaying exponentially, neither a
+permanent level change nor a transient blip but a slow wave a forecaster
+genuinely has to track. Every affected category's cost multiplier then
+assembles the drift and every live shock, $\log \text{CostMult}_{ct} =
+\pi t/365 + \sum_k g_k(t)\,\mathbb{1}[c \in A_k]$.
 
-where $z_t$ is the standardized temperature anomaly and $H_t$ flags the days
-immediately preceding a major holiday. The three terms are genuinely distinct
-causal stories rather than three pieces of one effect. The seasonal amplitude
-$a_c$ captures the predictable annual cycle, everything that makes July
-differ from January whether or not the weather itself cooperates, such as
-daylight and school terms. The anomaly loading $\kappa_c$ captures the pure
-weather effect, an unseasonably warm week moving demand right now regardless
-of what the calendar says. The holiday loading $h_c$ captures the stock up
-surge in the days before a major holiday. Because the model is constructed
-multiplicatively and expressed additively on the logarithmic scale, every
-loading has a clean, elasticity like interpretation, and because the
-temperature anomaly is orthogonal to the seasonal cycle by construction,
-season and weather are separately identifiable in the ground truth, which
-lets a later diagnostic exercise distinguish a genuine weather effect from a
-confounded seasonal one.
-
-One category is deliberately given all zero loadings, meaning nothing in
-preferences makes it more or less wanted at any time of year. Its observed
-sales are nevertheless not perfectly flat in the resulting data, because
-every category draws from the same household budget, and when other
-categories surge seasonally they crowd the flat category out of a tight
-weekly budget. This produces a subtler lesson than a simple negative control:
-an analyst who finds an apparent seasonal pattern in this category and stops
-there has mistaken a budget mediation effect for a genuine preference effect,
-and only tracing the mechanism reveals the difference.
-
-A single loading per category would, however, average away the most
-recognizable seasonal pattern in retail, namely that demand for products such
-as ice cream is dramatically higher in summer, a pattern that would otherwise
-be diluted by averaging it together with other, flatter products in the same
-broad category. Rather than assigning a separate seasonal loading to every
-narrow product type, which would require an unmanageable number of
-essentially arbitrary parameters, the model adds a narrow, surgical
-refinement: a small number of specific product types whose seasonality
-flagrantly contradicts their category's average receive their own tilt term,
-
-\[
-\log \psi_{pt} = a_p \cos\left(\frac{2\pi(t-200)}{365}\right) + \kappa_p\,
-z_t ,
-\]
-
-built exactly like the category modifier above but at the finer grain of a
-product type $p$ within a category, and entering the same choice model
-introduced in Phase One as an additional utility component,
-$U_{ist} = U_{is} + \log\tilde{\psi}_{p(s),t}$. In winter, a customer's need
-for the broader category therefore slides from the summer leaning product
-toward its winter leaning neighbor within the same shopping decision,
-without any new machinery beyond the existing discrete choice structure;
-every other product type keeps $\psi \equiv 1$.
-
-\subsection{Foot traffic and household budgets}
-
-Weather does not only change what people buy; it changes whether they come
-to the store at all. A daily traffic modifier
-
-\[
-\log \Lambda_t = -0.20\,W_t + 0.15\,H_t + \varepsilon^{\Lambda}_t, \qquad
-\varepsilon^{\Lambda}_t = \phi^{\Lambda}\,\varepsilon^{\Lambda}_{t-1} +
-\text{Normal}(0, \sigma^{\Lambda}_\varepsilon), \qquad \phi^\Lambda = 0.85 ,
-\]
-
-scales every customer's visit probability downward by about eighteen
-percent on a wet day and upward by about sixteen percent in the days before
-a major holiday, with the same autoregressive logic as the temperature
-anomaly so that a slow week tends to stay slow for a few days rather than
-resetting each morning. A subtle but important consequence follows automatically from
-the pantry mechanism introduced in Phase Three: because a customer's need
-for a category grows with time since their last purchase, a customer rained
-off on one day simply arrives hungrier a few days later. The transaction
-data therefore shows the familiar retail pattern of a dip on the rainy day
-followed by a rebound shortly after, purely as an emergent consequence of two
-mechanisms that never reference each other, with no separate rebound
-parameter anywhere in the model.
-
-Household budgets are not held perfectly steady across the year either.
-Each week's budget is built as
-
-\[
-B_{iw} = B_i \cdot e^{\xi_{iw}} \cdot s_{iw} \cdot g_{iw}, \qquad
-\xi_{iw} \sim \text{Normal}(0, 0.12) ,
-\]
-
-where the wobble $\xi_{iw}$ is a small multiplicative perturbation
-representing ordinary week to week circumstance, on the same logarithmic
-scale as the budget itself, and $s_{iw}$ and $g_{iw}$ encode two rarer,
-more consequential mechanisms. A tight spell sets $s_{iw} = 0.65$ for its
-duration, representing a genuine financial hardship such as a job loss or
-an unexpected repair; it begins with probability
-$p_w = 0.004\,(1 + 2\,\bar{g}_w)$ per week, where $\bar{g}_w \in [0,1]$ is
-the scripted energy crisis's own trajectory described below, and persists
-for $\text{Geometric}(1/6)$ further weeks, a memoryless duration averaging
-six weeks. A splurge sets $g_{iw} = 1.5$ for a single week with probability
-$0.01$, representing a windfall or a celebration. The tight spell's entry
-rate is deliberately coupled to the crisis trajectory, tripling at the
-crisis's peak, because a real energy crisis squeezes household heating
-bills at the same time as it squeezes a retailer's refrigeration costs, and
-a model that raised the store's costs without touching any household's
-budget would be describing an implausible economy.
-
-\subsection{Cost shocks as a marked point process}
-
-Beneath the everyday weather sits a slower moving layer of macroeconomic
-shocks affecting wholesale costs, and underneath that a boring, continuous
-inflation drift, $\text{infl}(t) = e^{\pi t/365}$ with $\pi = 0.025$ a year,
-riding every cost and rate in the model. The shocks proper are modeled as a
-marked point process: shock events arrive according to a Poisson process,
-
-\[
-K \sim \text{Poisson}(1.5), \qquad \tau_k \sim \text{Uniform}(1, 365)\ \text{for each event } k ,
-\]
-
-since the Poisson count is the maximum entropy distribution for the number
-of rare, independent events given only a rate, and a well known property of
-the Poisson process guarantees that, given the count, the arrival times are
-conditionally uniform across the year, which is a theorem rather than an
-additional assumption. One large event, an autumn energy crisis, is
-scripted rather than drawn at random, ensuring that every run of the model
-tells a genuinely interesting supply side story rather than leaving open
-the possibility of a year with no shocks at all.
-
-Each event's magnitude is drawn from a LogNormal distribution,
-
-\[
-\zeta_k \sim \text{LogNormal}(\log \zeta_0,\ 0.3),
-\]
-
-because a shock's peak effect is a positive multiplicative disturbance on
-cost, the same support and story argument that justified every other ratio
-like quantity in the model, and each event's effect over time follows a
-deterministic shape,
-
-\[
-g_k(t) = \zeta_k \cdot \min\!\left(1, \frac{t-\tau_k}{14}\right) \cdot
-\exp\!\left(-\frac{(t-\tau_k-14)_+}{\rho_k}\right), \qquad t \geq \tau_k ,
-\]
-
-ramping up linearly over two weeks and then decaying exponentially with
-time constant $\rho_k$, so that a shock is neither a permanent level change
-nor a transient blip but a slow wave that a forecaster genuinely has to
-track. Every affected category's wholesale cost multiplier then assembles
-the drift and every live shock log additively,
-
-\[
-\log \text{CostMult}_{ct} = \frac{\pi t}{365} + \sum_k g_k(t)\,
-\mathbb{1}[c \in A_k] ,
-\]
-
-with $A_k$ the set of categories the event touches.
-
-The mechanism by which these shocks reach the shelf is one of the more
-consequential design decisions in the whole model. The owner never observes
-$\text{CostMult}_{ct}$ directly; he sees only the invoices his supplier
-sends him, and he tracks an exponentially smoothed trend in those invoice
-costs,
-
-\[
-\overline{\text{Cost}}_{s,t} = \alpha\,\text{Cost}_{s,t} + (1-\alpha)\,
-\overline{\text{Cost}}_{s,t^-}, \qquad \alpha = 0.35 ,
-\]
-
-where the smoothing weight $\alpha = 0.35$ is a purely technical constant
-unrelated to the basket concentration vector of the same name in
-Section~\ref{sec:phase1}. The owner moves the shelf tag only once the
-smoothed cost has drifted more than three percent from the current price, a
-pattern known in the economics
-literature as menu cost pricing. The consequence is that shelf prices now
-vary over time for reasons entirely unconnected to the demand side of the
-market: a foreign harvest failure or a port strike moves costs without
-touching any household's budget, which is exactly the exogenous price
-variation an econometrician needs in order to estimate a genuine price
-elasticity of demand rather than a number contaminated by reverse causation
-from demand to price. The scripted energy crisis is a deliberate exception
-to this cleanliness, since it also squeezes household budgets through the
-tight spell mechanism described above, making it a subtly invalid instrument
-whose bias can, in principle, be computed exactly, turning instrument
-validity from an assumption asserted in a single sentence into a testable
-claim with a known answer.
+Henrik never observes $\text{CostMult}_{ct}$ directly; he sees only his
+supplier's invoices, and tracks an exponentially smoothed trend,
+$\overline{\text{Cost}}_{s,t} = \alpha\,\text{Cost}_{s,t} +
+(1-\alpha)\,\overline{\text{Cost}}_{s,t^-}$, $\alpha=0.35$, moving the
+shelf tag only once the smoothed cost has drifted more than three
+percent from the current price --- menu-cost pricing, a pattern well
+documented in the economics literature. The consequence is that shelf
+prices vary over time for reasons entirely unconnected to the demand
+side of the market: a foreign harvest failure moves costs without
+touching any household's budget, exactly the exogenous price variation
+an econometrician needs to estimate a genuine price elasticity rather
+than a number contaminated by reverse causation. The scripted energy
+crisis is a deliberate exception to this cleanliness, since it also
+squeezes household budgets through the tight-spell mechanism above,
+making it a subtly invalid instrument whose bias can, in principle, be
+computed exactly.
 
 \begin{figure}[htbp]
 \centering
@@ -1220,7 +951,7 @@ claim with a known answer.
     \node[box, below=of LAM] (CM) {Wholesale cost paths};
     \node[box, below=of CM] (BW) {Household budgets};
 
-    \node[box, right=26mm of LAM, minimum height=1.6cm] (P3) {Phase 3\\daily market};
+    \node[box, right=26mm of LAM, minimum height=1.6cm] (P3) {The daily\\market of \S\ref{sec:micro-customer}};
 
     \draw[arrow] (SEA) -- (M);
     \draw[arrow] (ANOM) -- (M);
@@ -1235,607 +966,214 @@ claim with a known answer.
     \draw[arrow] (CM) -- (P3);
     \draw[arrow] (BW) -- (P3);
 \end{tikzpicture}
-\caption{The causal skeleton of Phase Two. Every arrow points into the market that Phase Three performs; nothing points back, which is what licenses treating these channels as exogenous instruments and natural experiments.}
+\caption{The causal skeleton of the macro layer. Every arrow points into the daily market that Section~\ref{sec:micro-customer} performs; nothing points back, which is what licenses treating these channels as exogenous instruments and natural experiments.}
 \label{fig:phase2graph}
 \end{figure}
 
-\subsection{Why exogeneity licenses counterfactual reasoning}
-
-Because Phase Two's script is written entirely in advance and never listens
-to anything the simulated agents do, a counterfactual world can be produced
-almost for free: simply edit the script, for instance deleting the scripted
-energy crisis, and replay the identical daily market mechanism of Phase Three
-with every other random draw held fixed by the keyed randomness discipline
-described in Section~\ref{sec:principles}. The difference between the
-original run and the edited run is then the causal effect of the edit
-itself, not merely an estimate of it. This is the property that Phase Four,
-described in Section~\ref{sec:phase4}, generalizes into a full policy
-laboratory.
-
-\section{Phase Three: The Daily Market Loop}
-\label{sec:phase3}
-
-Phase Three is where the two sides of the market, built and scripted in the
-preceding phases, finally meet. It is the only phase that produces data in
-the ordinary sense: a customer with a specific need walks past a shelf whose
-price was set according to the owner's rule, on a day whose weather was
-drawn in Phase Two, and either buys, substitutes, or leaves, and every one of
-these outcomes either does or pointedly does not leave a trace in the
-records the analyst eventually receives.
-
-\subsection{The pantry and the mechanics of need}
-
-Phase One promised that a customer's need for a category would be driven by
-their basket preferences and the time since their last purchase. Phase Three
-makes that promise mechanical through the simplest object that behaves
-correctly: a pantry. Each customer is given a latent stock of each category,
-measured in units, which drains at a steady daily rate and refills only when
-the customer actually buys more:
-
-\[
-P_{ic,t+1} \overset{\leftarrow}{=} \max(0,\ P_{ict} - r_{ict}) +
-(\text{units purchased on day } t), \qquad r_{ict} = r_{ic}\cdot M_{ct} .
-\]
-
-Scaling the drain rate itself by the demand modifier, rather than adding the
-modifier directly to a customer's momentary desire, is a deliberate
-refinement of the interface promised in Phase Two, because it changes not
-only how much a customer wants a category but when that want actually
-arrives: a hot week does not make a household want ice cream in the
-abstract, it makes the household eat the ice cream in the freezer faster,
-so the container runs out sooner and the shopping trip that replaces it
-arrives earlier. This single change is also what makes the rain rebound
-described in the previous section emerge with a realistic magnitude, since a
-missed shopping trip simply leaves the drain running against an unreplenished
-pantry.
-
-A customer's need for a category is then defined as the shortfall of their
-current pantry stock against a target level representing several days of
-comfortable cover,
-
-\[
-\theta_{ict} = \alpha\,\frac{\max(0,\ P^{\text{tgt}}_{ic} - P_{ict})}
-{P^{\text{tgt}}_{ic}}, \qquad P^{\text{tgt}}_{ic} = \tau\, r_{ic}, \qquad
-\tau = 10 \text{ days},
-\]
-
-with the shape parameter $\alpha$, again a purely local constant unrelated
-to the two earlier uses of the same letter, calibrated so that a fully empty pantry
-presses harder on the choice model than an ordinary price difference but
-not harder than an extreme one. This shortfall enters the utility function
-of Phase One's discrete choice model directly, exactly as $\theta_{ic}$ did
-there. An empty pantry presses hard on the
-customer's decisions; a full one leaves the category to the outside option
-entirely, meaning the customer simply does not shop for it this trip. One
-bookkeeping rule is essential to the model's long run stability: when the
-outside option wins, meaning the customer effectively buys the item
-elsewhere or does without, the pantry is nonetheless refilled, with the
-event recorded in a hidden ledger under its own cause. Without this rule,
-demand lost to competitors would accumulate without bound and every basket
-would eventually list every category; with it, the pantry remains stationary
-and the store's captured share of total demand is exactly what the discrete
-choice model implies it should be.
-
-\subsection{Building the basket and the hidden demand ledger}
-
-A visiting customer builds a shopping list of every category whose pantry
-cover has fallen below a replenishment threshold, walks the list in
-descending order of urgency, and at each category faces the same discrete
-choice model introduced in Phase One, now evaluated only over products
-currently in stock, with any live promotional discount folding directly into
-the effective price the customer sees. Because a discount is treated simply
-as a lower price, promotional response requires no separate machinery and
-automatically inherits each customer's own individual price sensitivity.
-Having chosen a product, the customer buys toward the shortfall rather than
-filling it exactly,
-
-\[
-\text{Quantity} = \Big\lceil \big(P^{\text{tgt}}_{ic} - P_{ict}\big)\,
-\kappa \Big\rceil, \qquad \kappa \sim \text{Uniform}(0.7, 1.0) ,
-\]
-
-capped by a per trip carrying limit drawn uniformly between eight and
-fifteen units and by whatever remains of the week's budget, so that
-quantity is a direct consequence of the pantry rather than a freshly drawn
-random object, which is what gives the model its realistic correlation
-between a longer gap since the last visit and a larger basket this time.
-
-When a customer's chosen product is out of stock, three things happen in a
-fixed order. First, the original intended choice is logged as a latent
-truth, with its cause recorded as a stockout. Second, the customer
-re-evaluates the same discrete choice model with the unavailable product
-removed from the choice set, so that probability mass flows toward the
-nearest neighbors in brand level, exactly the substitution pattern the
-original choice model was built to produce. Third, if the re-evaluated
-choice lands on another available product, the sale proceeds; if it lands on
-the outside option instead, the store has lost a sale it will never observe
-in its own data. Four distinct causes of invisible demand accumulate in this
-way over the year: an arrival outside opening hours, a stockout, an
-exhausted weekly budget partway through the shopping list, and the outside
-option simply winning on price or availability. This hidden demand ledger is
-the honest, mechanistic version of the claim that sales data are demand data
-censored in several distinct ways, each with its own recorded cause, rather
-than an unexplained gap between two numbers.
-
-\subsection{The owner's adaptive policies}
-
-Unlike the exogenous script of Phase Two, the owner in Phase Three reacts to
-what he actually observes, and what he observes is never the full truth.
-Once a week the owner places a restocking order, sized according to the
-simplest forecast a real shopkeeper actually runs in practice: a trailing
-four week average of his own recorded sales,
-
-\[
-\hat{D}^{\text{op}}_{cw} \overset{\leftarrow}{=} \frac{1}{4}
-\sum_{j=1}^{4} \text{Sales}_{c,w-j} .
-\]
-
-He then orders up to a target sized for the review and lead time ahead of
-him, plus his standing safety stock rule,
-
-\[
-\text{Target}_{sw} = \left(\frac{R+L}{7} + \eta\,\frac{30}{7}\right)
-\hat{D}^{\text{op}}_{cw}\,\tilde{\sigma}_{sw} ,
-\]
-
-with $R = 7$ days between reviews, $L = 2$ days of lead time, and
-$\tilde{\sigma}_{sw}$ the product's recent share of its category's sales,
-smoothed with one pseudo unit so that no listed product is ever starved to
-zero. This rule carries two distinct, realistic flaws built directly into
-its structure. It is backward looking, so that a rising seasonal trend is
-always underestimated by an average of the weeks before it rose, and the
-month stale allocation $\tilde{\sigma}_{sw}$ starves whichever product's
-season is arriving while fattening the one whose season just left, even
-while the category total stays roughly on track. And it is blind to
-censoring, because the sales it averages are themselves truncated by the
-store's own past stockouts, which produces a self-reinforcing pattern
-sometimes called a censoring spiral: a product that stocks out repeatedly
-reports weak sales, earns a smaller share of the next order, and
-consequently stocks out again. Both flaws are genuine, previously
-documented pathologies of naive forecasting, reproduced here as the
-mechanical consequence of an otherwise ordinary and defensible business
-rule, rather than injected as an arbitrary model defect.
-
-The owner also runs two distinct kinds of promotion, and the contrast
-between them is itself an intended lesson. A markdown campaign is triggered
-endogenously whenever a category's weeks of cover on hand exceeds a
-threshold, targeting specifically the slowest selling third of that
-category's products. Because the trigger is overstock, and overstock is
-correlated with weak underlying demand, any naive before and after
-comparison of a markdown's effect is contaminated by exactly the same
-selection problem that afflicts real world marketing analytics, understating
-the campaign's true effect because the campaign was deliberately aimed at
-products already trending downward. A separate, calendar triggered
-storewide discount on the last Sunday of every month is, by contrast,
-entirely exogenous, announced in advance and correlated with nothing about
-current stock levels, providing a clean source of price variation an
-analyst can use to anchor an elasticity estimate before attempting to
-untangle the confounded markdown campaigns.
-
-Perishable products spoil overnight,
-
-\[
-\text{Spoiled}_{st} \sim \text{Binomial}\big(\text{OnHand}_{st},\
-\min(0.35,\ \lambda^d_{c(s)}\,f_{c(s),t})\big), \qquad
-\lambda^d_c = 1 - (1-\lambda_c)^{1/7} ,
-\]
-
-where $\lambda_c$ is the category's interpretable weekly base rate,
-converted to a nightly rate $\lambda^d_c$, and modulated by a spoilage
-factor built from the same log additive logic as every other multiplier in
-the model,
-
-\[
-\log f_{ct} = \kappa^T_c\,\frac{T_t - \bar{T}}{10} + \kappa^E_c\,\bar{g}_t
-+ \text{Normal}(0, 0.25) ,
-\]
-
-where $\bar{T}$ is the annual mean temperature, so the heat term is a
-deviation from typical conditions rather than an absolute temperature, with
-a heat term strongest for ambient perishables such as bread and
-produce, a cold chain strain term loading on the energy crisis's own
-trajectory $\bar{g}_t$ and strongest for frozen and dairy goods, and an
-idiosyncratic batch luck term standing in for the reality that one delivery
-travels worse than another. The thinning itself uses a nightly binomial
-process rather than a single weekly cull, specifically because the store's
-inventory snapshots are visible day by day, and a once weekly cull would
-stamp an artificial sawtooth pattern into every perishable product's
-inventory series, a periodic artifact with no physical cause that a careful
-analyst would immediately, and correctly, flag as evidence of a simulated
-rather than a found dataset.
-
-Finally, the store's cash position is tracked explicitly, with a credit
-line available at a fixed interest rate whenever the monthly close would
-otherwise take cash below zero. Restocking orders are themselves capped by
-available cash and credit headroom, so that a struggling store visibly
-thins its own shelves months before any trouble would show up in an annual
-profit figure, exactly as a real distressed retailer's inventory often
-signals difficulty well before its accounts do.
-
-\subsection{The recording layer: imperfect paperwork over a perfect physical reality}
-
-An early, fully reconciled version of the generated dataset was reviewed and
-found, on inspection, to have one serious flaw: its records were perfect.
-Revenue tied to the cent, every inventory identity closed exactly, and no
-document was ever missing, duplicated, or mistyped. Real bookkeeping is never
-like this, and a dataset that reconciled perfectly would itself be evidence
-of fabrication to any experienced reader. The model therefore adds a
-deliberate recording layer, governed by one guiding principle: the
-underlying physical reality of the simulation remains untouched and
-internally perfect, and only the documents describing that reality are
-allowed to err, with every imperfection injected at the point of export
-rather than into the simulation's own state.
-
-A small number of realistic paperwork defects are injected at low, carefully
-calibrated rates, including duplicated till receipts from a point of sale
-terminal retrying an upload, invoices posted twice by a distracted clerk,
-occasional missing invoice lines for goods that were paid for but never
-logged, unlogged spoilage that only surfaces later as an unexplained monthly
-shrinkage, and the occasional mistyped inventory count that self corrects
-the following night. Each defect is drawn from its own independently keyed
-random stream and is simultaneously written to a separate answer key
-recording exactly what was changed, so that the exercise of reconciling the
-messy records back to the truth is itself gradable against a known,
-recorded answer, and the underlying simulated reality that the counterfactual
-machinery of Phase Four depends on is never disturbed by paperwork noise
-that exists only in the documents an analyst receives.
-
-The paperwork drift this produces has its own exact algebra. Let $D_{st}$
-denote SKU $s$'s cumulative book-minus-true discrepancy on day $t$, pushed
-upward by duplicate invoices and unrecorded spoilage and pushed downward by
-missing invoices and duplicate receipts. The inventory figure an analyst
-actually sees is book stock rather than the simulation's true stock $S_{st}$,
-
-\[
-B_{st} = S_{st} + D_{st} - \sum_{c \le t} A_{sc},
-\]
-
-where $A_{sc}$ is the cumulative correction posted at each monthly count. On
-the last day of every month the owner counts the shelf and posts the
-adjustment $A_{sc} = (B - S)_{sc^-}$ under the write-off reason
-\texttt{stock\_count}, snapping the book back to physical truth before it
-begins drifting anew; every other write-off keeps the reason
-\texttt{spoilage}. Because unrecorded spoilage is the dominant contributor to
-$D_{st}$, these monthly adjustments are themselves mostly losses, reproducing
-the familiar shape of retail shrinkage, with occasional gains where a missing
-invoice or a duplicated receipt happened to tip the balance the other way.
-Genuine refunds are deliberately kept out of this recording layer and
-modeled instead as a true simulation event: after each receipt is finalized,
-an independently keyed stream determines whether one of its lines is
-returned,
-
-\[
-\Pr(\text{refund} \mid \text{receipt}) = 0.006, \qquad \text{return delay} \sim
-\text{Uniform}\{1, \dots, 13\}\ \text{days},
-\]
-
-posting as its own till transaction at the price actually paid, referencing
-the original receipt, and destroying the returned unit rather than
-restocking it, exactly as Section~\ref{sec:accounting} describes.
-
-\subsection{The three profit figures}
-
-With a full year performed, three profit figures that Phase One promised
-finally become computable side by side: the profit the owner believed he
-would earn at the moment of opening, $\pi_{\text{believed}}$, read directly
-off the Phase One mixed integer program's own objective value and extended
-by his own rules over the year; the profit the ledger actually shows after a
-full year of realistic behavior, $\pi_{\text{realized}}$, the number a real
-accountant would certify; and the profit an otherwise identical but
-perfectly informed operator could have earned given the same world, meaning
-the same customers, the same script, and the same policy shapes, but with
-true demand in place of the owner's censored, backward looking forecast,
-$\pi_{\text{oracle}}$. The two gaps between these figures are exact
-differences between fully computed runs of the same mechanism rather than
-estimates,
-
-\[
-\Delta_{\text{optimism}} = \pi_{\text{realized}} - \pi_{\text{believed}},
-\qquad
-\Delta_{\text{analytics}} = \pi_{\text{oracle}} - \pi_{\text{realized}},
-\]
-
-where $\Delta_{\text{optimism}}$ measures the cost of the owner's initial
-overoptimism and $\Delta_{\text{analytics}}$ measures the value of better
-information and better decisions, which is the single number the entire
-construction exists to make credible by actually computing it rather than
-merely asserting a plausible size for it.
-
-\section{Phase Four: The Policy Laboratory}
-\label{sec:phase4}
-
-Phases One through Three together produce one performed year of a single
-world. Phase Four turns that single performance into a laboratory in which
-the same world can be re-performed under a deliberately edited set of macro
-conditions, so that the causal effect of a policy change or an external
-shock can be measured directly, as an exact difference between two runs of
-an otherwise identical mechanism, rather than estimated statistically from a
-single realized history.
-
-\subsection{Scenarios as edited scripts}
-
-A scenario, in this model, is nothing more than a declarative set of edits to
-the exogenous script of Phase Two or to one of the owner's policy knobs, such
-as his opening hours or his staffing level. Concretely, a scenario spec edits
-one or more named quantities the earlier sections already defined: extra
-cost events riding the same trajectory $g_k(t)$ of
-Section~\ref{sec:phase2}, a multiplier on the daily traffic modifier
-$\Lambda_t$, a multiplier on the weekly household budget $B_{iw}$, or a
-new rate path $r_c(t)$ from a given date. Critically, a scenario never
-edits an underlying random number stream directly. Because every draw in the
-model is keyed by stable identity, as described in
-Section~\ref{sec:principles}, replaying an edited script through the
-identical daily market mechanism reproduces every unaffected customer's
-decisions bit for bit, so that the entire difference between the baseline
-world and the edited one is attributable to the edit by construction. This
-is the same common random numbers discipline introduced to support the
-Phase Two counterfactuals, here generalized into a standing feature of the
-model rather than a special case. A handful of reference scenarios
-illustrate the range of questions this laboratory can answer, including a
-broad economy wide supply shock, a short severe weather event, a change in
-value added tax, a temporary household income transfer, and a staffing
-decision to hire an additional clerk and extend opening hours.
-
-The owner's declared indifference to tax strategy is not merely asserted but
-is, for the profit tax specifically, provably harmless: because
-$\text{ProfitTax}$ is a flat rate on a positive base,
-maximizing $(1-r^{\pi})\,\pi$ over any set of operating decisions has
-exactly the same maximizer as maximizing $\pi$ itself,
-
-\[
-\arg\max_{\text{decisions}}\ (1 - r^{\pi})\,\pi(\text{decisions}) =
-\arg\max_{\text{decisions}}\ \pi(\text{decisions}),
-\]
-
-so an owner who ignores the profit tax when making ordinary operating
-decisions loses nothing relative to one who optimizes around it. No such
-guarantee holds for the value added tax, whose category specific rate
-$r_c(t)$ changes relative prices across categories and therefore can, in
-principle, reward cross category arbitrage; the owner's failure to perform
-that arbitrage is exactly the gap a later prescriptive analysis can
-measure against a scenario's twin arms.
-
-\subsection{The tax layer}
-
-Because a policy laboratory without taxation would be unable to represent
-the most common lever through which real macroeconomic policy actually
-reaches individual households and businesses, this phase also introduces a
-complete, differentiated tax system into the baseline world itself, rather
-than reserving it only for edited scenarios. Value added tax is applied at
-a category specific rate $r_c(t)$, and the owner's shelf tag is formed from
-the tax exclusive, smoothed invoice cost with the current rate reapplied on
-top:
-
-\[
-\text{Tag}_{st} = \text{charm}\Big(\overline{\text{NetCost}}_{s,t} \cdot
-(1+m_c) \cdot (1+r_c(t))\Big) ,
-\]
-
-where $\overline{\text{NetCost}}_{s,t}$ is the exponentially smoothed,
-tax exclusive invoice cost introduced in Phase Two and $m_c$ is the same
-category markup fixed in Phase One. Because the rate enters multiplicatively
-on the same trend the owner already tracks, a rate change reaches his
-\emph{intended} price immediately and exactly, while the price customers
-actually see at the shelf continues to lag through the same menu cost
-mechanism described in Phase Two, which is precisely the kind of
-incomplete, delayed tax pass-through documented in the empirical public
-finance literature.
-
-Value added tax is remitted monthly as the difference between output tax
-collected on sales and input tax paid on purchases,
-
-\[
-\text{VAT}_t = \sum_c \text{Sales}_{ct}\,\frac{r_c}{1+r_c} \;-\;
-\sum_c \text{Purchases}_{ct}\,\frac{r_c}{1+r_c} ,
-\]
-
-and this net amount leaves the till at the monthly close, the same till
-that funds the cash capped ordering rule of Phase Three. Payroll tax applies
-to any wages paid to hired staff at a flat employer rate,
-$\text{PayrollTax}_t = r^{\text{pay}}\,\text{Wages}_t$ with
-$r^{\text{pay}} = 0.25$, and a flat tax applies to positive annual profit,
-accrued in the year it is earned rather than paid immediately,
-
-\[
-\text{ProfitTax} = r^{\pi} \cdot \max(0,\ \text{ProfitBeforeTax}), \qquad
-r^{\pi} = 0.20 .
-\]
-
-The owner is modeled as tax aware but not tax strategic: he correctly
-prices on his net of tax margin, as the tag formula above shows, and
-correctly accounts for the full employer cost of hiring, meaning wages
-plus payroll tax, in the opening decision of Phase One, but he never
-performs cross category tax arbitrage or elasticity aware repricing in
-response to a tax change, leaving that gap as an open door for a later
-prescriptive analysis to identify and price.
-
-\section{Phase Five: Three Years of Growth, Churn, and Capital}
-\label{sec:phase5}
-
-A single simulated year is, in one specific and important sense, an
-incomplete dataset: it cannot separate a genuine growth trend from ordinary
-seasonality, it cannot show an individual customer arriving in or departing
-from the neighborhood, and its owner never faces the central question every
-real small business eventually faces, namely whether to reinvest, hold
-steady, or exit. Phase Five extends the horizon to three full years and adds
-exactly the three kinds of motion a single year structurally cannot contain.
-
-\subsection{The customer panel as a flow}
-
-Where earlier phases treated the customer population as fixed for the
-simulated year, Phase Five gives each regular customer a persistence type
-drawn once at creation,
-
-\[
-\text{type}_i =
-\begin{cases}
-\text{rooted} & \text{with probability } 0.80 \\
-\text{transient} & \text{with probability } 0.20 ,
-\end{cases}
-\]
-
-where a rooted customer will not leave the neighborhood within the three
-year window at all, and a transient customer instead faces an ongoing
-monthly hazard of departure, $h = 1/18$, giving a mean tenure of eighteen
-months. Every departure is matched, after a random delay of
-$1 + \text{Geometric}(0.5)$ months, by a fresh customer profile representing
-a new household moving into the vacated home, and a slow trickle of
-genuinely new arrivals, $\text{Poisson}(4)$ per year, on top of
-straightforward replacement represents modest organic neighborhood growth.
-Newly arrived customers are themselves drawn with an even fifty percent
-chance of either persistence type, reflecting the reasonable assumption
-that a household which has just moved once is more likely to move again
-than the settled population it replaces.
-
-Nothing about this churn is announced anywhere in the visible data; a
-customer's card token simply stops appearing in the receipts one month and
-never returns, and a new token begins appearing elsewhere. An analyst must
-infer departure from silence, and must take care not to confuse a customer
-who has genuinely left the neighborhood with one who is merely visiting less
-often for other reasons, a distinction that becomes especially difficult
-near the very end of the observed window, where a recently silent customer
-cannot yet be distinguished from one who will return next month. This is a
-form of the right censoring problem familiar from survival analysis, and it
-is a genuine, unavoidable feature of any panel observed for a finite length
-of time, reproduced here rather than glossed over.
-
-\subsection{Retained earnings and the endogenous expansion decision}
-
-From the beginning of the second year, once the owner's books have
-formalized, he begins retaining a share $\rho_{RE} = 0.5$ of every
-profitable month's after tax result $\pi_m$ as declared retained earnings,
-drawing the rest out as his own income,
-
-\[
-\text{draw}_m = (1-\rho_{RE})\,\max(0, \pi_m), \qquad
-\text{RE}_m = \text{RE}_{m-1} + \rho_{RE}\,\max(0,\pi_m) - \text{capex}_m ,
-\]
-
-with no draw and no retention at all in a loss month, exactly as a small
-business owner who has proven a concept typically begins to behave. Once
-retained earnings and available cash both cross fixed thresholds,
-
-\[
-\text{RE}_m \geq K_{\text{exp}} \quad \text{and} \quad
-\text{cash}_m - \text{tax\_reserve}_m \geq C_{\text{exp}} ,
-\]
-
-the owner expands the business on the first day of the following month: he
-hires his first employee on a fixed part time shift, extends opening hours
-by two hours a day, deepens his shelf capacity without widening the range
-of products carried, and pays a one time fit out cost $C_{\text{exp}}$ from
-savings.
-
-The threshold $K_{\text{exp}}$ is calibrated, rather than tied to a fixed
-calendar date, so that under the realized path of the model the expansion
-lands in the autumn of the second year, after a scripted local population
-increase but before a scripted competitive entry in the following year,
-producing a specific and
-analytically important narrative: the expansion looks like an entirely
-sensible decision at the moment it is made, based on everything the owner
-could reasonably have known at the time, and only becomes questionable in
-hindsight once a subsequent, unrelated shock arrives. A counterfactual twin
-of the model, in which the expansion threshold is disabled entirely, reveals
-that the expansion's true cost across its first fourteen months substantially
-exceeds the additional margin the extra hours and capacity actually generate,
-because the fixed cost of an additional wage is paid in full while the
-additional revenue it produces is diluted by the ordinary grocery margin.
-This is a deliberately reproduced version of one of the most common capital
-allocation mistakes in small retail, namely investing capital at what
-retrospectively turns out to be the peak of the underlying opportunity,
-generated here from the interaction of an ordinary retention rule, an
-ordinary calibrated threshold, and an otherwise unrelated later shock, rather
-than scripted as an explicit narrative choice.
+\subsection{Taxation as scripted policy}
+\label{sec:macro-tax}
+
+A policy laboratory without taxation would be unable to represent the
+most common lever through which real macroeconomic policy actually
+reaches individual households and businesses, so a complete, differentiated
+tax system sits in the baseline world itself, exactly as scripted and
+exactly as exogenous as the weather above. Value-added tax applies at a
+category-specific rate $r_c(t)$, and Henrik's shelf tag is formed from
+the tax-exclusive, smoothed invoice cost with the current rate reapplied
+on top, $\text{Tag}_{st} = \text{charm}\big(\overline{\text{NetCost}}_{s,t}
+\cdot (1+m_c)(1+r_c(t))\big)$. Because the rate enters multiplicatively
+on the trend he already tracks, a rate change reaches his \emph{intended}
+price immediately and exactly, while the price customers actually see
+continues to lag through the same menu-cost mechanism above --- exactly
+the kind of incomplete, delayed tax pass-through documented in the
+empirical public finance literature. Value-added tax is remitted monthly
+as the difference between output tax on sales and input tax on
+purchases, $\text{VAT}_t = \sum_c \text{Sales}_{ct}\,r_c/(1+r_c) -
+\sum_c \text{Purchases}_{ct}\,r_c/(1+r_c)$; payroll tax applies to wages
+at a flat employer rate $r^{\text{pay}}=0.25$; and a flat tax applies to
+positive annual profit only, accrued in the year it is earned,
+$\text{ProfitTax} = r^{\pi}\cdot\max(0,\text{ProfitBeforeTax})$,
+$r^\pi=0.20$.
+
+Henrik is tax-aware but not tax-strategic: he correctly prices on his
+net-of-tax margin and correctly accounts for the full employer cost of
+hiring in his opening decision, but he never performs cross-category tax
+arbitrage or elasticity-aware repricing in response to a tax change,
+leaving that gap as an open door for a later prescriptive analysis to
+identify and price. One piece of this is provably harmless rather than
+merely assumed away: because profit tax is a flat rate on a positive
+base, $\arg\max_{\text{decisions}} (1-r^\pi)\pi(\text{decisions}) =
+\arg\max_{\text{decisions}} \pi(\text{decisions})$, so an owner who
+ignores profit tax when making ordinary operating decisions loses
+nothing relative to one who optimizes around it. No such guarantee holds
+for value-added tax, whose category-specific rate changes relative
+prices across categories and can, in principle, reward cross-category
+arbitrage Henrik never performs.
 
 \subsection{A world that stays unquiet}
 
-Consistent with the stated design principle that a three year history should
-not read as a single stable year merely repeated three times, the second and
-third years are populated with a specific sequence of scripted events, each
-chosen to test a distinct analytical skill. The second year includes an
-equipment failure that destroys a portion of frozen and refrigerated stock
-overnight, a single category cost shock affecting dairy products, a
-prolonged summer heatwave that simultaneously boosts demand for
-warm-weather products and increases spoilage pressure through the same
-mechanism, and the scripted population increase that helps trigger the
-expansion described above. The third year includes a contractual rent
-increase taking effect at a two year lease renewal, alongside similarly
-lumpy, dated steps in wages and utility tariffs, each a discrete jump on a
-known date rather than a smooth index, so that an analyst who treats every
-cost as continuously drifting inflation will misdate exactly where the
-squeeze came from. It also includes the entry of a discounting competitor a
-short distance away whose effect on individual customers is deliberately
+A scenario, in this model, is nothing more than a declarative edit to
+one of the quantities this section already defined: an extra cost event
+riding the same trajectory $g_k(t)$ above, a multiplier on the traffic
+modifier $\Lambda_t$, a multiplier on household budgets $B_{iw}$, or a
+new tax rate path $r_c(t)$ from a given date. A scenario never edits an
+underlying random-number stream directly, only the script. Consistent
+with the design principle that a three-year history should not read as
+a single stable year merely repeated three times, the second and third
+years of Henrik's story are populated with a specific sequence of such
+edits, each chosen to test a distinct analytical skill: an equipment
+failure destroying frozen and refrigerated stock overnight, a
+single-category cost shock on dairy, a prolonged summer heatwave, a
+scripted local population increase, a contractual rent increase at a
+two-year lease renewal alongside similarly lumpy, dated steps in wages
+and utilities, and the entry of a discounting competitor a short
+distance away.
+
+That competitor's effect on individual customers is deliberately
 heterogeneous,
 
 \[
-m_i = \exp(-\chi \cdot \tilde{s}_i \cdot k_i), \qquad k_i =
-\begin{cases} 1.0 & \text{transient customers} \\ 0.6 & \text{rooted customers,} \end{cases}
+m_i = \exp(-\chi\cdot\tilde{s}_i\cdot k_i) ,
 \]
 
-a multiplicative penalty on each customer's visit probability, where $m_i$
-denotes this penalty and is unrelated to the category markup $m_c$ of
-Section~\ref{sec:phase1} despite the shared letter, $\tilde{s}_i$ is that
-customer's percentile rank in price sensitivity, and
-$\chi$ is calibrated to a target aggregate visit drop, so that the
-competitor draws away price sensitive customers fastest, and rooted
-customers, held by relationships rather than price alone, are penalized at
-only sixty percent of the rate a transient customer at the same price
-sensitivity would be. This is followed by a scheduled rather than reactive
-pricing response by the owner to that competitor, a short seasonal street
-festival, and a second cost shock affecting staple goods. Two further
-counterfactual twins, one in which the competitor never enters and one in
-which the expansion never occurs, allow the true cost of each event to be
-measured directly rather than inferred, and a specific, intended finding of
-the model is that the capital decision to expand costs the business
-substantially more than the competitive entry does, even though the
-competitor is the more visible and more emotionally salient event to an
-owner living through it.
+a multiplicative penalty on visit probability where $\tilde{s}_i$ is a
+customer's percentile rank in price sensitivity and $k_i = 1.0$ for
+transient customers but only $0.6$ for rooted ones, so the competitor
+draws away price-sensitive customers fastest, and customers held by
+relationships rather than price alone are penalized at only sixty
+percent of the rate a transient customer at the same price sensitivity
+would be. It is followed by a scheduled, rather than reactive, pricing
+response, a short seasonal street festival, and a second cost shock on
+staple goods.
 
-\section{The Accounting Layer: Reconciling Money and Goods}
-\label{sec:accounting}
+\section{Why the Split Licenses Counterfactual Reasoning}
+\label{sec:counterfactual}
 
-Running beneath every phase described above is a strict accounting
-discipline governing how money and physical goods move between the
-artifacts an analyst eventually receives. One principle governs all of it:
-the owner's own monthly ledger is always correct about money, and every
-other document, particularly the raw till receipts and the raw supplier
-invoices, is the analyst's paperwork to reconcile against it, complete with
-the deliberate imperfections described in Section~\ref{sec:phase3}.
+Every decision in Section~\ref{sec:micro} and every script in
+Section~\ref{sec:macro} was built the way it was for one reason that
+this section finally makes explicit. Because the macro layer is written
+entirely in advance and never listens to anything the micro layer does,
+a counterfactual world can be produced almost for free: edit the script
+--- delete the scripted energy crisis, disable the expansion threshold,
+remove the competitor entirely --- and replay the identical daily market
+mechanism with every other random draw held fixed. The difference
+between the original run and the edited run is then the causal effect
+of the edit itself, not merely an estimate of it.
 
-Revenue is recognized on a cash basis at the moment of sale, with the
-effective price paid reflecting, in order, the current shelf tag, any live
-promotional markdown, and the additional monthly storewide discount when it
-applies. A small share of receipts contain a voided mis-ring, in which a
-cashier corrects an immediate scanning error, netting to zero money and zero
-goods, and are distinguishable from genuine refunds by the absence of a
-reference to an earlier receipt. Genuine refunds, occurring at a low but
-nonzero rate, post as an independent till transaction referencing the
-original sale, reduce both cash and revenue on the day of the return, and
-destroy rather than restock the returned item, since a small grocer does not
-typically resell a returned perishable good.
+This only works because of a discipline that has been present, silently,
+in every equation in this paper: every random draw is keyed by the
+stable identity of the entity it concerns, a specific customer on a
+specific day, a specific product on a specific night, using
+independently spawned child streams, rather than one long sequential
+stream. If every draw were taken sequentially, deleting a single event
+partway through the year would shift every subsequent draw, and the
+comparison between two runs would be contaminated by reshuffled
+randomness that has nothing to do with the edit itself. Keying every
+draw by identity means a customer untouched by the edit reproduces the
+identical decision, bit for bit, in both runs --- the common random
+numbers technique familiar from the simulation literature, adopted from
+the first line of the implementation rather than retrofitted later,
+because retrofitting it afterward would require rewriting every random
+draw in the model.
 
-Inventory is tracked as book stock rather than a continuous physical count,
-governed by a strict identity in which each day's change in recorded stock
-equals recorded deliveries minus recorded sales minus recorded write-offs,
+Two concrete pairs of counterfactual twins in Henrik's own three-year
+story cash this discipline out into an actual number rather than a
+methodological promise. One twin disables the expansion threshold of
+Section~\ref{sec:micro-expansion} entirely; comparing it to the real
+run reveals that the expansion's true cost across its first fourteen
+months substantially exceeds the additional margin it generates. A
+second twin removes the competitor of Section~\ref{sec:macro} entirely;
+comparing it to the real run prices exactly what the competitor cost
+Henrik, as opposed to what he believes it cost him. A specific, intended
+finding of the model is that the capital decision very often costs the
+business substantially more than the competitive entry does, even
+though the competitor is the more visible and more emotionally salient
+event to an owner living through it --- which is exactly why an
+instructor can hand a learner Henrik's own conviction that the
+competitor is to blame, and let the two counterfactual twins settle the
+question the data, rather than the instructor, gets to answer.
 
-\[
-\text{book}(t) - \text{book}(t-1) = \text{deliveries}(t) - \text{sales}(t) -
-\text{write\_offs}(t),
-\]
+With a full year performed, three profit figures become computable side
+by side: what Henrik believed he would earn at the moment of opening,
+$\pi_{\text{believed}}$, read directly off the opening decision's own
+objective value; what the ledger actually shows after a full year of
+realistic behavior, $\pi_{\text{realized}}$, the number a real
+accountant would certify; and what a perfectly informed operator could
+have earned given the same world --- the same customers, the same
+script, the same policy shapes, but true demand in place of Henrik's
+censored, backward-looking forecast --- $\pi_{\text{oracle}}$. The two
+gaps between these figures are exact differences between fully computed
+runs of the same mechanism, $\Delta_{\text{optimism}} =
+\pi_{\text{realized}} - \pi_{\text{believed}}$ and
+$\Delta_{\text{analytics}} = \pi_{\text{oracle}} - \pi_{\text{realized}}$,
+where the first measures the cost of Henrik's initial overoptimism and
+the second measures the value of better information and better
+decisions --- the single number this entire construction exists to make
+credible by actually computing it, rather than merely asserting a
+plausible size for it.
 
-with any deviation from this identity traceable either to the deliberate
-snapshot typos of the recording layer or, once a month, to a physical stock
-count that reconciles the books and posts the difference as a shrinkage
-adjustment. Perishable spoilage and monthly stock count corrections are kept
-in strictly separate categories precisely because they measure two
-different things, namely genuine physical waste and pure bookkeeping drift,
-and conflating them would double count the same euros.
+\section{Recording and Accounting: An Imperfect Window on a Perfect World}
+\label{sec:recording}
 
-The monthly ledger itself aggregates revenue, the cost of goods procured,
-rent, wages, utilities, storage, promotional costs, net tax remittance, and
-credit interest into a single bottom line, with a credit facility drawn
-automatically whenever the month's closing cash position would otherwise
-fall below zero. At the annual horizon this bottom line is made explicit as
+Everything described so far --- every decision, every script --- happens
+inside a simulated reality that is always exactly conserved: every unit
+that is bought is eventually sold, spoiled, or counted, and every euro
+that moves is accounted for somewhere. An early, fully reconciled version
+of this dataset was reviewed and found, on inspection, to have one
+serious flaw: its records were perfect. Revenue tied to the cent, every
+inventory identity closed exactly, and no document was ever missing,
+duplicated, or mistyped. Real bookkeeping is never like this, and a
+dataset that reconciled perfectly would itself be evidence of
+fabrication to any experienced reader.
+
+The paperwork therefore sits in a third layer of this model, neither a
+decision nor a script: a small number of realistic paperwork defects,
+injected at low, carefully calibrated rates only at the point of export,
+never touching the simulation's own internal state. A point-of-sale
+terminal retries an upload and duplicates a till receipt. A distracted
+clerk posts the same invoice twice. A delivery is paid for but never
+logged. Unrecorded spoilage surfaces only later as unexplained monthly
+shrinkage. An inventory count is mistyped and self-corrects the
+following night. Each defect is drawn from its own independently keyed
+stream and simultaneously written to a separate answer key recording
+exactly what was changed, so the exercise of reconciling the messy
+records back to the truth is itself gradable against a known answer,
+and the underlying simulated reality that Section~\ref{sec:counterfactual}'s
+counterfactual machinery depends on is never disturbed by paperwork
+noise that exists only in the documents an analyst receives.
+
+This drift has its own exact algebra. Let $D_{st}$ denote a product's
+cumulative book-minus-true discrepancy on day $t$, pushed upward by
+duplicate invoices and unrecorded spoilage and downward by missing
+invoices and duplicate receipts. The inventory figure an analyst actually
+sees is book stock rather than true stock,
+$B_{st} = S_{st} + D_{st} - \sum_{c\le t} A_{sc}$, where $A_{sc}$ is the
+cumulative correction posted at each monthly physical count, which snaps
+the book back to physical truth before it begins drifting anew. Genuine
+refunds are kept deliberately separate from this recording layer and
+modeled instead as a true simulation event: after each receipt is
+finalized, an independently keyed stream decides whether one of its
+lines is returned, $\Pr(\text{refund}\mid\text{receipt}) = 0.006$, with
+the return posted days later as its own till transaction, referencing
+the original receipt, destroying rather than restocking the returned
+unit.
+
+The same discipline governs money. Revenue is recognized on a cash basis
+at the moment of sale, at the price actually paid after any live
+markdown. A voided mis-ring, in which a cashier corrects an immediate
+scanning error, nets to zero money and zero goods and is distinguishable
+from a genuine refund by the absence of a reference to an earlier
+receipt. Book stock is governed by a strict identity, $\text{book}(t) -
+\text{book}(t-1) = \text{deliveries}(t) - \text{sales}(t) -
+\text{write\_offs}(t)$, with any deviation traceable either to a
+deliberate recording defect or to the monthly physical count. Perishable
+spoilage and monthly count corrections are kept in strictly separate
+categories because they measure two different things, genuine physical
+waste and pure bookkeeping drift, and conflating them would double-count
+the same euros. The monthly ledger aggregates revenue, procurement,
+rent, wages, utilities, storage, promotional costs, net tax, and credit
+interest into a single bottom line, made explicit at the annual horizon
+as
 
 \begin{align*}
 \text{ProfitBeforeTax} \overset{\leftarrow}{=}\ & \sum \text{Revenue} -
@@ -1846,91 +1184,143 @@ fall below zero. At the annual horizon this bottom line is made explicit as
 \text{CreditInterest}\big) - \text{Openings},
 \end{align*}
 
-where $\text{Openings}$ collects any one time capital expenditure, such as a
-second location's fit-out cost, incurred that year. Profit tax is then levied
-only on a genuine surplus,
+with profit tax levied only on a genuine surplus,
+$\text{ProfitTax} = 0.20\times\max(0,\text{ProfitBeforeTax})$ and
+$\text{ProfitAfterTax} = \text{ProfitBeforeTax} - \text{ProfitTax}$, so a
+loss year triggers no tax liability but also earns no rebate, mirroring
+the asymmetric treatment a real small proprietorship faces. The rule
+that makes every part of this paper trustworthy at once is this: the
+owner's own monthly ledger is always correct about money, and every
+other document --- particularly the raw till receipts and the raw
+supplier invoices --- is the analyst's own paperwork to reconcile
+against it.
 
-\begin{align*}
-\text{ProfitTax} &= 0.20 \times \max(0, \text{ProfitBeforeTax}), \\
-\text{ProfitAfterTax} &= \text{ProfitBeforeTax} - \text{ProfitTax},
-\end{align*}
+\section{Design Principles and Notation}
+\label{sec:principles}
 
-so that a loss year triggers no tax liability but also earns no rebate,
-mirroring the asymmetric treatment a real small proprietorship faces. On the
-three year horizon this ledger additionally tracks retained earnings, owner
-withdrawals, one time capital expenditures, and the cash payment of the
-prior year's profit tax, exactly the additional bookkeeping that the
-expansion decision described in Section~\ref{sec:phase5} depends upon.
+A few conventions recur so often in the sections above that it is worth
+naming them once, plainly, rather than re-explaining them at every
+occurrence.
+
+\subsection{The three-question discipline}
+
+Every stochastic element in this paper, from a customer's weekly grocery
+budget to the day a storm arrives, was chosen by answering the same
+three questions, in the same order. What values can the variable
+actually take --- its \emph{support}? A probability must live on
+$(0,1)$; a count must be a nonnegative integer; a cost must be strictly
+positive. What \emph{generative story} actually produces it? A quantity
+built from many small effects adding together behaves differently from
+one built from many small factors multiplying together, and both differ
+from one built from a fixed number of independent yes-or-no trials.
+And, once support and story have narrowed the field, which distribution
+within it is \emph{maximum entropy} --- adds the least unwarranted
+structure beyond the facts actually being claimed? This discipline
+explains a pattern that recurs throughout this paper: a budget built
+from many small multiplicative factors is LogNormal; a probability such
+as a schedule-adherence rate is Beta; a count of rare independent events
+such as a shock arrival is Poisson. None of these choices are arbitrary
+or repeated by habit; each answers the same three questions afresh in
+its own context.
+
+\subsection{Notation}
+
+Distributions are written with their natural parameters throughout, so a
+Normal distribution is always $\text{Normal}(\mu,\sigma)$ and never
+$\text{Normal}(\mu,\sigma^2)$. The symbol $\sim$ denotes a stochastic
+draw; $=$ denotes a deterministic definition; and
+$\overset{\leftarrow}{=}$ is reserved for the cost and accounting
+identities, where the direction of causation is itself the point being
+made. A hat, $\hat{\cdot}$, always marks a belief held by the owner, as
+opposed to the corresponding true value he cannot observe. Locations are
+indexed by $l$, categories by $c$ (twelve, matching a real product
+catalog), products by $s$, customers by $i$, and days by $t$; weeks by
+$w$, months by $m$, and shock events by $k$. A small number of letters
+are reused across sections for unrelated quantities exactly as they are
+reused in the underlying implementation --- $\alpha$, $m$, and $\chi$
+each mean something different depending on where they appear --- and
+every such reuse is flagged in prose at the point it recurs.
+
+\subsection{Reproducibility}
+
+The entire model is driven by a single seeded pseudorandom generator, so
+the whole three-year history is reproducible exactly from one integer,
+and the keyed-randomness discipline of Section~\ref{sec:counterfactual}
+is what turns that reproducibility into genuine counterfactual power
+rather than mere determinism.
 
 \section{Discussion}
 \label{sec:discussion}
 
-Several design choices recur across every phase of this model and are worth
-drawing out explicitly, because they explain why the architecture as a whole
-looks the way it does rather than some equally plausible alternative.
+Four choices recur across every section of this paper and are worth
+drawing out explicitly, because they explain why the architecture as a
+whole looks the way it does rather than some equally plausible
+alternative.
 
-The first recurring choice is that every random variable is defended on its
-own terms by the same three question discipline introduced in
-Section~\ref{sec:principles}, rather than by convention or convenience. This
-has a practical consequence beyond intellectual tidiness: because each
-distributional choice is defended by an explicit generative story, the size
-and shape of every planted pattern in the resulting data, such as the degree
-of overstocking caused by owner optimism or the seasonal swing in a
-particular product's sales, can in principle be computed exactly from the
-model's own parameters rather than merely observed empirically after the
-fact.
+The first is that every random variable is defended on its own terms by
+the three-question discipline, rather than by convention or
+convenience, which means the size and shape of every planted pattern in
+the data --- the degree of overstocking caused by Henrik's optimism, the
+seasonal swing in a particular product's sales --- can in principle be
+computed exactly from the model's own parameters rather than merely
+observed empirically after the fact.
 
-The second recurring choice is the strict separation between what is
-exogenous, meaning decided in advance and independent of the simulated
-agents' behavior, and what is endogenous, meaning a genuine response to
-observed outcomes within the model. Weather, macroeconomic shocks, and
-household budget shocks are all exogenous by construction, which is what
-allows them to function as instruments and natural experiments in later
-analysis. The owner's restocking rule, pricing rule, and expansion decision
-are all endogenous responses to what he actually observes, which is what
-allows his documented mistakes to be genuine, traceable consequences of
-otherwise reasonable behavior rather than arbitrary flaws inserted for
-pedagogical convenience.
+The second is the strict separation between the micro layer of
+Section~\ref{sec:micro} and the macro layer of Section~\ref{sec:macro}:
+what is decided fresh each time the world runs, and what is written down
+in advance and never listens to anything the simulated people do. This
+is what allows weather and macroeconomic shocks to function as
+instruments and natural experiments, and it is what allows an owner's
+documented mistakes to be genuine, traceable consequences of otherwise
+reasonable behavior rather than arbitrary flaws inserted for pedagogical
+convenience.
 
-The third recurring choice is the strict separation between the underlying
-physical reality of the simulated world, which is always internally
-consistent and exactly conserved, and the paperwork describing that reality,
-which is allowed to be imperfect in the same limited, realistic ways real
-business paperwork is imperfect. This separation is what allows the
-counterfactual machinery of Phases Four and Five to remain exact even in the
-presence of realistic recording noise, because that noise is injected only
-at the point of export and never touches the simulated state itself.
+The third is the strict separation, laid out in
+Section~\ref{sec:recording}, between the underlying physical reality of
+the simulated world, always internally consistent and exactly conserved,
+and the paperwork describing that reality, which is allowed to be
+imperfect in the same limited, realistic ways real business paperwork
+is imperfect. This is what allows the counterfactual machinery of
+Section~\ref{sec:counterfactual} to remain exact even in the presence of
+realistic recording noise, because that noise is injected only at the
+point of export and never touches the simulated state itself.
 
-Finally, throughout the model a small number of specific, deliberate gaps
-between belief and truth, whether the owner's demand estimate, his
-forecasting rule, his tax strategy, or his capital allocation decision, are
-each introduced once, defended on realistic grounds, and then left
-undisturbed rather than corrected. This is a deliberate design stance rather
-than an oversight: the entire point of the construction is to produce a
-world in which the distance between what an agent believes and what is true
-can be measured precisely, and that distance can only be measured if the
-model resists the temptation to make its own protagonist smarter than the
-premise requires.
+The fourth is that a small number of specific, deliberate gaps between
+belief and truth --- an owner's demand estimate, his forecasting rule,
+his tax strategy, his capital-allocation decision --- are each
+introduced once, defended on realistic grounds, and then left
+undisturbed rather than corrected. This is a deliberate design stance
+rather than an oversight: the entire point of this construction is to
+produce a world in which the distance between what an agent believes
+and what is true can be measured precisely, and that distance can only
+be measured if the model resists the temptation to make its own
+protagonist smarter than the premise requires.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-This paper has consolidated the theoretical reasoning behind a five phase
-construction of a synthetic grocery store, from the owner's opening decision
-solved as a mixed integer program, through a scripted year of weather and
-macroeconomic shocks, a daily market mechanism built on individually
-rational discrete choice, a laboratory of counterfactual scenarios, and a
-three year extension adding customer turnover and capital accumulation. Every
-distributional and structural choice throughout the model was defended by
-the same discipline: identifying the variable's true support, articulating
-the generative story that actually produces it, and selecting, within those
-constraints, the distribution that assumes the least beyond what has
-actually been claimed. The result is a world built from first principles
-rather than a spreadsheet of plausible numbers, in which every observable
-pattern, whether a seasonal swing in ice cream sales, an overstocked
-category, or a capital decision that looks reasonable at the time and
-questionable in hindsight, traces to an explicit, defensible mechanism rather
-than to an arbitrary injection of noise.
+This paper has told the story of a simulated grocery store as a
+collection of decisions rather than a chronology of software phases:
+what a customer wants at a shelf, what an owner believes before a
+single sale exists, how that owner adjusts once real sales do exist,
+when he dares to risk capital on growing further, and how a whole
+neighborhood drifts in and out of being his customers, set against a
+macro layer that is scripted, deterministic, and never listens to any
+of it. Every one of those decisions was built the same way: from the
+plain intuition a real person would give you if you asked them why, to
+the precise mathematical object that intuition becomes. The result is a
+world in which an observable pattern --- a seasonal swing in ice cream
+sales, an overstocked category, a capital decision that looks reasonable
+at the time and questionable in hindsight --- always traces back to one
+of these decisions or scripts rather than to an arbitrary injection of
+noise, and in which the gap between what somebody believed and what
+was actually true can, for the first time, be measured rather than
+merely argued about. Readers who want the precise specification behind
+any single mechanism sketched here, at a level suitable for
+reimplementation, should turn to \texttt{documents/PHASE1\_DETAILS.md}
+through \texttt{PHASE5\_DETAILS.md} in the project repository; this
+paper's job was only ever to explain why each of those mechanisms is
+there, and what it is like to live inside the economy they add up to.
 
 \section*{References}
 \addcontentsline{toc}{section}{References}
@@ -1954,6 +1344,11 @@ socio-economic system. \textit{Review of Economics and Statistics}, 39(2),
 Veeramachaneni, K. (2016). The synthetic data vault. In \textit{Proceedings
 of the IEEE International Conference on Data Science and Advanced Analytics
 (DSAA)}, 399--410.
+
+\item \hypertarget{ref:sarasvathy2001}{}Sarasvathy, S. D. (2001).
+Causation and effectuation: Toward a theoretical shift from economic
+inevitability to entrepreneurial contingency. \textit{Academy of
+Management Review}, 26(2), 243--263.
 
 \item \hypertarget{ref:xu2019}{}Xu, L., Skoularidou, M., Cuesta-Infante,
 A., and Veeramachaneni, K. (2019). Modeling tabular data using conditional
