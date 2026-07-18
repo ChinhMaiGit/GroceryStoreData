@@ -161,7 +161,7 @@ PHASE4 = {
 }
 ```
 
-Scenario specs live in `datagen/scenarios.py`; the entry point grows
+Scenario specs live in `archive/datagen/scenarios.py`; the entry point grows
 `--scenario <name>` (repeatable) and `--all-scenarios`, writing the comparison
 file whenever more than one arm is generated. Consequence accepted in review:
 introducing real VAT remittance changes the baseline's cash path, so the

@@ -1,7 +1,13 @@
-"""Business Data Generator — entry point.
+"""Business Data Generator — entry point (archived reference implementation).
 
-The implementation lives in the `datagen/` package, one module per design
-document:
+Superseded by the `grocery_sim` package (`package/grocery_sim/`), the
+actively developed copy — see the top-level README. Kept here, working,
+as the historical reference behind the pre-generated arms under
+`data/scenarios/`. Run from the repository root as
+`uv run python archive/generate_dataset.py ...`.
+
+The implementation lives in the `datagen/` package (now `archive/datagen/`),
+one module per design document:
 
 Phase 1  (documents/PHASE1_DETAILS.md -> datagen/phase1.py): the world at
          t=0 — locations, customers, the owner's beliefs, and his opening
@@ -26,10 +32,11 @@ Phase 5  (documents/PHASE5_DETAILS.md): the three-year arc — panel churn and
 Every arm — the baseline included — lands under data/scenarios/<name>/ with
 its own visible/ and hidden/ split. Reproducible end to end from MASTER_SEED.
 
-Run:  uv run python generate_dataset.py                 (baseline only)
-      uv run python generate_dataset.py --scenario war_june
-      uv run python generate_dataset.py --scenario 3y_baseline
-      uv run python generate_dataset.py --all-scenarios
+Run (from the repository root):
+      uv run python archive/generate_dataset.py                 (baseline only)
+      uv run python archive/generate_dataset.py --scenario war_june
+      uv run python archive/generate_dataset.py --scenario 3y_baseline
+      uv run python archive/generate_dataset.py --all-scenarios
 """
 
 from __future__ import annotations

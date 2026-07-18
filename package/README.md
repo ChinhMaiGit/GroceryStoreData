@@ -246,7 +246,7 @@ pull request against `main`.
 ## Package layout
 
 See `grocery_sim/__init__.py` for the module-by-module map. The package
-mirrors the original `datagen/` implementation's one-module-per-design-
+mirrors the archived `archive/datagen/` implementation's one-module-per-design-
 document structure (`phase1.py`, `phase2.py`, `phase3.py`, `world.py`,
 `recording.py`, `export.py`, `keys.py`, `params.py`), plus this package's
 own additions: `events.py` (the composer described above), `settings.py`

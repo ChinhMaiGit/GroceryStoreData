@@ -14,12 +14,13 @@ def _():
 
     from pathlib import Path
 
-    ROOT = Path(__file__).resolve().parent.parent
+    ROOT = Path(__file__).resolve().parent.parent.parent
+    ARCHIVE = ROOT / "archive"
     DATA = ROOT / "data" / "scenarios"
-    if str(ROOT) not in sys.path:
-        sys.path.insert(0, str(ROOT))
+    if str(ARCHIVE) not in sys.path:
+        sys.path.insert(0, str(ARCHIVE))
 
-    from datagen.scenarios import SCENARIOS  # noqa: E402 (needs ROOT on sys.path)
+    from datagen.scenarios import SCENARIOS  # noqa: E402 (needs ARCHIVE on sys.path)
 
     # ---- what a generated arm looks like, and which notebook(s) already
     # target it. This tool does NOT parameterize the notebooks below — each
@@ -32,37 +33,37 @@ def _():
     # notebooks below to a new arm is a data-path edit, not a rewrite).
     NOTEBOOKS = {
         "baseline": [
-            "analyses/catalog_walkthrough.py",
+            "archive/analyses/catalog_walkthrough.py",
         ],
         "3y_baseline": [
-            "analyses/analysis_workbook.py",
-            "analyses/clean_and_describe.py",
-            "analyses/diagnose_causes.py",
-            "analyses/predict_and_warn.py",
-            "analyses/prescribe.py",
-            "analyses/learn_structure.py",
-            "analyses/three_year_review.py",
+            "archive/analyses/analysis_workbook.py",
+            "archive/analyses/clean_and_describe.py",
+            "archive/analyses/diagnose_causes.py",
+            "archive/analyses/predict_and_warn.py",
+            "archive/analyses/prescribe.py",
+            "archive/analyses/learn_structure.py",
+            "archive/analyses/three_year_review.py",
         ],
         "3y_no_competitor": [
-            "analyses/competitor_entry_study.py",
+            "archive/analyses/competitor_entry_study.py",
         ],
         "3y_no_expansion": [
-            "analyses/expansion_review.py",
+            "archive/analyses/expansion_review.py",
         ],
         "food_vat_cut_july": [
-            "analyses/policy_lab.py",
+            "archive/analyses/policy_lab.py",
         ],
         "tax_rebate_spring": [
-            "analyses/policy_lab.py",
+            "archive/analyses/policy_lab.py",
         ],
         "war_june": [
-            "analyses/policy_lab.py",
+            "archive/analyses/policy_lab.py",
         ],
         "typhoon_september": [
-            "analyses/policy_lab.py",
+            "archive/analyses/policy_lab.py",
         ],
         "second_clerk": [
-            "analyses/policy_lab.py",
+            "archive/analyses/policy_lab.py",
         ],
     }
     # some notebooks read a SECOND arm besides the one the user picked (a
@@ -210,7 +211,7 @@ def _(
         _t0 = time.time()
         _result = subprocess.run(
             args = _cmd,
-            cwd = str(ROOT),
+            cwd = str(ARCHIVE),
             capture_output = True,
             text = True,
             timeout = 900,

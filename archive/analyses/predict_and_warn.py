@@ -16,7 +16,7 @@ def _():
     from pathlib import Path
     from plotly.subplots import make_subplots
 
-    ROOT = Path(__file__).resolve().parent.parent
+    ROOT = Path(__file__).resolve().parent.parent.parent
     DATA = ROOT / "data"
 
     # ---- shared declutter style (see analysis_workbook.py for rationale) ---

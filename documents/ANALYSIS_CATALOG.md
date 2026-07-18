@@ -178,34 +178,34 @@ validation needs Layer 2's estimates), structure last, and the three-year arc
 (Layer 7) as its own arc-length engagement once the one-year pipeline is
 trusted (the one-year baseline arm remains the pipeline's exact
 regression anchor).
-`analyses/analysis_workbook.py` walks a single narrative through Layers 0–4
-at survey depth; `analyses/catalog_walkthrough.py` demonstrates the grading
+`archive/analyses/analysis_workbook.py` walks a single narrative through Layers 0–4
+at survey depth; `archive/analyses/catalog_walkthrough.py` demonstrates the grading
 loop with one scored question per layer; **Layers 0–1 are done at full
-depth** in `analyses/clean_and_describe.py` (every defect family graded,
+depth** in `archive/analyses/clean_and_describe.py` (every defect family graded,
 the reconciliation contract run live, all eight descriptive questions) and
-**Layer 2 in `analyses/diagnose_causes.py`** (weather, the cost shocks and
+**Layer 2 in `archive/analyses/diagnose_causes.py`** (weather, the cost shocks and
 their pass-through, elasticity with instrument-validity autopsy, the
 markdown DiD and the 5%-Sunday, spoilage, and the missingness test),
-**Layer 3 in `analyses/predict_and_warn.py`** (the 2027-holdout forecast
+**Layer 3 in `archive/analyses/predict_and_warn.py`** (the 2027-holdout forecast
 bench, censored demand, the owner-forecast autopsy, stockout risk, and the
 down-trading screen), and
-**Layer 4 in `analyses/prescribe.py`** (the ordering-policy backtest graded
+**Layer 4 in `archive/analyses/prescribe.py`** (the ordering-policy backtest graded
 against the oracle ceiling, the newsvendor table, the repricing menu, the
 delisting audit, the cash floor, and the prescription sheet — 4.5–4.6
 closed by reference to Layers 2 and 7), and
-**Layer 5 in `analyses/policy_lab.py`** (all six lab questions on the five
+**Layer 5 in `archive/analyses/policy_lab.py`** (all six lab questions on the five
 one-year twin arms: VAT incidence, the rebate MPC, the war decomposition,
 the typhoon catch-up, the external-validity grading of the observational
 elasticity, and the clerk verdict), and
-**Layer 6 in `analyses/learn_structure.py`** (a conditional logit graded
+**Layer 6 in `archive/analyses/learn_structure.py`** (a conditional logit graded
 against true price sensitivity, four seasonality estimators graded
 against the hidden script, an MMM and the endogenous confound it cannot
 escape, the four-cause hidden-demand reconstruction, a two-population
 mixture graded against the guest register, and the DAG's independence
 tests — including the one violation planted on purpose);
 Layer 7 is covered by its own
-trio — `analyses/three_year_review.py` (7.1–7.5, 7.10–7.11 posed),
-`analyses/competitor_entry_study.py` (7.3–7.6), and
-`analyses/expansion_review.py` (7.9, 7.11 answered). Every layer of the
+trio — `archive/analyses/three_year_review.py` (7.1–7.5, 7.10–7.11 posed),
+`archive/analyses/competitor_entry_study.py` (7.3–7.6), and
+`archive/analyses/expansion_review.py` (7.9, 7.11 answered). Every layer of the
 catalog now has a full-depth graded notebook. The catalog is the
 specification for doing each layer at full depth, graded.

@@ -19,8 +19,8 @@ def _():
     from pathlib import Path
     from plotly.subplots import make_subplots
 
-    # the notebook lives in analyses/; the project root is one level up
-    ROOT = Path(__file__).resolve().parent.parent
+    # the notebook lives in archive/analyses/; the project root is two levels up
+    ROOT = Path(__file__).resolve().parent.parent.parent
     DATA = ROOT / "data"
 
     # ---- chart style: declutter per Knaflic's "Storytelling with Data" -----

@@ -43,13 +43,11 @@ uv pip install -e .
 | Path | Contents |
 | --- | --- |
 | `package/` | The `grocery_sim` package — install and use this |
-| `paper/` | The theoretical paper (LaTeX source + compiled PDF) |
+| `paper/` | The theoretical paper (LaTeX source + compiled PDF), plus a draft JOSE-style software paper |
 | `documents/` | The design documents the paper and package are built from: `PHASE1..5_DETAILS.md`, `ACCOUNTING.md`, `ANALYSIS_CATALOG.md`, `CASE_WRITING_GUIDE.md` |
-| `datagen/` | The original, non-packaged reference implementation behind the pre-generated arms and cases below; frozen as a historical reference — `package/grocery_sim/` is the actively developed copy |
 | `data/scenarios/` | Pre-generated reference arms (the baseline, CRN-twin policy scenarios, and the three-year arc), each with its `visible/` analyst dataset and `hidden/` answer key |
 | `cases/` | Business cases built on specific arms — a client-facing brief, an instructor appendix, and a worked analysis notebook per case |
-| `analyses/` | Marimo notebooks working through the analysis catalog on the reference arms |
-| `draft/` | The archived original design notebook, superseded by `documents/` and the package |
+| `archive/` | Pre-package exploratory material, kept working but no longer developed: `datagen/` (the original, non-packaged reference implementation behind `data/scenarios/` — `package/grocery_sim/` is the actively developed copy), `generate_dataset.py` (its CLI entry point), `analyses/` (marimo notebooks working through the analysis catalog on the reference arms), and `draft/` (the original design notebook) |
 
 ## Which one do I want?
 
@@ -57,5 +55,5 @@ uv pip install -e .
   `grocery_sim` package.
 - **Understand why the model is built the way it is** → `paper/paper.pdf`.
 - **See a worked, full-depth business-analytics engagement on
-  pre-generated data** → `cases/` and `analyses/`, built on the reference
-  arms in `data/scenarios/`.
+  pre-generated data** → `cases/`, built on the reference arms in
+  `data/scenarios/`.

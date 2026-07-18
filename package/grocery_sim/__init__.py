@@ -14,7 +14,7 @@ grocery store, usable as a library.
     sim.settings              # the resolved settings dict
     sim.create_analysis(path)  # a scaffolded marimo notebook
 
-This package is extracted from, and mirrors, the `datagen/` implementation
+This package is extracted from, and mirrors, the `archive/datagen/` implementation
 behind the project's own generated cases (data/scenarios/, cases/). Each
 module here implements one design document (documents/PHASE1..5_DETAILS.md)
 or one cross-cutting concern:

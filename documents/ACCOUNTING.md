@@ -8,7 +8,7 @@ working from an arm's `visible/` folder (the reference year lives at
 `data/scenarios/baseline/visible/`); pointers to the design rationale reference the
 phase documents (`documents/PHASE1..3_DETAILS.md`, abbreviated P1/P2/P3 below).
 
-Parameter values quoted here come from `datagen/params.py` (`PHASE1`, `PHASE3`,
+Parameter values quoted here come from `archive/datagen/params.py` (`PHASE1`, `PHASE3`,
 `PHASE4`, `IMPERFECTIONS`). Euro amounts marked *(reference year)* are measurements
 of the currently shipped dataset, not parameters.
 
