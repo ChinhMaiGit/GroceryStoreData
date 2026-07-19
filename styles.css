@@ -1,0 +1,14 @@
+/* grocery-sim site — small overrides on top of the Quarto theme */
+
+.quarto-title-banner {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+main.content {
+  max-width: 900px;
+}
+
+table {
+  font-size: 0.92rem;
+}
