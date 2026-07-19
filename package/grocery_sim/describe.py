@@ -155,6 +155,33 @@ def _result_phrase(result: float) -> str:
     )
 
 
+# how the owner should frame the closing decision, situation-dependent --
+# a real business owner facing a genuinely good year is weighing whether
+# to expand, not whether to survive, even if the exact same shocks fired
+_DECISION_FRAMING = {
+    "struggling": "whether to hold on, change something, or walk away",
+    "thriving": "whether to expand further or simply stay the course",
+    "uncertain": "what, if anything, to change",
+}
+
+
+def _financial_situation(tx) -> str:
+    """Classify the run's real financial trajectory -- not just the final
+    year's result in isolation -- so the owner's tone, blame framing, and
+    closing ask actually match reality. Without this, a misguide-eligible
+    event (a competitor, a war, a hazard) always reads as a crisis to
+    explain, even in a run where the business came through it and is
+    genuinely thriving; a real owner doing well would be curious, not
+    anxious, and would be weighing expansion, not survival."""
+    profits = tx["profit_after_tax"].astype(float).tolist()
+    final, first = profits[-1], profits[0]
+    if final < -500:
+        return "struggling"
+    if final > 500 and final >= first * 0.7:
+        return "thriving"
+    return "uncertain"
+
+
 def pick_misguide_candidate(events: dict) -> str | None:
     """The most visible, most emotionally salient active event — the one a
     real owner would fixate on, whether or not the data agrees. Priority:
@@ -294,6 +321,8 @@ def build_brief(
     final_year_result = float(tx["profit_after_tax"].iloc[-1])
     total_revenue = float(cs["revenue"].sum())
     result_phrase = _result_phrase(final_year_result)
+    situation = _financial_situation(tx)
+    decision = _DECISION_FRAMING[situation]
     candidate = misguide.get("candidate")
 
     active_events = _active_events(ev)
@@ -332,21 +361,31 @@ def build_brief(
             f"{_round_money(last_yr_rev)}, {trend}."
         )
         lines.append(">")
-    if candidate:
+    if candidate and situation == "thriving":
+        blame_phrase = _EVENT_LINES.get(candidate, candidate)
+        lines.append(
+            f"> Over {span} we have taken in {_round_money(total_revenue)} "
+            f"across the till altogether, and the bottom line came out to "
+            f"{result_phrase} despite {blame_phrase}. I don't know whether "
+            f"we did well in spite of it or whether we're leaving money on "
+            f"the table because of it. I want someone who isn't me to look "
+            f"at my numbers properly before I decide {decision}."
+        )
+    elif candidate:
         blame_phrase = _EVENT_LINES.get(candidate, candidate)
         lines.append(
             f"> Over {span} we have taken in {_round_money(total_revenue)} "
             f"across the till altogether, and the bottom line came out to "
             f"{result_phrase}. I think I know why: {blame_phrase}. I want "
             f"someone who isn't me to look at my numbers properly before I "
-            f"decide what to do next."
+            f"decide {decision}."
         )
     else:
         lines.append(
             f"> Over {span} we have taken in {_round_money(total_revenue)} "
             f"across the till altogether, and the bottom line came out to "
             f"{result_phrase}. I want someone who isn't me to look at my "
-            f"numbers properly before I decide what to do next."
+            f"numbers properly before I decide {decision}."
         )
     lines.append(">")
     lines.append(f"> — {persona['owner_name']}")
@@ -456,11 +495,28 @@ def build_brief(
 
     lines.append("**Q: What do you think happened?**")
     lines.append("")
-    if candidate:
+    if candidate and situation == "thriving":
+        lines.append(
+            f"{Subj}: Honestly? {_cap_first(_EVENT_LINES.get(candidate, candidate))}"
+            f", and yet we still did well. I don't fully understand why it "
+            f"worked out that way. That's what I want you to check."
+        )
+    elif candidate and situation == "uncertain":
+        lines.append(
+            f"{Subj}: Maybe it's {_EVENT_LINES.get(candidate, candidate)}, "
+            f"maybe it's just an ordinary rough patch. I'm honestly not "
+            f"sure. That's what I want you to check with the numbers."
+        )
+    elif candidate:
         lines.append(
             f"{Subj}: {_cap_first(_EVENT_LINES.get(candidate, candidate))}. "
             f"I don't need a consultant to see it. That's what I want you "
             f"to check with the numbers."
+        )
+    elif situation == "thriving":
+        lines.append(
+            f"{Subj}: Honestly, I don't have a complaint. I just want to "
+            f"understand why this worked, so I can keep doing it."
         )
     else:
         lines.append(
@@ -527,6 +583,10 @@ def build_brief(
     if years == 3:
         q.append("Which customers am I losing, and who replaced them?")
         q.append("What should I expect next year to look like if nothing changes?")
+    if situation == "thriving":
+        q.append("Should I open a second location, or push further here first?")
+    elif situation == "struggling":
+        q.append("Is there a way to turn this around, or is it time to close?")
     q.append("What should I actually do next?")
     for i, question in enumerate(q, start = 1):
         lines.append(f"{i}. \"{question}\"")
@@ -540,19 +600,20 @@ def build_brief(
             f"{persona['owner_name']} is convinced {pn['subject']} knows "
             f"the answer. {pn['subject'].capitalize()} may be right. "
             f"{pn['subject'].capitalize()} may not be — and the difference "
-            f"matters more than {pn['possessive']} confidence suggests."
+            f"matters more than {pn['possessive']} confidence suggests, "
+            f"especially weighing {decision}."
         )
     elif candidate:
         lines.append(
             f"{persona['owner_name']}'s instinct points at one clear cause. "
             f"Whether the numbers agree exactly, and by how much, is the "
-            f"question worth pricing precisely rather than assuming."
+            f"question worth pricing precisely before weighing {decision}."
         )
     else:
         lines.append(
             f"{persona['owner_name']} has no single villain in mind — just "
             f"a business {pn['subject']} wants understood properly before "
-            f"deciding what, if anything, to change."
+            f"weighing {decision}."
         )
     lines.append("")
     lines.append(
