@@ -49,6 +49,36 @@ uv pip install -e .
 | `cases/` | Business cases built on specific arms — a client-facing brief, an instructor appendix, and a worked analysis notebook per case |
 | `archive/` | Pre-package exploratory material, kept working but no longer developed: `datagen/` (the original, non-packaged reference implementation behind `data/scenarios/` — `package/grocery_sim/` is the actively developed copy), `generate_dataset.py` (its CLI entry point), `analyses/` (marimo notebooks working through the analysis catalog on the reference arms), and `draft/` (the original design notebook) |
 
+## What kind of analysis does this support?
+
+`documents/ANALYSIS_CATALOG.md` lists concrete, gradeable questions —
+every one answerable from an arm's `visible/` data and checkable against
+its `hidden/` answer key — across eight layers, in the order a real
+engagement would tackle them:
+
+| Layer | What it asks |
+| --- | --- |
+| 0 — Clean | Reconcile duplicate receipts/invoices, mistyped counts, and other recording-layer defects before trusting anything |
+| 1 — Describe | Where the money goes, when people shop, what a basket looks like |
+| 2 — Diagnose causes | Does weather actually move revenue once the calendar is controlled for; how fast does a cost shock reach the shelf |
+| 3 — Predict | Demand forecasting against a seasonal-naive baseline, stockout risk, early-warning on at-risk customers |
+| 4 — Prescribe | Redesign the ordering policy, repricing, hire/expand decisions — priced against the believed/realized/oracle profit triptych |
+| 5 — Policy lab | CRN-twin scenario arms make every counterfactual exact: what a tax cut actually did, what a competitor actually cost |
+| 6 — Advanced/structural | Discrete-choice estimation, hierarchical Bayesian demand models, marketing-mix decomposition, DAG-consistency checks |
+| 7 — The three-year arc | Trend vs. season, churn, structural breaks, capital decisions (`3y_baseline` and its twins only) |
+
+Its own suggested methods lean econometric — conditional logit,
+hierarchical Bayesian demand models, STL trend-seasonality
+decomposition, survival analysis for churn, marketing-mix decomposition
+— but standard ML fits just as naturally even though the catalog
+doesn't frame it that way: gradient boosting or bagging for
+stockout-risk and (on the three-year arc) churn classification;
+clustering for customer segmentation off basket and behavioral
+features. What makes any of this more than a generic tabular exercise
+is that the generating mechanism is fully known — a model can be
+graded not just on held-out accuracy but on whether it recovered the
+*true* structure, a check no real dataset can offer.
+
 ## Which one do I want?
 
 - **Generate your own data under your own scenario** → `package/`, the
