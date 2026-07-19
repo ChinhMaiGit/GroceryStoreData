@@ -205,6 +205,7 @@ stock-count rows measure bookkeeping drift. Mixing them double-counts.
 | `storage` | end-of-month on-hand units × unit storage rate (€0.02 × inflation) |
 | `flyers` | €80 per markdown campaign triggered that month |
 | `vat` | net VAT remittance: VAT collected on sales minus VAT paid on invoices, at each category's rate (Section 7.3) — leaves the till at the close |
+| `revenue_tax` | a flat levy on gross revenue (package amendment, `grocery_sim`'s own addition — not in the original `archive/datagen` design), armed only by a scenario's `events.tax_raise`; **€0 in the baseline and any scenario that never sets it**. Unlike `vat` it never touches shelf prices — the owner cannot pass it through — so it is a pure cash cost, read at the monthly close |
 | `credit_interest` | credit balance × 8% APR / 12 |
 | `credit_balance` | credit drawn after the month's sweep |
 | `cash` | till cash at month end, after the sweep |
@@ -225,7 +226,7 @@ columns; the published one-year baseline keeps its schema untouched:
 | `repairs` | one-off maintenance hits (the Feb-2026 freezer repair, €1,800) — an expense, deducted from the month's result |
 | `owner_draw` | from Jan 2026: the owner pays himself half of each *positive* month's after-tax result — `0.5 × max(0, result × 0.8)` — leaving cash before the sweep; €0 in loss months and throughout year one (the founder lived off savings) |
 | `retained_earnings` | the running RE ledger: opens at year one's after-tax result when the books formalize (Jan 2026), grows by the retained half of good months, and is debited by capex |
-| `capex` | investment outlays (the €14,000 expansion fit-out) — **not** an expense: excluded from the month's result and from taxable profit (no depreciation is modeled; documented idealization) |
+| `capex` | investment outlays (the €14,000 expansion fit-out, and — package amendment — the €6,000 `bigger_store` / €5,000 `upgrade_infrastructure` capex if either investment is enabled and fires, see below) — **not** an expense: excluded from the month's result and from taxable profit (no depreciation is modeled; documented idealization) |
 | `profit_tax_paid` | the *prior* year's profit tax, leaving the till at the January close — the cash-basis settlement that replaces the P4 accrual idealization on the three-year horizon |
 
 **The expansion decision** (P5 §4.2): at any close from 2026 on, if
@@ -234,16 +235,30 @@ expands on the first of the next month — the first clerk (a fixed 8-hour
 shift), hours 07–21, shelf capacity ×1.2, €14,000 capex from cash and RE. It
 can fire at most once; in the reference path it fires November 1, 2026.
 
+**Two more investments (package amendment, P5 §4.3).** `bigger_store`
+(threshold €18,000, capex €6,000, a further shelf ×1.15 stacking on top of
+whatever the expansion already set) and `upgrade_infrastructure` (threshold
+€15,000, capex €5,000, every SKU's nightly spoilage probability ×0.75 from
+then on) follow the identical retained-earnings/spendable-cash trigger,
+independently gated, off by default and enabled per-run via
+`settings.potential_investment`. A `more_store` investment (a second physical
+location) is excluded from the settings schema entirely, not merely disabled
+— it would need a second Phase 1 opening MILP mid-run, which this pass of the
+package does not implement.
+
 ### 7.2 Annual realized profit
 
 ```
 profit before tax = Σ revenue
        − Σ (procurement + rent + wages + payroll_tax + utilities
-             + storage + flyers + vat + credit_interest)
+             + storage + flyers + vat + revenue_tax + credit_interest)
        − setup cost − listing fees − initial stock          ← the one-time openings
 profit tax        = 20% × max(0, profit before tax)          ← accrued, paid next January
 profit after tax  = profit before tax − profit tax
 ```
+
+(`revenue_tax` is €0 in every reference number quoted below and throughout
+this document — none of them enable `events.tax_raise`.)
 
 *(reference year: ≈ €36,479 before tax, €7,296 profit tax, €29,183 after tax;
 the hidden answer key stores the believed / realized / oracle triptych with

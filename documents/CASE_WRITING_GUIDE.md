@@ -282,3 +282,23 @@ Because every scenario is a declarative spec, the case pipeline is:
 
 Hand-write the canonical `3y_baseline` case first; treat it as the gold
 standard the templates must be able to reproduce.
+
+**Package amendment: the configurator now exists, for live runs.**
+`package/grocery_sim`'s `sim.describe()` (`persona.py` + `describe.py`) is a
+working instance of the pipeline sketched above — letter, intake-interview
+Q&A, and questions, auto-generated from a run's real `settings` and results —
+but built for a different surface than this section anticipated: it narrates
+any `GroceryStoreSimulation` a caller sets up on the fly (any combination of
+`settings.events`/`potential_investment`), not the pre-generated
+`data/scenarios/`/`cases/` arms this guide's pipeline targets. Two differences
+worth naming: `describe()`'s owner identity (`persona.py`) is drawn fresh
+per run from the settings' random seed, so it does **not** hold brand/persona/
+town constant across arms the way step 3 above prescribes for the hand-cased
+family; and `describe()`'s tone is situationally aware — it classifies the
+run's real profit trajectory (`_financial_situation()`: struggling / thriving
+/ uncertain) and frames the letter, the Q&A, and the ask accordingly, rather
+than assuming the "wrong belief to grade" framing this guide's step 4 asks a
+case-writer to choose deliberately. The two systems solve related but distinct
+problems: this guide's pipeline is for curated, reused teaching cases;
+`describe()` is for narrating an arbitrary one-off simulation the moment it
+finishes running.

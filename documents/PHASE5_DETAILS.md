@@ -222,6 +222,53 @@ peak"* is planted lesson #13 — the most common capital mistake in small
 retail, reproduced from first principles: labor is bought at market wage,
 margin is earned at grocery rates, and optimism does the rest.
 
+### 4.3 Generalization: three independent investments (package amendment)
+
+*(`package/grocery_sim`, not part of the original `archive/datagen` design.
+This section documents what the installed package actually does; §4.2 above
+describes the hire-and-extend-hours mechanism as it was originally designed
+and remains the largest and most consequential of the three.)*
+
+The hire expansion of §4.2 turned out to be one instance of a general
+pattern, and the package exposes two more instances of it as independent
+on/off switches: `settings.potential_investment.bigger_store` and
+`.upgrade_infrastructure`, alongside the pre-existing `.more_staff` (which
+gates exactly the §4.2 mechanism — setting it `False`, or setting
+`basic.retain_earning = False`, is the mechanism the `3y_no_expansion` twin
+already used, generalized into a settings field). All three share one rule,
+and the user-facing contract is the same for each: **the caller only ever
+gets to say whether an investment is *allowed***, never its date, its size,
+or whether it fires at all — that stays entirely the model's own emergent
+decision, gated by the identical retained-earnings/spendable-cash trigger
+already described in §4.2, each against its own threshold and capex:
+
+| Investment | Threshold $K$ | Capex $C$ | Effect once fired |
+|---|---|---|---|
+| `more_staff` (§4.2) | `expansion_threshold` = €52,000 | €14,000 | hire, +2 opening hours, shelf ×1.2 |
+| `bigger_store` | `shelf_threshold` = €18,000 | €6,000 | shelf multiplier ×1.15 more, **stacking multiplicatively** with whatever `more_staff` already set (so a run with both eventually reaches shelf ×1.38) |
+| `upgrade_infrastructure` | `infra_threshold` = €15,000 | €5,000 | every listed SKU's nightly spoilage probability scaled ×0.75 from that point on |
+
+Each investment is single-fire and independently gated (its own `*_t`/`expanded_*`
+state in `phase3.py`'s monthly-close loop), checked at the same monthly close
+alongside the §4.2 trigger, and executes on the first of the following month
+exactly like §4.2's expansion. Turning an investment off in the settings
+(the default for `bigger_store`/`upgrade_infrastructure`; `more_staff` defaults
+`True`) sets its threshold to `None`, which is precisely the mechanism the
+`3y_no_expansion` twin (§9) already relied on for the original hire — now a
+documented settings field rather than a hand-edited param override. Because
+the three thresholds are independent, a single run can fire zero, one, two,
+or all three investments, each visible in `cost_sheet.csv`'s `capex` column
+and `retained_earnings` trace at its own month.
+
+**`more_store` is excluded, not just disabled.** A second physical location
+is not a smaller version of the same pattern — it would need a second Phase 1
+opening MILP solved mid-run, a second location's rent/traffic/customer draw,
+and a second recording-layer instance. `settings.potential_investment` does
+not recognize a `more_store` key at all (unlike the other two, there is no
+default value to set `False`); it is a known limitation of this package pass,
+stated in `grocery_sim`'s own top-level docstring rather than silently
+absent.
+
 ## 5 Contracts and nominal drift
 
 Prices already drift: Phase 2's continuous inflation ($2.5\%/\text{yr}$,
@@ -330,7 +377,18 @@ runtime roughly triples (~11 min); acceptable.
   RE ledger, expansion trigger + capex, January profit-tax payment. The daily
   loop reads staffing/hours/shelf per day. Freezer, discounter penalty,
   festival, and response enter as scripted hooks with the same shape as
-  Phase 4's (they are baseline script now, not scenario arms).
+  Phase 4's (they are baseline script now, not scenario arms). Package
+  amendment (§4.3): two more independently-gated trigger/capex blocks
+  (`bigger_store`, `upgrade_infrastructure`), same shape as the expansion
+  trigger, each consulting its own `finance["shelf_threshold"]`/
+  `finance["infra_threshold"]` (`None` disables).
+- **events.py** (package amendment, not in the original design) — the
+  settings-level composer: turns `settings.events` /
+  `settings.potential_investment` into the scenario dict phase2–3/world.py
+  already know how to consume, generalizing this document's hand-written
+  scenario registry (P4 §3-4) to arbitrary, independently dated, combinable
+  events and to the two new investments. `more_store` is not part of the
+  schema it composes (§4.3).
 - **recording.py** — runs per calendar-year block, keyed by year (§2).
 - **export.py** — cost sheet new columns + calendar months; three
   `tax_statement` rows-per-year; hidden `customers.csv` gains
@@ -383,6 +441,14 @@ PHASE5 = {
         },
         # January pays the prior year's profit tax in cash — the P4 accrual
         # idealization ends with the formalized books (§4.1)
+        # package amendment (§4.3): two more independently-gated investments,
+        # same trigger pattern, each None-able via settings.potential_investment
+        "shelf_threshold": 18_000.0,
+        "shelf_capex": 6_000.0,
+        "shelf_mult_bonus": 1.15,
+        "infra_threshold": 15_000.0,
+        "infra_capex": 5_000.0,
+        "infra_spoilage_mult": 0.75,
     },
     "contracts": {
         "rent_mult_from_t": (731, 1.12),     # 2-yr contract renews 2027-01: +12%

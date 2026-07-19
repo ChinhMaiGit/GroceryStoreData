@@ -76,6 +76,23 @@ annual profit, **accrued, not cash-moved** (it is paid the following January,
 after the records close). It appears in the annual `tax_statement` and extends
 the triptych: believed / realized / oracle now each close to an after-tax line.
 
+**Revenue tax (package amendment, `grocery_sim`'s own addition, not part of the
+original `archive/datagen` design).** A fourth instrument, off by default
+($r^{rev} = 0$) and armed only by the `events.tax_raise` scenario field: a flat
+levy $r^{rev} = 1.5\%$ on **gross revenue**, read at the monthly close
+(`phase3.py`'s `revenue_tax = revenue\_tax\_rate_t \cdot \text{month\_revenue}`,
+`world.py` holding the per-day rate path exactly like the VAT rate array).
+Unlike VAT it never touches shelf prices — the owner cannot pass it through,
+because it is not embedded in an invoice line the way VAT is — and unlike
+profit tax it bites every month regardless of profitability, since it is
+levied on the top line, not the bottom one. It models the real gross-receipts
+taxes some jurisdictions levy on retailers as a blunter, harder-to-dodge
+alternative to a profit tax. `events.tax_raise` accepts a list of dates like
+its `tax_cut`/`food_vat_cut` siblings (one scenario can layer several rate
+changes); each entry adds a `{t_from, rate: revenue_tax_rate}` row to a
+`revenue_tax_schedule`, and `cost_sheet.csv` carries the result in its own
+`revenue_tax` column (see §6 and §2's "new artifacts" list, expanded below).
+
 **The owner and taxes — aware, not strategic** (2026-07-15 amendment). Three
 behaviors make him as tax-aware as any real shopkeeper: he prices on *net*
 margin (above); he costs hiring at the **full employer price** — wage plus
@@ -93,10 +110,12 @@ so CBC returned a different vertex of the (heavily degenerate) opening
 assortment within the optimality gap — same location, same believed profit, a
 reshuffled SKU list — and the baseline regenerated as a new vintage.
 
-**New artifacts.** `cost_sheet.csv` gains `vat` (net remittance) and
-`payroll_tax` columns; a new visible `tax_statement.csv` summarizes the year
-(output VAT, input VAT, remitted, payroll tax, profit before tax, profit tax,
-profit after tax); `profit_triptych.csv` gains the after-tax fields.
+**New artifacts.** `cost_sheet.csv` gains `vat` (net remittance), `payroll_tax`,
+and `revenue_tax` columns; a new visible `tax_statement.csv` summarizes the
+year (output VAT, input VAT, remitted, payroll tax, profit before tax, profit
+tax, profit after tax); `profit_triptych.csv` gains the after-tax fields.
+`revenue_tax` is zero throughout the baseline and every scenario that never
+sets `events.tax_raise` — see the package-amendment note above.
 
 ## 3 The scenario specification
 
@@ -110,6 +129,7 @@ knob*, never an RNG key:
 | `traffic_mult` | day-range multipliers on traffic $\Lambda_t$ | visits |
 | `budget_mult` | week-range multipliers on $B_{iw}$ | income effects, the tight-spell machinery's mirror image |
 | `vat_schedule` | rate-path changes $r_c(t)$ from a date | invoice gross factor + remittance |
+| `revenue_tax_schedule` | rate-path changes $r^{rev}(t)$ from a date (package amendment, §2) | direct cash cost at the monthly close, no price channel |
 | `policy` | `hired_extra`, `open_hour`, `close_hour` | wages (+ payroll tax) and the arrival-hour gate |
 
 The staffing knob is honest by construction: one owner cannot run more than a
@@ -117,6 +137,20 @@ The staffing knob is honest by construction: one owner cannot run more than a
 of the `closed`-cause hidden demand (P3 §5 already ledgers every out-of-hours
 arrival) into sales, and the question the scenario answers is whether that
 recovered demand pays the gross wage bill.
+
+**Package amendment: a settings-level front end.** `archive/datagen/scenarios.py`
+(below) is the original hand-written registry — one named arm per dict, edited
+by hand. `package/grocery_sim` generalizes this same scenario-spec shape behind
+a declarative settings schema instead: `GroceryStoreSimulation.setup(settings)`
+takes `settings.events` (`war`, `typhoon`, `food_vat_cut`, `tax_cut`,
+`tax_raise`, `competitor`, `operational_hazard`, each accepting one date or, for
+the first five, a list of dates) and `settings.potential_investment`
+(booleans — see P5 §4.3), and `events.py`'s composer turns those into exactly
+the scenario dict shown in this table (`events_add`/`weather_edit`/
+`vat_schedule`/`revenue_tax_schedule`/`policy`/`phase5` keys), with no change to
+world.py/phase3.py's own consumption of it. The reference arms below stay the
+hand-written registry's; the settings front end is how a caller composes new,
+arbitrary combinations without writing a new named scenario.
 
 ## 4 The reference scenarios
 
@@ -158,6 +192,9 @@ PHASE4 = {
     ],
     "payroll_rate": 0.25,
     "profit_tax_rate": 0.20,
+    # package amendment (§2): armed only by events.tax_raise; zero at baseline
+    # and in every scenario that never sets it
+    "revenue_tax_rate": 0.015,
 }
 ```
 
