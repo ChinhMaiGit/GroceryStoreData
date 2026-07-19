@@ -1,0 +1,57 @@
+---
+title: "grocery-sim"
+subtitle: "A structural microsimulation of a small neighborhood grocery store — with a fully known causal ground truth"
+page-layout: full
+---
+
+## What this is
+
+`grocery-sim` simulates one or three years in the life of a small
+neighborhood grocery store — customers, an owner, a calendar of weather and
+macroeconomic shocks, a daily market, and a full paper trail (receipts,
+invoices, a ledger, a tax filing). Every number in the output is the residue
+of somebody choosing something: a customer choosing between two cartons of
+milk, an owner deciding where to open before a single customer has walked
+through the door, deciding later whether to hire or expand under capital he
+cannot afford to lose.
+
+Nothing here is sampled from a convenient distribution and called a
+business. Every figure has a traceable, documented cause — which is exactly
+what makes it possible to grade an analysis, not just admire it.
+
+## Install
+
+```bash
+pip install grocery-sim
+```
+
+```python
+from grocery_sim import GroceryStoreSimulation
+
+sim = GroceryStoreSimulation()
+sim.setup({})       # the published one-year baseline, unmodified
+sim.simulate()
+
+sim.data()           # in-memory tables (receipts, invoices, ledger, ...)
+sim.db()             # the same tables behind a DuckDB connection
+sim.erd()            # a Mermaid ER diagram of this run's schema
+sim.describe()       # a business-case brief: a fictional owner narrating
+                      # this run's real events and results
+```
+
+## Where to go from here
+
+- **[Theory](theory.qmd)** — the intuition behind the construction: why the
+  world is split into decisions and scripts, and why that split is what lets
+  a counterfactual be exactly true instead of merely estimated.
+- **[Analysis catalog](analysis-catalog.qmd)** — the layered set of questions
+  this data is built to answer, from cleaning the paperwork through
+  structural, causal, and predictive modeling.
+- **[Exemplar analyses](analyses/index.qmd)** — worked examples on real
+  generated arms, added over time.
+
+## Links
+
+- [PyPI package](https://pypi.org/project/grocery-sim/)
+- [Source repository](https://github.com/ChinhMaiGit/grocery-sim)
+- [The theoretical paper (PDF)](https://github.com/ChinhMaiGit/grocery-sim/blob/main/paper/paper.pdf)

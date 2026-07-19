@@ -1,0 +1,41 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "grocery-sim"
+  description: "A structural microsimulation of a small neighborhood grocery store, with a fully known causal ground truth."
+  site-url: "https://ChinhMaiGit.github.io/grocery-sim/"
+  repo-url: "https://github.com/ChinhMaiGit/grocery-sim"
+  repo-actions: [issue]
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: theory.qmd
+        text: Theory
+      - href: analysis-catalog.qmd
+        text: Analysis catalog
+      - href: analyses/index.qmd
+        text: Exemplar analyses
+    right:
+      - icon: github
+        href: https://github.com/ChinhMaiGit/grocery-sim
+      - icon: box-seam
+        href: https://pypi.org/project/grocery-sim/
+        text: PyPI
+
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+    css: styles.css
+    toc: true
+    number-sections: false
+    code-copy: true
+    grid:
+      body-width: 900px
+
+execute:
+  freeze: auto

@@ -28,9 +28,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ChinhMaiGit/GroceryStoreData"
-Repository = "https://github.com/ChinhMaiGit/GroceryStoreData"
-"Paper" = "https://github.com/ChinhMaiGit/GroceryStoreData/blob/main/paper/paper.pdf"
+Homepage = "https://github.com/ChinhMaiGit/grocery-sim"
+Repository = "https://github.com/ChinhMaiGit/grocery-sim"
+"Paper" = "https://github.com/ChinhMaiGit/grocery-sim/blob/main/paper/paper.pdf"
+"Project site" = "https://chinhmaigit.github.io/grocery-sim/"
 
 [project.optional-dependencies]
 test = ["pytest>=8"]

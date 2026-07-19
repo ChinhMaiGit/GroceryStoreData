@@ -1,0 +1,23 @@
+---
+title: "Exemplar analyses"
+subtitle: "Worked examples on real generated arms"
+---
+
+Each page here is a full engagement: the client-facing case brief exactly as
+an analyst would receive it, and an analysis that answers the client's own
+questions, in the order asked, following the
+[Analysis catalog](../analysis-catalog.qmd).
+
+- **[Malm's Market — a three-year engagement](malm-market.qmd)** — a
+  neighborhood grocer three years in, deciding whether to renew a lease
+  after a record-revenue year that somehow netted him nothing. Covers
+  descriptive P&L, trend/seasonality decomposition, shrinkage forensics, an
+  observational competitor-impact estimate, a full-cost staffing
+  counterfactual, customer-panel churn, and a 2028 forecast — Layers 0, 1,
+  3, 4, 5, and 7 of the catalog in one pass.
+
+More pages will be added here over time. In the meantime, `archive/analyses/`
+in the [main repository](https://github.com/ChinhMaiGit/grocery-sim/tree/main/archive/analyses)
+already has a full-depth, graded notebook for every layer of the catalog,
+and the package's own `sim.create_analysis(path)` scaffolds a starting
+[marimo](https://marimo.io/) notebook against any run you generate yourself.

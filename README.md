@@ -1,6 +1,6 @@
-# GroceryStoreData
+# grocery-sim
 
-[![tests](https://github.com/ChinhMaiGit/GroceryStoreData/actions/workflows/tests.yml/badge.svg)](https://github.com/ChinhMaiGit/GroceryStoreData/actions/workflows/tests.yml)
+[![tests](https://github.com/ChinhMaiGit/grocery-sim/actions/workflows/tests.yml/badge.svg)](https://github.com/ChinhMaiGit/grocery-sim/actions/workflows/tests.yml)
 
 A structural microsimulation of a small neighborhood grocery store —
 customers, an owner, a calendar of weather and macro shocks, a daily
@@ -30,6 +30,11 @@ battery run automatically on every `simulate()` call.
 the model is built the way it is, every distributional choice defended,
 the causal structure behind the scripted/emergent split, and a literature
 review positioning it against other approaches to synthetic business data.
+
+**→ [chinhmaigit.github.io/grocery-sim](https://chinhmaigit.github.io/grocery-sim/)**
+is the project site: a condensed, web-friendly version of the theory above,
+the full analysis catalog, and worked exemplar analyses (a complete client
+case brief plus an analysis that answers it, following the catalog).
 
 ## Install
 

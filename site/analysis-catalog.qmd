@@ -1,0 +1,146 @@
+---
+title: "Analysis catalog"
+subtitle: "The layered set of questions this data is built to answer — and gradeable against ground truth"
+---
+
+Every question below is answerable from a generated arm's `visible/` folder
+and — this is the point of the whole project — **gradeable**: the generating
+mechanisms are recorded in a hidden answer key, and scenario arms are exact
+counterfactual twins of the baseline (see [Theory](theory.qmd)), so both
+estimates *and* methods can be scored against ground truth.
+
+Questions are grouped by analytics layer, in the order a real engagement
+would tackle them. **Applicability across arms**: every question in Layers
+0–4 and 6 applies to *every* generated arm, not just the baseline — each
+scenario folder is a complete instance of the same world, with its own
+recording-layer defects, its own tax accounting, and its own full answer
+key. Layer 5 is the one exception: its questions are about arm *pairs* by
+construction. The **three-year arms** (`basic.year = 3`) additionally unlock
+**Layer 7** — questions a single year structurally cannot ask: trend, churn,
+structural breaks, regime-change forecasting, and capital decisions.
+
+## Layer 0 — Clean the records before trusting them
+
+The recording layer deliberately plants ten defect families in the
+paperwork; every find is gradeable row-by-row against the hidden
+imperfections log.
+
+| # | Question | Approach |
+| --- | --- | --- |
+| 0.1 | Which receipts were uploaded twice, and what was revenue *really*? | the all-even multiplicity rule; reconcile deduped receipts to the ledger |
+| 0.2 | Which negative till lines are cancelled mis-rings, and which are real refunds? | partition by reference receipt; match void partners within receipts |
+| 0.3 | Do supplier invoices reconcile to the ledger's procurement line? | exact-key dedup; explain the residual gap |
+| 0.4 | Does book stock reconcile with the paperwork, night by night? | perpetual-inventory identity per SKU-day |
+| 0.5 | What is "shrinkage" here, and what causes it? | decompose write-offs by reason; trace stock-count corrections |
+| 0.6 | Standardize the label mess | payment-label normalization, hour-0 placeholder handling, category typos, sensor gaps |
+| 0.7 | After cleaning: which totals should tie exactly, and which gaps are *supposed* to remain? | run the full reconciliation contract |
+
+## Layer 1 — Describe the business
+
+| # | Question | Approach |
+| --- | --- | --- |
+| 1.1 | Where does the money come from and go? | P&L from the ledger; margin waterfall including tax |
+| 1.2 | When do people shop? | day-of-week / hour-of-day profiles — the trap: this is schedule composition, not day preference |
+| 1.3 | What sells when? | monthly seasonality indices per category and product type |
+| 1.4 | What does a basket look like? | basket size/value distributions, category co-occurrence |
+| 1.5 | Who are the customers? | RFM segmentation of the card panel; regulars vs. one-off guests vs. anonymous cash |
+| 1.6 | How are prices architected? | charm-ending mix, repricing cadence, markdown depth |
+| 1.7 | How often are shelves empty, and what rots? | out-of-stock incidence by SKU-month; write-off seasonality |
+| 1.8 | How much tax does the shop handle? | effective rate by category group; remittance seasonality |
+
+## Layer 2 — Diagnose causes
+
+| # | Question | Approach |
+| --- | --- | --- |
+| 2.1 | Does weather move the business? | regression on rain/temperature anomaly with calendar controls, HAC errors, next-day rebound lags |
+| 2.2 | What hit costs during a shock? | event-study on invoice cost indices by category |
+| 2.3 | How much of a cost shock reaches the shelf, and how fast? | pass-through regression of tags on invoice costs; hysteresis/asymmetry tests |
+| 2.4 | Does raising a price lose customers or just move them? | SKU-level IV elasticity vs. category-level two-way FE — substitution vs. walkaway |
+| 2.5 | Is my instrument valid? | test a macro shock as an instrument (it also squeezes budgets → invalid) vs. an idiosyncratic cost event (valid) |
+| 2.6 | Did the markdowns work? | naive lift vs. DiD vs. selection-aware estimates |
+| 2.7 | Why does food rot faster some weeks? | write-off regression on temperature and the shock timeline |
+| 2.8 | Can I trust card data to represent everyone? | test the missingness mechanism between card and cash baskets |
+| 2.9 | What drives refunds and shrinkage? | rate modeling over time/category |
+| 2.10 | Do pre-holiday days really spike? | small-N inference done honestly (a handful of days per year) |
+
+## Layer 3 — Predict
+
+| # | Question | Approach |
+| --- | --- | --- |
+| 3.1 | What will next week sell? | category demand forecasting vs. a seasonal-naive benchmark |
+| 3.2 | What would demand be if shelves never emptied? | censored-demand modeling: impute stockout-lost sales |
+| 3.3 | How wrong is the owner's own forecast, and why? | autopsy the trailing-average rule; quantify the censoring spiral |
+| 3.4 | Which SKUs will stock out next week? | out-of-stock risk classification from cover, seasonality, delivery cadence |
+| 3.5 | Which regulars are sliding into trouble? | early-warning detection of sustained down-trading spells |
+| 3.6 | How far can one year of history be trusted? | quantify the single-seasonal-cycle limit — priced empirically against the three-year arm |
+
+## Layer 4 — Prescribe
+
+| # | Question | Approach |
+| --- | --- | --- |
+| 4.1 | What is better analytics *worth*, in euros? | rebuild the ordering policy on de-censored demand; close the believed/realized/oracle gap |
+| 4.2 | How should perishables be ordered? | spoilage-aware cover per category (waste vs. stockout trade-off) |
+| 4.3 | Where is margin safely adjustable? | category-level repricing using elasticity structure |
+| 4.4 | What should be delisted or added? | dead-SKU economics: appeal, storage, listing fees |
+| 4.5 | When should promotions run, on what, how deep? | redesign the markdown trigger with selection bias removed |
+| 4.6 | Should I hire and extend hours? | cost-benefit of recovered demand vs. employer-priced labor |
+| 4.7 | How much cash must the till hold? | working-capital policy: credit line, tax remittance timing |
+
+## Layer 5 — The policy laboratory (counterfactuals)
+
+Each scenario arm is a CRN twin: the arm-vs-baseline difference is the
+causal effect with zero sampling error between arms. The deepest exercise
+here is **method validation**: estimate the effect observationally inside
+one arm, then check yourself against the twin difference.
+
+| # | Question | What the twin diff reveals |
+| --- | --- | --- |
+| 5.1 | Who actually bore a tax cut — customers or the owner? | tax incidence split; pass-through speed and completeness |
+| 5.2 | What did households do with a rebate? | an emergent marginal propensity to consume |
+| 5.3 | What does a broad supply shock do to a grocer? | revenue up, units down — demand destruction decomposed by category resilience |
+| 5.4 | What does a storm cost, net of the catch-up? | intertemporal substitution via pantries |
+| 5.5 | Does my observational elasticity generalize? | external validity: predict a twin's outcome from baseline-estimated structure |
+| 5.6 | Was hiring a clerk worth it? | full-cost staffing counterfactual, payroll tax included |
+
+## Layer 6 — Advanced and structural
+
+| # | Question | Approach |
+| --- | --- | --- |
+| 6.1 | What do customers *want*? | discrete-choice (conditional logit) estimation on the card panel |
+| 6.2 | Can partial pooling beat per-SKU noise? | hierarchical Bayesian demand models |
+| 6.3 | What drives sales, decomposed? | marketing-mix modeling: base, seasonality, weather, price, promotions |
+| 6.4 | Where did the missing demand go? | structural four-cause decomposition (closed / stockout / budget / outside) |
+| 6.5 | How much business is passing trade? | mixture modeling of the token panel: regulars vs. single-use guests |
+| 6.6 | Is the documented causal graph consistent with the data? | test the DAG's implied conditional independencies |
+
+## Layer 7 — The three-year arc (time, churn, and capital)
+
+Asked of the three-year baseline, graded against its hidden answer key and
+its own CRN twins. These are the questions one year of data structurally
+cannot ask.
+
+| # | Question | Approach |
+| --- | --- | --- |
+| 7.1 | Is the business growing, or is it just summer? | trend–seasonality decomposition, now identified with three annual cycles |
+| 7.2 | Which customers left, which arrived, and who was never going to stay? | churn inference from token silence, cohort retention, survival modeling |
+| 7.3 | What happened when a competitor entered? | structural-break detection, then who defected — and the twin that prices it |
+| 7.4 | Did customers trade up after the discounter opened? | composition vs. behavior decomposition |
+| 7.5 | Does a model trained on years one–two survive year three? | true holdout-year evaluation; forecast breakdown at a regime change |
+| 7.6 | Did the promotions work? | naive lift vs. entry-aware estimates — the endogenous-response confound |
+| 7.7 | What do the repeated cost-shock episodes have in common? | compare pass-through across episodes with different competitive regimes |
+| 7.8 | What did a one-off event (equipment failure, a local surge) cost or earn? | event studies on narrated one-offs |
+| 7.9 | Was the expansion a good investment? | capital budgeting from the books — NPV the bet, graded against its own twin |
+| 7.10 | How does capital actually flow through a small shop? | financial-statement analysis of the widened cost sheet |
+| 7.11 | Renew the lease or close? | the capstone prescriptive: decompose the result into its causes and project forward |
+
+## Further reading
+
+`grocery-sim`'s [`documents/ANALYSIS_CATALOG.md`](https://github.com/ChinhMaiGit/grocery-sim/blob/main/documents/ANALYSIS_CATALOG.md)
+carries the full version of this catalog with exact column/file references,
+and [`documents/ANALYSIS_INSTRUCTIONS.md`](https://github.com/ChinhMaiGit/grocery-sim/blob/main/documents/ANALYSIS_INSTRUCTIONS.md)
+is a method guide — not an answer key — that walks through the intuition
+behind every technique named above. Worked, fully graded reference notebooks
+for every layer live under
+[`archive/analyses/`](https://github.com/ChinhMaiGit/grocery-sim/tree/main/archive/analyses).
+See also [Exemplar analyses](analyses/index.qmd) for worked examples built
+directly for this site.

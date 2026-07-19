@@ -16,13 +16,15 @@ sampled from a convenient distribution and called a business. **The theory
 behind why the model is built this way — the distributional choices, the
 causal structure, the exogenous/endogenous split — is not repeated here.**
 This package is developed inside the
-[GroceryStoreData](https://github.com/ChinhMaiGit/GroceryStoreData)
+[grocery-sim](https://github.com/ChinhMaiGit/grocery-sim)
 monorepo — see
-[`paper/paper.pdf`](https://github.com/ChinhMaiGit/GroceryStoreData/blob/main/paper/paper.pdf)
+[`paper/paper.pdf`](https://github.com/ChinhMaiGit/grocery-sim/blob/main/paper/paper.pdf)
 there for the theoretical paper, and `documents/PHASE1..5_DETAILS.md` for
-the underlying design documents. This README only covers the package
-itself: how to run it, what you can configure, and what each method
-returns.
+the underlying design documents. For a web-friendly version of the theory,
+the full analysis catalog, and worked exemplar analyses, see
+**[chinhmaigit.github.io/grocery-sim](https://chinhmaigit.github.io/grocery-sim/)**.
+This README only covers the package itself: how to run it, what you can
+configure, and what each method returns.
 
 ## Install
 
@@ -216,7 +218,7 @@ even as `False`, raises `SettingsError`.
 For a worked example that pushes nearly every one of these at once — three
 wars, three typhoons, three equipment failures, both tax cuts, a competitor
 entry, and an endogenous expansion, all in one three-year run — see
-[`cases/extreme_stress_test/analysis_notebook.py`](https://github.com/ChinhMaiGit/GroceryStoreData/blob/main/cases/extreme_stress_test/analysis_notebook.py)
+[`cases/extreme_stress_test/analysis_notebook.py`](https://github.com/ChinhMaiGit/grocery-sim/blob/main/cases/extreme_stress_test/analysis_notebook.py)
 in the monorepo (not shipped inside this package's own distribution).
 
 ## What kind of analysis does this support?
