@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
-from grocery_sim.describe import _cap_first, _round_money, _round_pct, pick_misguide_candidate
+import pandas as pd
+
+from grocery_sim.describe import (
+    _cap_first,
+    _round_money,
+    _round_pct,
+    _shrinkage_rate,
+    _task_type,
+    pick_misguide_candidate,
+)
+from grocery_sim.params import PHASE5
 
 
 def test_misguide_priority_competitor_first():
@@ -59,3 +69,67 @@ def test_cap_first_does_not_lowercase_rest():
 
 def test_cap_first_empty_string():
     assert _cap_first("") == ""
+
+
+def _fake_tables(write_offs, procurement):
+    from grocery_sim.simulation import SimulationData
+    return SimulationData({"write_offs": write_offs, "procurement": procurement})
+
+
+def test_shrinkage_rate_values_writeoffs_at_last_paid_cost():
+    procurement = pd.DataFrame({
+        "uid": [1, 1, 2],
+        "unit_cost": [2.0, 2.0, 5.0],
+        "delivery_date": ["2025-01-01", "2025-06-01", "2025-01-01"],
+    })
+    write_offs = pd.DataFrame({"uid": [1, 2], "units": [10, 2]})
+    # uid 1 valued at its LAST paid cost (2.0, unchanged here) x 10 units
+    # = 20; uid 2 at 5.0 x 2 = 10; total write-off value 30 / revenue 300
+    assert _shrinkage_rate(_fake_tables(write_offs, procurement), 300.0) == 30.0 / 300.0
+
+
+def test_shrinkage_rate_zero_writeoffs():
+    procurement = pd.DataFrame({"uid": [1], "unit_cost": [2.0], "delivery_date": ["2025-01-01"]})
+    write_offs = pd.DataFrame({"uid": [], "units": []})
+    assert _shrinkage_rate(_fake_tables(write_offs, procurement), 100.0) == 0.0
+
+
+def test_shrinkage_rate_none_without_revenue():
+    procurement = pd.DataFrame({"uid": [1], "unit_cost": [2.0], "delivery_date": ["2025-01-01"]})
+    write_offs = pd.DataFrame({"uid": [1], "units": [1]})
+    assert _shrinkage_rate(_fake_tables(write_offs, procurement), 0.0) is None
+
+
+def test_task_type_optimize_when_struggling_with_elevated_shrinkage():
+    assert _task_type("struggling", 1, 0.12, None) == "optimize"
+    assert _task_type("uncertain", 3, 0.09, 0.0) == "optimize"
+
+
+def test_task_type_diagnose_when_shrinkage_within_calibrated_band():
+    # empirically (see describe.py's _task_type docstring), ordinary
+    # shrinkage sits around 4-6% regardless of outcome -- not an
+    # operational problem to flag on its own
+    assert _task_type("struggling", 1, 0.05, None) == "diagnose"
+
+
+def test_task_type_invest_when_thriving_with_real_retained_earnings():
+    floor = PHASE5["finance"]["infra_capex"]
+    assert _task_type("thriving", 3, None, floor) == "invest"
+    assert _task_type("thriving", 3, None, floor * 10) == "invest"
+
+
+def test_task_type_no_invest_below_floor_or_off_three_year_horizon():
+    floor = PHASE5["finance"]["infra_capex"]
+    # thriving but retained earnings below the smallest investment's own
+    # capex -- not a plausible capital-allocation ask yet
+    assert _task_type("thriving", 3, None, floor - 1) == "diagnose"
+    # the retained-earnings mechanism only exists on the three-year horizon
+    assert _task_type("thriving", 1, None, floor * 10) == "diagnose"
+    # thriving with no retained-earnings signal at all (one-year run)
+    assert _task_type("thriving", 1, None, None) == "diagnose"
+
+
+def test_task_type_thriving_ignores_shrinkage():
+    # a thriving shop's shrinkage never triggers "optimize" -- that framing
+    # is reserved for shops that are not already doing well
+    assert _task_type("thriving", 1, 0.20, None) == "diagnose"

@@ -182,6 +182,81 @@ def _financial_situation(tx) -> str:
     return "uncertain"
 
 
+def _shrinkage_rate(tables, total_revenue: float) -> float | None:
+    """Owner-observable shrinkage-as-cost proxy: write-off units valued
+    at each product's own most recently paid procurement cost, as a
+    share of total revenue -- what an owner actually thinks a bin of
+    tossed stock cost them (what they paid the supplier for it), not
+    what they'd have sold it for. Priced at cost rather than shelf
+    price on purpose: the calibrated realism band this is checked
+    against (validate.py's "spoilage 3-7% of revenue") is itself a
+    cost-basis figure, and pricing write-offs at retail (which carries
+    markup on top of cost) would systematically overstate this ratio
+    relative to that band. Approximate by construction (uses the latest
+    paid cost per uid rather than the exact cost of the specific units
+    written off), which is exactly the level of precision an owner's own
+    mental estimate would have."""
+    if "write_offs" not in tables.keys() or "procurement" not in tables.keys():
+        return None
+    wo, pr = tables.write_offs, tables.procurement
+    if not {"units", "uid"}.issubset(wo.columns) \
+            or not {"uid", "unit_cost", "delivery_date"}.issubset(pr.columns):
+        return None
+    if total_revenue <= 0:
+        return None
+    if len(wo) == 0:
+        return 0.0
+    last_cost = pr.sort_values("delivery_date").groupby("uid")["unit_cost"].last()
+    wo_value = float((wo["uid"].map(last_cost).fillna(0.0) * wo["units"]).sum())
+    return wo_value / total_revenue
+
+
+# the extra, task-type-specific question appended to "The questions" --
+# "diagnose" adds nothing here, since the existing candidate/situation
+# questions already cover that case
+_TASK_TYPE_QUESTION = {
+    "optimize": "Where am I bleeding money without noticing it day to day?",
+    "invest": "What should I do with the money I've saved — is there a "
+              "good return on putting it back into the shop?",
+}
+
+
+def _task_type(
+    situation: str,
+    years: int,
+    shrinkage_rate: float | None,
+    retained_earnings_final: float | None,
+) -> str:
+    """A second, deterministic axis on top of _financial_situation's
+    struggling/thriving/uncertain read: not just how the business is
+    doing, but what kind of engagement that performance actually calls
+    for. A shop that isn't thriving and has elevated shrinkage needs its
+    operations tightened, not a single villain found. The 6.5% cutoff is
+    empirical, not theoretical: a sweep of real simulated runs across
+    quiet baselines and every shock combination showed ordinary
+    shrinkage (this module's own cost-priced write-off ratio, not
+    validate.py's differently-scoped "3-7% of revenue" spoilage-only
+    check) sitting mostly at 4-9% regardless of outcome, so 6.5% catches
+    the worse half of struggling/uncertain runs without firing on every
+    ordinary one -- re-check this cutoff against real data again if the
+    write-off mechanics ever change materially. A thriving shop sitting
+    on real, unspent retained earnings (only possible on the three-year
+    horizon, where P5's retained-earnings mechanism exists at all) is
+    weighing a capital decision, not a diagnosis -- gated at the
+    smallest investment's own calibrated capex
+    (PHASE5["finance"]["infra_capex"]) so the ask stays plausible rather
+    than firing on pocket change. Everything else stays the plain
+    diagnose case this module already handled well."""
+    elevated_shrinkage = shrinkage_rate is not None and shrinkage_rate > 0.065
+    if situation != "thriving" and elevated_shrinkage:
+        return "optimize"
+    if (situation == "thriving" and years == 3
+            and retained_earnings_final is not None
+            and retained_earnings_final >= PHASE5["finance"]["infra_capex"]):
+        return "invest"
+    return "diagnose"
+
+
 def pick_misguide_candidate(events: dict) -> str | None:
     """The most visible, most emotionally salient active event — the one a
     real owner would fixate on, whether or not the data agrees. Priority:
@@ -241,6 +316,29 @@ def _event_sentence(key: str, date: str, cs) -> str:
 
 def _event_beat(key: str, date: str, cs) -> str:
     return f"Around {date}, {_event_sentence(key, date, cs)}."
+
+
+def _beats_for_year(
+    yr: int,
+    active_events: list[tuple[str, str]],
+    investment_dates: dict[str, str],
+    lease_beat: tuple[str, str] | None,
+    cs,
+) -> list[str]:
+    """The real story beats that happened in one calendar year, sorted by
+    date -- shared by the letter's condensed multi-year paragraph and the
+    interview's full per-year answer, so the two never drift out of sync."""
+    yr_beats: list[tuple[str, str]] = [
+        (d, _event_sentence(k, d, cs)) for k, d in active_events if d[:4] == str(yr)
+    ]
+    for name, date in investment_dates.items():
+        if date[:4] == str(yr):
+            yr_beats.append((date, f"I {_INVESTMENT_LINES[name]}, paying "
+                                    f"{_round_money(_investment_capex()[name])} from savings"))
+    if lease_beat is not None and lease_beat[0][:4] == str(yr):
+        yr_beats.append(lease_beat)
+    yr_beats.sort(key=lambda x: x[0])
+    return [sentence for _, sentence in yr_beats]
 
 
 def _records_caveats(tables) -> list[str]:
@@ -324,15 +422,39 @@ def build_brief(
     situation = _financial_situation(tx)
     decision = _DECISION_FRAMING[situation]
     candidate = misguide.get("candidate")
+    shrinkage_rate = _shrinkage_rate(tables, total_revenue)
+    retained_earnings_final = (
+        float(cs["retained_earnings"].iloc[-1])
+        if "retained_earnings" in cs.columns and len(cs) else None
+    )
+    task_type = _task_type(situation, years, shrinkage_rate, retained_earnings_final)
 
     active_events = _active_events(ev)
     allowed_investments = [k for k, v in inv.items() if v]
     investment_dates = _investment_dates(cs, allowed_investments)
+    caveats = _records_caveats(tables)
 
     yearly_revenue = (
         cs.groupby("year")["revenue"].sum().sort_index()
         if "year" in cs.columns else None
     )
+
+    # the lease step is a fixed part of the three-year story, never a
+    # settings.events toggle -- computed here (rather than inline in the
+    # interview loop below) so the letter's own multi-year paragraph can
+    # draw on it too
+    lease_beat = None
+    if years == 3 and "year" in cs.columns:
+        y2026 = cs[cs["year"] == 2026]["rent"]
+        y2027 = cs[cs["year"] == 2027]["rent"]
+        if len(y2026) and len(y2027) and float(y2027.iloc[0]) > float(y2026.iloc[-1]):
+            before, after = float(y2026.iloc[-1]), float(y2027.iloc[0])
+            pct = after / before - 1
+            lease_beat = (
+                "2027-01-01",
+                f"my lease renewed and the rent went up {_round_pct(pct)}, "
+                f"from {_round_money(before)} to {_round_money(after)} a month",
+            )
 
     # ---------------------------------------------------------------- letter
     lines.append("## The letter")
@@ -361,6 +483,19 @@ def build_brief(
             f"{_round_money(last_yr_rev)}, {trend}."
         )
         lines.append(">")
+    if years == 3 and yearly_revenue is not None and len(yearly_revenue) == 3:
+        # the real per-year story, condensed to one clause per year --
+        # the same beats the interview covers in full below, so a reader
+        # of the letter alone still gets the shape of what happened
+        yr_sentences = []
+        for yr in yearly_revenue.index:
+            yr = int(yr)
+            beats = _beats_for_year(yr, active_events, investment_dates, lease_beat, cs)
+            if beats:
+                yr_sentences.append(f"{yr}: {_cap_first('; '.join(beats))}.")
+        if yr_sentences:
+            lines.append("> " + " ".join(yr_sentences))
+            lines.append(">")
     if candidate and situation == "thriving":
         blame_phrase = _EVENT_LINES.get(candidate, candidate)
         lines.append(
@@ -387,6 +522,16 @@ def build_brief(
             f"{result_phrase}. I want someone who isn't me to look at my "
             f"numbers properly before I decide {decision}."
         )
+    lines.append(">")
+    lines.append(
+        f"> I've kept everything — every receipt, every invoice, every "
+        f"month's books. My records aren't perfect" +
+        (f", and I'll tell you honestly where they wobble," if caveats else "") +
+        f" but they're complete, and my own monthly ledger is right, "
+        f"because I check it myself."
+    )
+    lines.append(">")
+    lines.append("> Tell me what the numbers actually say.")
     lines.append(">")
     lines.append(f"> — {persona['owner_name']}")
     lines.append("")
@@ -449,41 +594,12 @@ def build_brief(
     )
     lines.append("")
 
-    # the lease step is a fixed part of the three-year story, never a
-    # settings.events toggle — narrated inside the year-3 answer below,
-    # only if it actually shows up
-    lease_beat = None
-    if years == 3 and "year" in cs.columns:
-        y2026 = cs[cs["year"] == 2026]["rent"]
-        y2027 = cs[cs["year"] == 2027]["rent"]
-        if len(y2026) and len(y2027) and float(y2027.iloc[0]) > float(y2026.iloc[-1]):
-            before, after = float(y2026.iloc[-1]), float(y2027.iloc[0])
-            pct = after / before - 1
-            lease_beat = (
-                "2027-01-01",
-                f"my lease renewed and the rent went up {_round_pct(pct)}, "
-                f"from {_round_money(before)} to {_round_money(after)} a month",
-            )
-
     if yearly_revenue is not None and len(yearly_revenue) > 1:
         for yr in yearly_revenue.index:
             yr = int(yr)
             lines.append(f"**Q: And {yr}?**")
             lines.append("")
-            # events and investments interleaved and sorted by date, so the
-            # narrative follows the order things actually happened in, not
-            # the settings dict's own key order
-            yr_beats: list[tuple[str, str]] = [
-                (d, _event_sentence(k, d, cs)) for k, d in active_events if d[:4] == str(yr)
-            ]
-            for name, date in investment_dates.items():
-                if date[:4] == str(yr):
-                    yr_beats.append((date, f"I {_INVESTMENT_LINES[name]}, paying "
-                                            f"{_round_money(_investment_capex()[name])} from savings"))
-            if lease_beat is not None and lease_beat[0][:4] == str(yr):
-                yr_beats.append(lease_beat)
-            yr_beats.sort(key=lambda x: x[0])
-            beats = [sentence for _, sentence in yr_beats]
+            beats = _beats_for_year(yr, active_events, investment_dates, lease_beat, cs)
             yr_rev = float(yearly_revenue.loc[yr])
             narrative = f"{Subj}: "
             if beats:
@@ -513,10 +629,24 @@ def build_brief(
             f"I don't need a consultant to see it. That's what I want you "
             f"to check with the numbers."
         )
+    elif situation == "thriving" and task_type == "invest":
+        lines.append(
+            f"{Subj}: Honestly, I don't have a complaint. Business is "
+            f"good, and now I have to decide what to do with what I've "
+            f"saved — put it back into the shop, or just leave it be. "
+            f"That's the actual question."
+        )
     elif situation == "thriving":
         lines.append(
             f"{Subj}: Honestly, I don't have a complaint. I just want to "
             f"understand why this worked, so I can keep doing it."
+        )
+    elif task_type == "optimize":
+        lines.append(
+            f"{Subj}: Honestly, I don't think it's one single villain. I "
+            f"think we're just not running as tight as we should be — "
+            f"waste, small inefficiencies, day to day. That's what I "
+            f"want you to find, not one big story."
         )
     else:
         lines.append(
@@ -527,7 +657,6 @@ def build_brief(
 
     lines.append("**Q: Anything I should know about the records before you start?**")
     lines.append("")
-    caveats = _records_caveats(tables)
     if caveats:
         if len(caveats) == 1:
             lines.append(f"{Subj}: Yes — {caveats[0]}.")
@@ -583,7 +712,9 @@ def build_brief(
     if years == 3:
         q.append("Which customers am I losing, and who replaced them?")
         q.append("What should I expect next year to look like if nothing changes?")
-    if situation == "thriving":
+    if task_type in _TASK_TYPE_QUESTION:
+        q.append(_TASK_TYPE_QUESTION[task_type])
+    elif situation == "thriving":
         q.append("Should I open a second location, or push further here first?")
     elif situation == "struggling":
         q.append("Is there a way to turn this around, or is it time to close?")
@@ -608,6 +739,19 @@ def build_brief(
             f"{persona['owner_name']}'s instinct points at one clear cause. "
             f"Whether the numbers agree exactly, and by how much, is the "
             f"question worth pricing precisely before weighing {decision}."
+        )
+    elif task_type == "invest":
+        lines.append(
+            f"{persona['owner_name']} isn't chasing a problem — "
+            f"{pn['subject']} is sitting on real, unspent savings and "
+            f"weighing {decision}."
+        )
+    elif task_type == "optimize":
+        lines.append(
+            f"{persona['owner_name']} doesn't think one event explains "
+            f"the numbers — {pn['subject']} suspects the day-to-day "
+            f"running of the shop itself, and wants that priced before "
+            f"weighing {decision}."
         )
     else:
         lines.append(
