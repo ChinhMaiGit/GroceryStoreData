@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Exemplar analyses – grocery-sim</title>
+<title>Auto-generated briefs – grocery-sim</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -271,7 +271,7 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Analysis catalog</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="../analyses/index.html" aria-current="page"> 
+    <a class="nav-link" href="../analyses/index.html"> 
 <span class="menu-text">Exemplar analyses</span></a>
   </li>  
 </ul>
@@ -298,8 +298,29 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#optimize-an-operationally-sloppy-year" id="toc-optimize-an-operationally-sloppy-year" class="nav-link active" data-scroll-target="#optimize-an-operationally-sloppy-year">Optimize: an operationally sloppy year</a>
+  <ul class="collapse">
+  <li><a href="#the-letter" id="toc-the-letter" class="nav-link" data-scroll-target="#the-letter">The letter</a></li>
+  <li><a href="#intake-interview-notes" id="toc-intake-interview-notes" class="nav-link" data-scroll-target="#intake-interview-notes">Intake interview notes</a></li>
+  <li><a href="#the-data" id="toc-the-data" class="nav-link" data-scroll-target="#the-data">The data</a></li>
+  <li><a href="#the-questions" id="toc-the-questions" class="nav-link" data-scroll-target="#the-questions">The questions</a></li>
+  <li><a href="#stakes" id="toc-stakes" class="nav-link" data-scroll-target="#stakes">Stakes</a></li>
+  </ul></li>
+  <li><a href="#invest-real-unspent-retained-earnings" id="toc-invest-real-unspent-retained-earnings" class="nav-link" data-scroll-target="#invest-real-unspent-retained-earnings">Invest: real, unspent retained earnings</a>
+  <ul class="collapse">
+  <li><a href="#the-letter-1" id="toc-the-letter-1" class="nav-link" data-scroll-target="#the-letter-1">The letter</a></li>
+  <li><a href="#intake-interview-notes-1" id="toc-intake-interview-notes-1" class="nav-link" data-scroll-target="#intake-interview-notes-1">Intake interview notes</a></li>
+  <li><a href="#the-data-1" id="toc-the-data-1" class="nav-link" data-scroll-target="#the-data-1">The data</a></li>
+  <li><a href="#the-questions-1" id="toc-the-questions-1" class="nav-link" data-scroll-target="#the-questions-1">The questions</a></li>
+  <li><a href="#stakes-1" id="toc-stakes-1" class="nav-link" data-scroll-target="#stakes-1">Stakes</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -307,8 +328,8 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Exemplar analyses</h1>
-<p class="subtitle lead">Worked examples on real generated arms</p>
+<h1 class="title">Auto-generated briefs</h1>
+<p class="subtitle lead">Two more engagement types, straight out of describe() — unedited</p>
 </div>
 
 
@@ -325,19 +346,238 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>One full <code>grocery-sim</code> engagement, split across three pages, following the <a href="../analysis-catalog.html">Analysis catalog</a>:</p>
-<ul>
-<li><strong><a href="../analyses/case-description.html">Case description</a></strong> — the client-facing brief exactly as an analyst would receive it: a neighborhood grocer three years in, deciding whether to renew a lease after a record-revenue year that somehow netted him nothing.</li>
-<li><strong><a href="../analyses/stakeholder-report.html">Stakeholder report</a></strong> — the plain-language answer, in the client’s own question order. Descriptive P&amp;L, trend/seasonality decomposition, shrinkage forensics, an observational competitor-impact estimate, a full-cost staffing counterfactual, customer-panel churn, and a 2028 forecast — Layers 0, 1, 3, 4, 5, and 7 of the catalog in one pass.</li>
-<li><strong><a href="../analyses/technical-report.html">Technical report</a></strong> — the review copy, on a separate real <code>grocery-sim</code> run: a negative-binomial GLM with HAC-robust errors, a difference-in-differences cost pass-through design (and an honest account of where it fails to identify a clean number), gradient-boosting demand forecasting and stock-out classification judged on precision/recall, and a hierarchical Bayesian partial-pooling model with full posterior diagnostics — Layers 2, 3, and 6 of the catalog.</li>
-</ul>
-<p>And separately:</p>
-<ul>
-<li><strong><a href="../analyses/generated-briefs.html">Auto-generated briefs</a></strong> — the raw, unedited output of <code>sim.describe()</code> for the two other engagement types it produces (<code>optimize</code> and <code>invest</code>, alongside the case description’s <code>diagnose</code>) — no accompanying analysis, shown to demonstrate that the brief generator itself varies the kind of engagement, not just the story.</li>
-</ul>
-<p>More pages will be added here over time. In the meantime, <code>archive/analyses/</code> in the <a href="https://github.com/ChinhMaiGit/grocery-sim/tree/main/archive/analyses">main repository</a> already has a full-depth, graded notebook for every layer of the catalog, and the package’s own <code>sim.create_analysis(path)</code> scaffolds a starting <a href="https://marimo.io/">marimo</a> notebook against any run you generate yourself.</p>
+<p>The <a href="../analyses/case-description.html">case description</a> is a hand-curated case: a real <code>grocery-sim</code> run, but with a full <a href="../analyses/stakeholder-report.html">stakeholder report</a> written on top of it, worked and checked line by line. The two briefs below are different on purpose — they are the <strong>raw, unedited output of <code>sim.describe()</code></strong>, shown to demonstrate that the brief generator itself produces genuinely different kinds of engagements depending on what actually happened in the run, not just different flavor text on the same story.</p>
+<p><code>grocery-sim</code> classifies every run along two axes: how the business is actually doing (<code>struggling</code> / <code>thriving</code> / <code>uncertain</code>, from the real profit trajectory) and what kind of engagement that performance calls for (<code>diagnose</code> a specific cause, <code>optimize</code> day-to-day operations, or <code>invest</code> retained earnings — see <a href="../theory.html">Theory</a> for the reasoning behind the split). Malm’s Market is a <code>diagnose</code> case. The two below are <code>optimize</code> and <code>invest</code>, generated from <code>grocery_sim.recipes</code> — named, empirically verified settings recipes that reliably land on a given engagement type (shipped in the package specifically so a case-writer doesn’t have to hope a random seed produces the exercise they want).</p>
+<p>Neither brief below has an accompanying analysis report — per <code>describe()</code>’s own closing line, each is “a starting outline, not a finished case.”</p>
+<section id="optimize-an-operationally-sloppy-year" class="level2">
+<h2 class="anchored" data-anchor-id="optimize-an-operationally-sloppy-year">Optimize: an operationally sloppy year</h2>
+<p>Generated from <code>grocery_sim.recipes.RECIPES["optimize"]</code> — a struggling one-year run with elevated, cost-priced shrinkage. The engagement reads as “find where I’m bleeding money,” not “find the one thing that went wrong.”</p>
+<p><em>Client: Erik Malm, owner, Malm’s Market, Bjorkvagen, Solby.</em></p>
+<section id="the-letter" class="level3">
+<h3 class="anchored" data-anchor-id="the-letter">The letter</h3>
+<blockquote class="blockquote">
+<p>Dear analyst,</p>
+<p>I’m 51. I spent 15 years working for Nordmart before I opened Malm’s Market myself, on Bjorkvagen in Solby, with about 60,000 euros of my own money behind it. That was 2025.</p>
+<p>Over one year we have taken in about 479,000 euros across the till altogether, and the bottom line came out to a loss. I want someone who isn’t me to look at my numbers properly before I decide whether to hold on, change something, or walk away.</p>
+<p>I’ve kept everything — every receipt, every invoice, every month’s books. My records aren’t perfect, and I’ll tell you honestly where they wobble, but they’re complete, and my own monthly ledger is right, because I check it myself.</p>
+<p>Tell me what the numbers actually say.</p>
+<p>— Erik Malm</p>
+</blockquote>
+</section>
+<section id="intake-interview-notes" class="level3">
+<h3 class="anchored" data-anchor-id="intake-interview-notes">Intake interview notes</h3>
+<p><em>In Erik Malm’s own words.</em></p>
+<p><strong>Q: Tell me about yourself and how the shop started.</strong></p>
+<p>He: I’m 51. I spent 15 years working for Nordmart before deciding to open my own place. I had about 60,000 euros saved, and I took a spot on Bjorkvagen, in Solby. We opened in 2025.</p>
+<p><strong>Q: What kind of shop is it?</strong></p>
+<p>He: A full grocery, small format — about 162 products on the shelf at any time. People come because we’re close and we have what they need — that’s the whole business. I’d guess close to 62 percent of what we take is by card, the rest cash.</p>
+<p><strong>Q: Walk me through the routine.</strong></p>
+<p>He: Same routine most weeks. Deliveries come every Wednesday, one truck. I do the shelf prices myself, only when they’ve genuinely drifted.</p>
+<p><strong>Q: What do you think happened?</strong></p>
+<p>He: Honestly, I don’t think it’s one single villain. I think we’re just not running as tight as we should be — waste, small inefficiencies, day to day. That’s what I want you to find, not one big story.</p>
+<p><strong>Q: Anything I should know about the records before you start?</strong></p>
+<p>He: Yes, be careful with 4 things. First, the till terminal mis-rings an item now and then — I void it and re-ring it, so you’ll find 66 paired correction lines in the receipts over the whole period, nothing missing, just messy. Second, my supplier’s system has posted the same invoice twice before — I caught 21 such duplicates myself, but I’ll admit I don’t check every single one. Third, some delivery paperwork never got typed in — there were weeks I was alone and exhausted, and I paid the supplier for goods you won’t find an invoice line for; my bank-account ledger is still right, I just can’t always show you the paper behind it. Fourth, the little weather log I keep goes dark for a few days now and then — 4 missing day(s) over the whole period — the station on the roof is nothing fancy.</p>
+<p><strong>Q: What does a useful answer look like to you?</strong></p>
+<p>He: Pages I can read. A number, and how sure you are behind it. Don’t be polite about it either.</p>
+</section>
+<section id="the-data" class="level3">
+<h3 class="anchored" data-anchor-id="the-data">The data</h3>
+<p>Erik Malm hands over complete records for the full one year:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>calendar</code></td>
+<td>the trading calendar</td>
+</tr>
+<tr class="even">
+<td><code>cost_sheet</code></td>
+<td>the monthly ledger, authoritative for money: revenue, procurement, rent, wages, utilities, VAT remitted, capital spend, tax payments</td>
+</tr>
+<tr class="odd">
+<td><code>inventory_eod</code></td>
+<td>end-of-day book stock per product</td>
+</tr>
+<tr class="even">
+<td><code>locations</code></td>
+<td>the site-scouting notes from before opening</td>
+</tr>
+<tr class="odd">
+<td><code>price_history</code></td>
+<td>every shelf-tag change, per product</td>
+</tr>
+<tr class="even">
+<td><code>procurement</code></td>
+<td>supplier invoice lines: order/delivery/posted dates, quantity, unit cost</td>
+</tr>
+<tr class="odd">
+<td><code>promotions</code></td>
+<td>markdown campaigns: dates, depth, category</td>
+</tr>
+<tr class="even">
+<td><code>receipts</code></td>
+<td>every till line: date, hour, product, quantity, unit price, payment type; card payments carry a stable but anonymized customer code; voided lines and refunds reference the original line</td>
+</tr>
+<tr class="odd">
+<td><code>tax_statement</code></td>
+<td>the annual filings</td>
+</tr>
+<tr class="even">
+<td><code>weather</code></td>
+<td>the shop’s own temperature and rainfall log</td>
+</tr>
+<tr class="odd">
+<td><code>write_offs</code></td>
+<td>everything binned, with a reason</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="the-questions" class="level3">
+<h3 class="anchored" data-anchor-id="the-questions">The questions</h3>
+<ol type="1">
+<li>“Show me where the money actually goes.”</li>
+<li>“What is the shrinkage costing me, and should I be worried about theft?”</li>
+<li>“Where am I bleeding money without noticing it day to day?”</li>
+<li>“What should I actually do next?”</li>
+</ol>
+</section>
+<section id="stakes" class="level3">
+<h3 class="anchored" data-anchor-id="stakes">Stakes</h3>
+<p>Erik Malm doesn’t think one event explains the numbers — he suspects the day-to-day running of the shop itself, and wants that priced before weighing whether to hold on, change something, or walk away.</p>
+<p><em>(This brief is generated from this run’s own settings and its own real results — no hidden simulation parameter appears above. Edit freely; this is a starting outline, not a finished case.)</em></p>
+</section>
+</section>
+<section id="invest-real-unspent-retained-earnings" class="level2">
+<h2 class="anchored" data-anchor-id="invest-real-unspent-retained-earnings">Invest: real, unspent retained earnings</h2>
+<p>Generated from <code>grocery_sim.recipes.RECIPES["invest"]</code> — a thriving three-year run where retained earnings have cleared the smallest investment’s own calibrated capex. The engagement reads as a capital question, not a diagnosis: what should the owner do with the money.</p>
+<p><em>Client: Mikael Lindqvist, owner, Lindqvist’s Market, Granstigen, Vidnes.</em></p>
+<section id="the-letter-1" class="level3">
+<h3 class="anchored" data-anchor-id="the-letter-1">The letter</h3>
+<blockquote class="blockquote">
+<p>Dear analyst,</p>
+<p>I’m 49. I spent 26 years working for Solvik Handel before I opened Lindqvist’s Market myself, on Granstigen in Vidnes, with about 60,000 euros of my own money behind it. That was 2025.</p>
+<p>We started small — about 676,000 euros through the till that first year. By last year we took in about 728,000 euros, our best year yet.</p>
+<p>2027: My lease renewed and the rent went up 12 percent, from about 960 euros to about 1,100 euros a month.</p>
+<p>Over 3 years we have taken in about 2,118,000 euros across the till altogether, and the bottom line came out to a real profit. I want someone who isn’t me to look at my numbers properly before I decide whether to expand further or simply stay the course.</p>
+<p>I’ve kept everything — every receipt, every invoice, every month’s books. My records aren’t perfect, and I’ll tell you honestly where they wobble, but they’re complete, and my own monthly ledger is right, because I check it myself.</p>
+<p>Tell me what the numbers actually say.</p>
+<p>— Mikael Lindqvist</p>
+</blockquote>
+</section>
+<section id="intake-interview-notes-1" class="level3">
+<h3 class="anchored" data-anchor-id="intake-interview-notes-1">Intake interview notes</h3>
+<p><em>In Mikael Lindqvist’s own words.</em></p>
+<p><strong>Q: Tell me about yourself and how the shop started.</strong></p>
+<p>He: I’m 49. I spent 26 years working for Solvik Handel before deciding to open my own place. I had about 60,000 euros saved, and I took a spot on Granstigen, in Vidnes. We opened in 2025.</p>
+<p><strong>Q: What kind of shop is it?</strong></p>
+<p>He: A full grocery, small format — about 128 products on the shelf at any time. People come because we’re close and we have what they need — that’s the whole business. I’d guess close to 58 percent of what we take is by card, the rest cash.</p>
+<p><strong>Q: Walk me through the routine.</strong></p>
+<p>He: Same routine most weeks. Deliveries come every Wednesday, one truck. I do the shelf prices myself, only when they’ve genuinely drifted.</p>
+<p><strong>Q: And 2025?</strong></p>
+<p>He: A quiet year. We took in about 676,000 euros.</p>
+<p><strong>Q: And 2026?</strong></p>
+<p>He: A quiet year. We took in about 713,000 euros.</p>
+<p><strong>Q: And 2027?</strong></p>
+<p>He: My lease renewed and the rent went up 12 percent, from about 960 euros to about 1,100 euros a month. We took in about 728,000 euros that year.</p>
+<p><strong>Q: What do you think happened?</strong></p>
+<p>He: Honestly, I don’t have a complaint. Business is good, and now I have to decide what to do with what I’ve saved — put it back into the shop, or just leave it be. That’s the actual question.</p>
+<p><strong>Q: Anything I should know about the records before you start?</strong></p>
+<p>He: Yes, be careful with 4 things. First, the till terminal mis-rings an item now and then — I void it and re-ring it, so you’ll find 280 paired correction lines in the receipts over the whole period, nothing missing, just messy. Second, my supplier’s system has posted the same invoice twice before — I caught 65 such duplicates myself, but I’ll admit I don’t check every single one. Third, some delivery paperwork never got typed in — there were weeks I was alone and exhausted, and I paid the supplier for goods you won’t find an invoice line for; my bank-account ledger is still right, I just can’t always show you the paper behind it. Fourth, the little weather log I keep goes dark for a few days now and then — 17 missing day(s) over the whole period — the station on the roof is nothing fancy.</p>
+<p><strong>Q: What does a useful answer look like to you?</strong></p>
+<p>He: Pages I can read. A number, and how sure you are behind it. Don’t be polite about it either.</p>
+</section>
+<section id="the-data-1" class="level3">
+<h3 class="anchored" data-anchor-id="the-data-1">The data</h3>
+<p>Mikael Lindqvist hands over complete records for the full 3 years:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>calendar</code></td>
+<td>the trading calendar</td>
+</tr>
+<tr class="even">
+<td><code>cost_sheet</code></td>
+<td>the monthly ledger, authoritative for money: revenue, procurement, rent, wages, utilities, VAT remitted, capital spend, tax payments</td>
+</tr>
+<tr class="odd">
+<td><code>inventory_eod</code></td>
+<td>end-of-day book stock per product</td>
+</tr>
+<tr class="even">
+<td><code>locations</code></td>
+<td>the site-scouting notes from before opening</td>
+</tr>
+<tr class="odd">
+<td><code>price_history</code></td>
+<td>every shelf-tag change, per product</td>
+</tr>
+<tr class="even">
+<td><code>procurement</code></td>
+<td>supplier invoice lines: order/delivery/posted dates, quantity, unit cost</td>
+</tr>
+<tr class="odd">
+<td><code>promotions</code></td>
+<td>markdown campaigns: dates, depth, category</td>
+</tr>
+<tr class="even">
+<td><code>receipts</code></td>
+<td>every till line: date, hour, product, quantity, unit price, payment type; card payments carry a stable but anonymized customer code; voided lines and refunds reference the original line</td>
+</tr>
+<tr class="odd">
+<td><code>tax_statement</code></td>
+<td>the annual filings</td>
+</tr>
+<tr class="even">
+<td><code>weather</code></td>
+<td>the shop’s own temperature and rainfall log</td>
+</tr>
+<tr class="odd">
+<td><code>write_offs</code></td>
+<td>everything binned, with a reason</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="the-questions-1" class="level3">
+<h3 class="anchored" data-anchor-id="the-questions-1">The questions</h3>
+<ol type="1">
+<li>“Show me where the money actually goes.”</li>
+<li>“Am I really growing, or does it just feel that way?”</li>
+<li>“What is the shrinkage costing me, and should I be worried about theft?”</li>
+<li>“Which customers am I losing, and who replaced them?”</li>
+<li>“What should I expect next year to look like if nothing changes?”</li>
+<li>“What should I do with the money I’ve saved — is there a good return on putting it back into the shop?”</li>
+<li>“What should I actually do next?”</li>
+</ol>
+</section>
+<section id="stakes-1" class="level3">
+<h3 class="anchored" data-anchor-id="stakes-1">Stakes</h3>
+<p>Mikael Lindqvist isn’t chasing a problem — he is sitting on real, unspent savings and weighing whether to expand further or simply stay the course.</p>
+<p><em>(This brief is generated from this run’s own settings and its own real results — no hidden simulation parameter appears above. Edit freely; this is a starting outline, not a finished case.)</em></p>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -758,4 +998,4 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
