@@ -1,0 +1,305 @@
+---
+title: "Technical report"
+subtitle: "GLM, gradient boosting, and hierarchical Bayesian inference on a real grocery-sim run"
+---
+
+The [case description](case-description.qmd) is answered two ways: the
+**[stakeholder report](stakeholder-report.qmd)** (plain language, one
+paragraph up front, confidence stated in words, no method named) and this
+**technical report** — the version that answers a different question: is
+there actually enough structure in this data to support real statistical
+and machine-learning work, not just a plausible-sounding narrative? It
+assumes familiarity with GLMs, gradient boosting, and Bayesian inference,
+and states results the way a technical review expects them — model
+specifications, coefficient tables with robust standard errors, confidence
+and credible intervals, and diagnostics, not narrated conclusions.
+
+This page runs on its **own, separately generated** `grocery-sim` run —
+not the stakeholder report's data — chosen deliberately so the pages
+together demonstrate the same package supporting different jobs, not one
+dataset dressed up twice. The run: a fresh three-year simulation
+(`basic.year = 3`), five overlapping cost/demand shocks (`war`, `typhoon`,
+`food_vat_cut`, `tax_cut`, `competitor`, `operational_hazard`), and all
+three endogenous investments enabled. Every number below is computed, not
+illustrative — the full script is linked at the bottom.
+
+![](technical-report/figures/00_causal_diagram.png)
+
+The diagram is the report's spine: Sections 1–2 model the top two arrows
+(the macro layer driving demand and price), Section 3 predicts one step
+downstream (demand and stock-outs feeding the owner's ordering decision),
+and Section 4 handles the one non-causal edge — category is a grouping
+variable for partial pooling, not a cause of anything.
+
+## 1 · GLM: what actually moves daily demand
+
+**Specification.** A negative-binomial GLM on total daily units sold
+($n = 1{,}072$ trading days, closures excluded), stated generatively —
+the outcome distribution first, the deterministic link second, in
+McElreath's `~`/`=` form:
+
+$$
+\text{units}_t \sim \text{NegBinomial}(\mu_t, \phi)
+$$
+
+$$
+\log \mu_t = \beta_0 + \beta_1\,\text{temp\_anom}_t + \beta_2\,\text{rain\_mm}_t + \beta_3\,\text{wet}_t + \beta_4\,\text{weekend}_t + \beta_5\,\text{pre\_holiday}_t + \beta_6\,t
+$$
+
+The first line is the likelihood (overdispersed daily counts); the second
+is the linear predictor on the log link. $\phi$ is the dispersion
+parameter (fit by `statsmodels`, not hand-set); $\mu_t$ is deterministic
+given the day's covariates, so it takes `=`, not `~` — only
+$\text{units}_t$ itself is stochastic here. Negative-binomial
+over Poisson because daily counts are visibly
+overdispersed (weekday/weekend regime-switching alone produces
+variance $\gg$ mean); standard errors are HAC (Newey–West, 7 lags) because
+daily demand is autocorrelated and OLS-style i.i.d. errors would understate
+uncertainty on every coefficient.
+
+| Term | IRR | 95% CI | $p$ |
+|---|---:|---:|---:|
+| temp anomaly (°C) | 1.004 | [0.997, 1.012] | 0.220 |
+| rain (mm) | 1.004 | [0.995, 1.014] | 0.390 |
+| wet day (binary) | **0.828** | [0.778, 0.882] | <0.001 |
+| weekend | **2.790** | [2.718, 2.864] | <0.001 |
+| pre-holiday | **1.193** | [1.095, 1.299] | <0.001 |
+| trend ($t$, /day) | 1.0001 | [1.0000, 1.0001] | 0.003 |
+
+Pseudo-$R^2$ (deviance-based) $= 0.717$.
+
+**Reading this honestly**: the continuous weather channels
+(`temp_anom`, `rain_mm`) are *not* significant on their own — a finding,
+not a null result to bury. What moves demand is the **binary wet-day
+indicator** (a rain day cuts units by 17.2%, $p<0.001$), the **weekend
+regime** (+179%, the dominant term by an order of magnitude), and a small
+but real **pre-holiday bump** (+19.3%). The trend term is statistically
+significant but economically tiny (0.01%/day, ≈3.7%/year — consistent with
+the panel's own slow organic growth, not a modeling artifact).
+
+```{=html}
+{{< include technical-report/figures/01_glm_fitted_vs_actual.html >}}
+```
+
+The fitted line tracks the level and the weekly cycle well and — correctly
+— does *not* chase the demand spikes in mid-2026 and late-2027: those are
+the scripted heatwave and festival events, neither of which is in this
+specification. A GLM with a temperature term picks up the smooth seasonal
+channel, not one-off scripted shocks; catching those needs the event
+dummies from Section 3, not more weather terms.
+
+```{=html}
+{{< include technical-report/figures/02_glm_temp_partial_effect.html >}}
+```
+
+## 2 · Cost pass-through: a difference-in-differences, and where it breaks
+
+`events.food_vat_cut` halves VAT on the reduced-rate (food) category group
+on one exact date — a clean, discrete, known-magnitude shock: gross
+invoice cost should step down by $1.05/1.10 - 1 = -4.55\%$ for every
+food category simultaneously. This ought to be the cleanest event study in
+the dataset. It isn't, and the reason is itself the finding.
+
+**Naive design.** Before/after weekly price and cost indices for one
+food category (*Pantry Staples and Packaged Goods*) around the cut date.
+Realized cost drop: **−8.7%**, roughly double the theoretical −4.55%.
+
+**Why the naive number is wrong.** `events.war` is active over the same
+window (started 2025-03-01, ramp 14 d, decay ~120 d, hits *every* category)
+— the naive design cannot separate the VAT cut from the war shock's decay
+tail. A standard-VAT control category (*Household and Cleaning Supplies*,
+unaffected by the VAT cut, equally exposed to the war shock) reveals it
+directly: its cost also drops **−9.3%** over the identical window, with no
+VAT change at all. The two "treatment effects" are statistically
+indistinguishable — almost the entire naive estimate is the common trend.
+
+```{=html}
+{{< include technical-report/figures/03_pass_through_did.html >}}
+```
+
+**Difference-in-differences.** Differencing out the control's trend:
+
+$$
+\widehat{\Delta}_{\text{VAT}} = \big(\Delta\log\text{cost}_{\text{treated}} - \Delta\log\text{cost}_{\text{control}}\big)
+$$
+
+| Quantity | Value |
+|---|---:|
+| Theoretical VAT-driven cost step | −4.55% |
+| Naive treated-only cost drop | −8.7% |
+| Control-category cost move (common trend) | −9.3% |
+| **DiD-isolated cost move** | **+0.7%** |
+| **DiD-isolated price move** | **−3.4%** |
+
+**The honest conclusion, not a forced number.** The DiD-isolated cost
+move (+0.7%) is statistically indistinguishable from zero at this
+aggregation — the true −4.55% VAT effect is *smaller than the noise floor*
+of a weekly, category-level cost index once the common shock is
+differenced out. Reporting price ÷ cost as a "pass-through elasticity"
+here would mean dividing by noise; I'm not doing that. What the DiD
+*does* show reliably: the naive design overstated the VAT effect by
+roughly 2×, which is itself the more important finding for a supervising
+analyst — a single-category event study run naively next to an overlapping
+shock will read as a real, sizeable effect that isn't there. The
+shelf-price move (−3.4%) is directionally consistent with incomplete
+pass-through of a −4.55% cost cut, but I would not defend a precise ratio
+from this window; a longer post-period, SKU-level (not weekly-aggregated)
+pricing data, or the mechanism's own documented EWMA/menu-cost constants
+(`documents/PHASE4_DETAILS.md`) would all be more defensible next steps
+than pushing this design harder.
+
+## 3 · Machine learning: forecasting and stock-out risk
+
+### 3.1 Weekly demand forecast — gradient boosting vs. seasonal-naive
+
+**Specification.** `HistGradientBoostingRegressor` (depth 3, 200
+iterations, learning rate 0.08) on weekly units for *Dairy and Eggs*,
+features `{temp, rain, holiday_week, week_of_year, month, lag_1, lag_2,
+lag_52, roll4}`. Chronological split — train on 2025–2026 ($n=52$), test on
+2027 ($n=52$), never shuffled. Baseline: seasonal-naive (the same week,
+52 weeks earlier) — the correct baseline for a series with a strong annual
+cycle, not a flat mean.
+
+| | MAE | RMSE |
+|---|---:|---:|
+| Seasonal-naive | 154.9 | 195.5 |
+| Gradient boosting | **130.9** | **161.2** |
+| Improvement | **15.5%** | 17.5% |
+
+```{=html}
+{{< include technical-report/figures/04_ml_forecast_holdout.html >}}
+```
+
+```{=html}
+{{< include technical-report/figures/05_ml_feature_importance.html >}}
+```
+
+**Reading the importances, not just the headline number.** Permutation
+importance (30 repeats, holdout set) shows the model is doing almost all
+of its work through `roll4` (a 4-week rolling mean) — every other
+feature's importance is at or below zero, meaning shuffling it *does not
+hurt*, and for `temp_C` specifically, shuffling it *improves* the score
+slightly. That is not a data bug; it is the model correctly learning that,
+at 52 weeks of training data for one category, a smoothed recent-trend
+feature dominates and the calendar/weather features mostly add noise for
+this particular target. A supervising analyst should read this as "the
+15.5% lift is coming from trend-following, not from a genuine weather or
+calendar signal" — an honest scoping of what the model has actually
+learned, not an indictment of gradient boosting.
+
+### 3.2 Stock-out risk — classification, not regression
+
+Framed correctly per the catalog's own caution: stock-outs are rare
+($8.5\%$ of SKU-weeks in the 2027 test set), so **accuracy is a useless
+metric** here (predicting "never stocks out" scores 91.5%). Evaluated on
+precision/recall instead.
+
+**Specification.** `HistGradientBoostingClassifier` on SKU-week rows
+($n_{\text{train}}=11{,}298$, $n_{\text{test}}=5{,}659$), features
+`{cover_days, avg_daily_demand_lag, month, category}`, `cover_days` built
+from lagged demand only (no look-ahead).
+
+```{=html}
+{{< include technical-report/figures/06_ml_stockout_pr_curve.html >}}
+```
+
+PR-AUC $= 0.410$ against a base rate of $0.085$ — roughly a **4.8×** lift
+over random at matched recall. Genuinely useful for a reorder-flagging
+tool; not something I would wire to an automatic no-human-in-the-loop
+reorder trigger without more work at the high-recall end of the curve,
+where precision falls toward the low 0.2s.
+
+## 4 · Hierarchical Bayesian partial pooling: the weekend effect, by category
+
+**Why hierarchical, and why the small window.** With three full years,
+every category's own OLS estimate of the weekend effect is already
+precise — partial pooling would barely move anything, a weak
+demonstration. Restricted instead to the **first 90 trading days**: a
+new shop's actual first quarter, when some categories have enough volume
+to trust on their own and others don't yet. This is also the realistic
+case for a real analyst: you rarely get to wait three years before a
+partial-pooling estimate would be useful.
+
+**Specification.** A normal–normal hierarchical model on twelve
+per-category unpooled OLS estimates $(\hat\beta_c, \text{se}_c)$ of the
+weekend effect on $\log(\text{units})$, in McElreath's generative form —
+one relation per line, read top-down from the likelihood to the
+hyperpriors:
+
+$$
+\hat\beta_c \sim \text{Normal}(\beta_c, \text{se}_c)
+$$
+
+$$
+\beta_c \sim \text{Normal}(\mu, \tau)
+$$
+
+$$
+\mu \sim \text{Normal}(0, 1)
+$$
+
+$$
+\tau \sim \text{HalfNormal}(0.5)
+$$
+
+Read top-down: the first line is the likelihood ($\hat\beta_c$, the
+observed OLS estimate for category $c$); the second is the adaptive
+prior (category $c$'s true effect, shrunk toward the pool); the last two
+are the hyperpriors, $\mu$ the shop-wide weekend effect and $\tau$ how
+much categories genuinely vary around it. $\text{se}_c$ is fixed, taken
+directly from the unpooled OLS fit, not estimated — the only thing this
+model adds on top of twelve separate regressions is that middle line: a
+population that every $\beta_c$ is drawn from and, in turn, informed by.
+
+NUTS, 4 chains × 2,000 draws (1,500 tune, target-accept 0.95). Every
+$\hat{R} = 1.00$ — clean convergence, no divergences.
+
+```{=html}
+{{< include technical-report/figures/07_bayes_shrinkage.html >}}
+```
+
+| Category | $n$ | Unpooled $\hat\beta$ (se) | Partial-pooled mean [95% CI] |
+|---|---:|---:|---:|
+| Personal Care and Health | 90 | 0.518 (0.105) | 0.640 [0.433, 0.829] |
+| Household and Cleaning Supplies | 88 | 0.593 (0.128) | 0.709 [0.482, 0.908] |
+| Alcoholic Beverages | 90 | 0.644 (0.103) | 0.716 [0.527, 0.887] |
+| Seafood | 88 | 0.820 (0.123) | 0.832 [0.647, 1.014] |
+| Frozen Foods | 88 | 0.773 (0.075) | 0.791 [0.656, 0.923] |
+| Pantry Staples and Packaged Goods | 90 | 0.927 (0.079) | 0.907 [0.774, 1.046] |
+| Snacks and Confectionery | 90 | 0.892 (0.089) | 0.880 [0.733, 1.032] |
+| Beverages (Non-Alcoholic) | 90 | 0.915 (0.074) | 0.901 [0.776, 1.032] |
+| Dairy and Eggs | 89 | 0.973 (0.117) | 0.923 [0.748, 1.109] |
+| Fresh Produce | 90 | 0.993 (0.081) | 0.957 [0.819, 1.103] |
+| Meat and Poultry | 90 | 1.013 (0.082) | 0.970 [0.830, 1.119] |
+| Bakery and Bread | 90 | 1.028 (0.089) | 0.975 [0.821, 1.136] |
+
+Global weekend effect: $\hat\mu = 0.849$ on the log scale, i.e. units run
+**+133.8%** on a weekend day versus a weekday, shop-wide, in the first
+quarter.
+
+**What the shrinkage plot is actually showing.** The three categories
+with the *widest* unpooled standard errors — Personal Care and Health, Household
+and Cleaning Supplies, Alcoholic Beverages — are pulled hardest toward the
+global mean (all three move noticeably right, toward $\hat\mu$). The
+categories with tight unpooled estimates (Pantry Staples, Beverages,
+Frozen Foods) barely move at all — exactly the property that makes partial
+pooling useful rather than a formality: the model borrows strength from
+the whole shop in proportion to how much each category's own estimate
+needs it, automatically, without an analyst hand-picking a shrinkage
+factor.
+
+---
+
+## Reproducing this
+
+Every figure and table number above is written to a `results.json`
+alongside the source script — nothing in this page is hand-typed from a
+notebook that could have drifted. The full analysis (data loading through
+every model fit) is one script:
+[`technical-report/analysis.py`](technical-report/analysis.py).
+
+This page and the [stakeholder report](stakeholder-report.qmd) run on
+different generated data, but exercise the same underlying capability: one
+is what you hand the client, the other is what backs it up before it goes
+out the door. Both are real `grocery-sim` output; neither page has an
+invented number.
