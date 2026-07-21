@@ -14,6 +14,8 @@ website:
         text: Home
       - href: theory.qmd
         text: Theory
+      - href: api-reference.qmd
+        text: API reference
       - href: analysis-catalog.qmd
         text: Analysis catalog
       - href: analyses/index.qmd

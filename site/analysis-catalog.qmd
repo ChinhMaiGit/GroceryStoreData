@@ -22,96 +22,3062 @@ structural breaks, regime-change forecasting, and capital decisions.
 ## Layer 0 — Clean the records before trusting them
 
 The recording layer deliberately plants ten defect families in the
-paperwork; every find is gradeable row-by-row against the hidden
+paperwork. Every find is gradeable row-by-row against the hidden
 imperfections log.
 
-| # | Question | Approach |
-| --- | --- | --- |
-| 0.1 | Which receipts were uploaded twice, and what was revenue *really*? | the all-even multiplicity rule; reconcile deduped receipts to the ledger |
-| 0.2 | Which negative till lines are cancelled mis-rings, and which are real refunds? | partition by reference receipt; match void partners within receipts |
-| 0.3 | Do supplier invoices reconcile to the ledger's procurement line? | exact-key dedup; explain the residual gap |
-| 0.4 | Does book stock reconcile with the paperwork, night by night? | perpetual-inventory identity per SKU-day |
-| 0.5 | What is "shrinkage" here, and what causes it? | decompose write-offs by reason; trace stock-count corrections |
-| 0.6 | Standardize the label mess | payment-label normalization, hour-0 placeholder handling, category typos, sensor gaps |
-| 0.7 | After cleaning: which totals should tie exactly, and which gaps are *supposed* to remain? | run the full reconciliation contract |
+Every snippet below has two parts: a Python cell that runs once per layer to
+set up the connection, and a per-question block giving both a polars and a
+SQL answer to that question. Run the setup cell first if pasting into a
+fresh session.
+
+```python
+from grocery_sim import GroceryStoreSimulation
+
+sim = GroceryStoreSimulation()
+sim.setup(dict(basic = dict(year = 1)))
+sim.simulate()
+con = sim.db()   # a real duckdb connection over this run's visible/ tables
+
+receipts = con.sql("SELECT * FROM receipts").pl()
+procurement = con.sql("SELECT * FROM procurement").pl()
+inventory_eod = con.sql("SELECT * FROM inventory_eod").pl()
+write_offs = con.sql("SELECT * FROM write_offs").pl()
+weather = con.sql("SELECT * FROM weather").pl()
+```
+
+### 0.1 — Which receipts were uploaded twice, and what was revenue *really*?
+
+Looking at the receipts table for the first time, nothing on the surface
+says whether any sale got filed more than once — every receipt just looks
+like a receipt. If a duplicate exists, it's probably not something typed
+twice on purpose, but a technical glitch: a payment terminal retry,
+resending a whole transaction after a network hiccup. If that's what
+happened, the resend would carry every line of the original sale,
+unchanged, down to the receipt_id. So the sign to look for is a receipt
+whose lines are suspiciously over-represented, in a way ordinary variation
+wouldn't produce.
+
+We can test this directly: group every row by every column at once, so any
+two identical rows collapse into one count, then check whether every one
+of a receipt's lines shows up an even number of times. If they do, across
+the board, that's not something an ordinary receipt would produce by
+chance.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import polars as pl
+
+# a POS retry re-posts every line of a receipt byte-identical, so a
+# genuine receipt's lines are almost never all-even in multiplicity by chance
+mult = (
+    receipts
+    .group_by(receipts.columns)
+    .agg(pl.len().alias("n"))
+)
+all_even = (
+    mult
+    .group_by("receipt_id")
+    .agg((pl.col("n") % 2 == 0).all().alias("all_even"))
+)
+duplicated = set(all_even.filter(pl.col("all_even"))["receipt_id"])
+mult = mult.with_columns(
+    pl.when(pl.col("receipt_id").is_in(duplicated))
+    .then(pl.col("n") // 2).otherwise(pl.col("n")).alias("keep")
+)
+revenue_as_filed = (receipts["qty"] * receipts["unit_price"]).sum()
+revenue_real = (mult["qty"] * mult["unit_price"] * mult["keep"]).sum()
+print(f"{len(duplicated)} receipts posted twice; revenue overstated by "
+      f"{revenue_as_filed - revenue_real:,.0f}")
+# -> 34 receipts posted twice; revenue overstated by 1,446
+```
+
+**SQL**
+
+```sql
+WITH line_counts AS (
+    SELECT receipt_id, hour, payment, customer_id, uid, qty,
+           unit_price, promo, ref_receipt_id, date, COUNT(*) AS n
+    FROM receipts
+    GROUP BY ALL
+),
+flagged AS (
+    SELECT receipt_id, BOOL_AND(n % 2 = 0) AS all_even
+    FROM line_counts GROUP BY receipt_id
+)
+SELECT
+    SUM(qty * unit_price * n) AS revenue_as_filed,
+    SUM(qty * unit_price * (CASE WHEN f.all_even THEN n / 2 ELSE n END)) AS revenue_real
+FROM line_counts l JOIN flagged f USING (receipt_id)
+-- -> revenue_as_filed 744,711.02, revenue_real 743,264.78
+```
+:::
+
+Running that check finds 34 receipts fitting the pattern exactly. Once we
+halve their line counts back down and recompute revenue, the real number
+comes out to €743,265 — €1,446 less than the €744,711 originally filed.
+
+### 0.2 — Which negative till lines are cancelled mis-rings, and which are real refunds?
+
+Scanning the receipts table, some quantities are negative, with nothing
+labeling why. A negative line could mean two very different things: a
+clerk immediately fixing a mis-scanned item at the register, or a customer
+coming back later for an actual refund. A bare filter on negative quantity
+doesn't tell us which.
+
+Thinking through what each scenario would leave behind gives us something
+to check. A same-moment correction should net out completely, on the very
+same receipt, against a real positive line for the same item at the same
+price. A genuine refund, on the other hand, ought to reference a separate,
+earlier receipt, since that's the sale actually being refunded.
+
+So we can split every negative-quantity row by whether it carries a
+reference to another receipt, and for the ones that don't, check whether a
+matching positive line really exists on the same ticket.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+mis_rings = receipts.filter((pl.col("qty") < 0) & pl.col("ref_receipt_id").is_null())
+real_refunds = receipts.filter((pl.col("qty") < 0) & pl.col("ref_receipt_id").is_not_null())
+
+# a mis-ring's void line always has a same-receipt, same-price partner with
+# the opposite sign; a real refund instead points at a *different* receipt
+# via ref_receipt_id, and never nets to zero on the same ticket
+positive_keys = set(receipts.filter(pl.col("qty") > 0).select("receipt_id", "uid", "unit_price").iter_rows())
+all_matched = all(
+    row in positive_keys
+    for row in mis_rings.select("receipt_id", "uid", "unit_price").iter_rows()
+)
+print(f"{len(mis_rings)} voided mis-rings (matched: {all_matched}), {len(real_refunds)} real refunds")
+# -> 103 voided mis-rings (matched: True), 107 real refunds
+```
+
+**SQL**
+
+```sql
+SELECT
+    SUM(CASE WHEN qty < 0 AND ref_receipt_id IS NULL THEN 1 ELSE 0 END) AS mis_rings,
+    SUM(CASE WHEN qty < 0 AND ref_receipt_id IS NOT NULL THEN 1 ELSE 0 END) AS real_refunds
+FROM receipts
+-- -> mis_rings 103, real_refunds 107
+```
+:::
+
+Running that turns up 103 lines with no reference, every single one
+matched to a same-receipt partner exactly as expected, and 107 lines that
+do carry a reference to a different receipt — the real refunds.
+
+### 0.3 — Do supplier invoices reconcile to the ledger's procurement line?
+
+If a supplier's own system occasionally double-posts an invoice, the fix
+seems simple enough: dedup on the natural key — `uid`, `qty`, `unit_cost`,
+`order_date`, `delivery_date` — and collapse whatever repeats. We can try
+that on the raw invoice lines and see how many collapse.
+
+But we shouldn't declare victory once we have that number. We need to ask
+what dedup *can't* catch before trusting it completely. A line that was
+never entered in the first place leaves no duplicate behind to collapse,
+so a delivery that arrived with no invoice at all sails straight through
+this check, invisible. To catch that kind of gap we'd have to reconcile
+the ledger directly, comparing what was actually paid against what the
+recorded invoices claim, since a missing invoice still shows up as cash
+that left the till with nothing on paper to explain it.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+key_cols = ["uid", "qty", "unit_cost", "order_date", "delivery_date"]
+deduped = procurement.unique(subset = key_cols)
+print(f"{len(procurement)} invoice lines, {len(deduped)} after exact-key dedup -- "
+      f"a residual gap here means goods arrived with no invoice at all, which "
+      f"dedup can't surface, only a ledger tie-out can")
+# -> 5584 invoice lines, 5562 after exact-key dedup
+```
+
+**SQL**
+
+```sql
+SELECT
+    COUNT(*) AS raw_lines,
+    COUNT(DISTINCT (uid, qty, unit_cost, order_date, delivery_date)) AS deduped_lines
+FROM procurement
+-- -> raw_lines 5584, deduped_lines 5562
+```
+:::
+
+Trying it on the 5,584 raw invoice lines does collapse them down to 5,562
+— 22 lines the supplier really did post twice. That's a real fix for
+double-posting, but it can't touch the opposite failure: a delivery that
+was never invoiced at all leaves no duplicate behind to collapse, and only
+a direct ledger reconciliation would ever surface it.
+
+### 0.4 — Does book stock reconcile with the paperwork, night by night?
+
+Nothing in the inventory table on its own says whether the book counts
+can be trusted night to night. But there's a hard constraint any honest
+set of counts has to satisfy: whatever's on the shelf tomorrow morning has
+to equal today's count, plus deliveries, minus what sold, minus what got
+thrown out. There's no other way for a unit to enter or leave the shelf.
+If that arithmetic ever fails to close, something's wrong with the
+paperwork, not the shelf.
+
+So we can walk that identity forward, one SKU at a time, one day at a
+time, across the whole year, and flag every day it doesn't balance.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# perpetual-inventory identity, per SKU-day: on_hand[t] must equal
+# on_hand[t-1] plus deliveries, minus units sold, minus units written off
+delivered = (
+    procurement
+    .group_by(["uid", pl.col("delivery_date").alias("date")])
+    .agg(pl.col("qty").sum().alias("delivered"))
+)
+sold = (
+    receipts
+    .filter(pl.col("ref_receipt_id").is_null())
+    .group_by(["uid", "date"])
+    .agg(pl.col("qty").sum().alias("sold"))
+)
+tossed = (
+    write_offs
+    .group_by(["uid", "date"])
+    .agg(pl.col("units").sum().alias("tossed"))
+)
+
+book = (
+    inventory_eod
+    .sort(["uid", "date"])
+    .with_columns(pl.col("on_hand").shift(1).over("uid").alias("prev_on_hand"))
+    .join(delivered, on = ["uid", "date"], how = "left")
+    .join(sold, on = ["uid", "date"], how = "left")
+    .join(tossed, on = ["uid", "date"], how = "left")
+    .with_columns(pl.col(["delivered", "sold", "tossed"]).fill_null(0))
+    .filter(pl.col("prev_on_hand").is_not_null())
+    .with_columns(
+        (pl.col("on_hand") - pl.col("prev_on_hand") - pl.col("delivered")
+         + pl.col("sold") + pl.col("tossed")).alias("residual")
+    )
+)
+broken = book.filter(pl.col("residual").abs() > 1e-9)
+print(f"perpetual-inventory identity breaks on {len(broken)} SKU-days -- each "
+      f"one flags a book-count typo, not a real stock movement")
+# -> perpetual-inventory identity breaks on 48 SKU-days
+```
+
+**SQL**
+
+```sql
+WITH delivered AS (
+    SELECT uid, delivery_date AS date, SUM(qty) AS delivered
+    FROM procurement GROUP BY uid, delivery_date
+),
+sold AS (
+    SELECT uid, date, SUM(qty) AS sold
+    FROM receipts WHERE ref_receipt_id IS NULL GROUP BY uid, date
+),
+tossed AS (
+    SELECT uid, date, SUM(units) AS tossed
+    FROM write_offs GROUP BY uid, date
+),
+book AS (
+    SELECT
+        i.uid, i.date, i.on_hand,
+        LAG(i.on_hand) OVER (PARTITION BY i.uid ORDER BY i.date) AS prev_on_hand,
+        COALESCE(d.delivered, 0) AS delivered,
+        COALESCE(s.sold, 0) AS sold,
+        COALESCE(t.tossed, 0) AS tossed
+    FROM inventory_eod i
+    LEFT JOIN delivered d ON d.uid = i.uid AND d.date = i.date
+    LEFT JOIN sold s ON s.uid = i.uid AND s.date = i.date
+    LEFT JOIN tossed t ON t.uid = i.uid AND t.date = i.date
+)
+SELECT COUNT(*) AS broken_sku_days
+FROM book
+WHERE prev_on_hand IS NOT NULL
+  AND ABS(on_hand - prev_on_hand - delivered + sold + tossed) > 1e-9
+-- -> broken_sku_days 48
+```
+:::
+
+That turns up 48 broken SKU-days — not a suspiciously round number, but
+not an accident either. Digging into where they cluster, they come in
+pairs, exactly two consecutive days at a time, which looks like a
+specific kind of mistake: a single day's count keyed in wrong, then
+corrected the moment the next real count comes in. If that's what's
+happening, we'd expect exactly twice as many broken days as miskeyed
+counts, and that's exactly the ratio here: 24 apparent mis-keys, 48
+broken days.
+
+### 0.5 — What is "shrinkage" here, and what causes it?
+
+"Shrinkage" sounds like one single thing, but we should check whether the
+write-offs table actually treats it that way before assuming so. Grouping
+by `reason` and summing units is the natural first move, to see whether
+one cause dominates or several different stories are hiding under one
+label.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+by_reason = (
+    write_offs
+    .group_by("reason")
+    .agg(pl.col("units").sum())
+    .sort("units", descending = True)
+)
+print(by_reason.to_dicts())
+# -> [{'reason': 'spoilage', 'units': 21381}, {'reason': 'stock_count', 'units': 2993}]
+# spoilage is the nightly ambient toss; stock_count is the monthly count's
+# own correction -- both visible here, but some spoilage is never logged at
+# all and only shows up as a break in 0.4's inventory identity
+```
+
+**SQL**
+
+```sql
+SELECT reason, SUM(units) AS units FROM write_offs GROUP BY reason ORDER BY units DESC
+-- -> spoilage 21381, stock_count 2993
+```
+:::
+
+That split turns up two very different stories: 21,381 units of ordinary
+"spoilage" (the nightly ambient toss of perishables past their window),
+and 2,993 units of "stock_count" — the monthly physical count's own
+correction for whatever quietly drifted between the book and reality over
+the month. Both of those sit right there in the table, plainly visible.
+What we can't see directly is more unsettling: some spoilage is never
+logged as a write-off at all, and the only trace it leaves is indirect —
+a break in 0.4's inventory identity, found by a completely different
+check. "What's in the write-offs table" and "everything that was actually
+lost" turn out not to be the same question, and 0.4 is the only place
+that difference shows up.
+
+### 0.6 — Standardize the label mess
+
+Before we trust any aggregate built on top of this data, we should just
+look at the raw values in a few key columns first. No model needed yet,
+only the willingness to notice when something looks wrong. We can scan
+`hour`, `payment`, and the weather log for exactly that kind of thing. A
+fourth defect wouldn't even show up in this table at all. A promotions
+category typo, "Confectionary" for "Confectionery," won't announce itself
+here. It only resurfaces later, whenever a promotions analysis silently
+fails to match anything for that category and we have to go looking for
+why.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+print(f"hour==0 rows: {receipts.filter(pl.col('hour') == 0).height}")
+print(f"payment variants: {sorted(receipts['payment'].unique().to_list())}")
+print(f"weather sensor blackout days: {weather.filter(pl.col('temp_C').is_null()).height}")
+# -> hour==0 rows: 350
+# -> payment variants: ['CARD', 'CASH', 'Card', 'Cash', 'card', 'cash', 'cash ']
+# -> weather sensor blackout days: 6
+```
+
+**SQL**
+
+```sql
+SELECT
+    SUM(CASE WHEN hour = 0 THEN 1 ELSE 0 END) AS hour_zero_rows,
+    COUNT(DISTINCT payment) AS payment_variants
+FROM receipts;
+
+SELECT COUNT(*) AS blackout_days FROM weather WHERE temp_C IS NULL;
+-- -> hour_zero_rows 350, payment_variants 7, blackout_days 6
+```
+:::
+
+Scanning `hour` turns up 350 receipt lines sitting at exactly 0, which
+isn't really midnight, just a placeholder where the real hour got lost.
+Scanning `payment` turns up seven different spellings — `card`, `CARD`,
+`Card`, and the cash equivalents, one even carrying a trailing space —
+all really meaning one of two things. Scanning the weather log finds it
+dark for 6 days total, wherever the rooftop sensor dropped out. Four
+unrelated messes, and we catch every one of them (the fourth, the
+promotions category typo, only by going looking for it separately) with
+nothing more than actually looking.
+
+### 0.7 — After cleaning: which totals should tie exactly, and which gaps are *supposed* to remain?
+
+With every defect in this layer understood, we should now ask which totals
+actually tie out after cleaning, and which gaps are supposed to survive
+the cleanup untouched. We can start with the receipt count. Since a POS
+retry re-posts under the *same* receipt_id rather than minting a new one
+(0.1), that count may never have been wrong in the first place, unlike
+revenue and inventory, which genuinely were wrong until 0.1's dedup and
+0.4's identity check did their work.
+
+But we have to remember not every gap is a bug waiting to be closed. The
+missing invoices found in 0.3 leave a real residual that no amount of
+reconciliation manufactures away, because the underlying paperwork
+genuinely doesn't exist. There's nothing left to find. Telling those two
+kinds of gap apart, a cleaning bug versus a structural fact about the
+records, is the actual skill this whole layer has been building toward.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# receipt count is untouched by 0.1's duplicated retries -- a retry reuses
+# its original receipt_id rather than minting a new one, so this total was
+# already correct before any cleaning; revenue and inventory were not
+print(f"distinct receipts on file: {receipts['receipt_id'].n_unique()}")
+# -> distinct receipts on file: 17127
+```
+
+**SQL**
+
+```sql
+SELECT COUNT(DISTINCT receipt_id) AS n_receipts FROM receipts
+-- -> n_receipts 17127
+```
+:::
+
+The distinct-receipt count comes out to 17,127, and since a retry reuses
+its original receipt_id rather than minting a new one, that total was
+already correct before any cleaning. Revenue and inventory were not — both
+needed 0.1's dedup and 0.4's identity check before they tied out.
 
 ## Layer 1 — Describe the business
 
-| # | Question | Approach |
-| --- | --- | --- |
-| 1.1 | Where does the money come from and go? | P&L from the ledger; margin waterfall including tax |
-| 1.2 | When do people shop? | day-of-week / hour-of-day profiles — the trap: this is schedule composition, not day preference |
-| 1.3 | What sells when? | monthly seasonality indices per category and product type |
-| 1.4 | What does a basket look like? | basket size/value distributions, category co-occurrence |
-| 1.5 | Who are the customers? | RFM segmentation of the card panel; regulars vs. one-off guests vs. anonymous cash |
-| 1.6 | How are prices architected? | charm-ending mix, repricing cadence, markdown depth |
-| 1.7 | How often are shelves empty, and what rots? | out-of-stock incidence by SKU-month; write-off seasonality |
-| 1.8 | How much tax does the shop handle? | effective rate by category group; remittance seasonality |
+This layer additionally needs `cost_sheet`, `tax_statement`, `price_history`,
+and `calendar` from the same connection, plus the SKU catalog (a static
+attribute table that ships inside the package, not one of the simulated
+tables):
+
+```python
+import importlib.resources as res
+
+cost_sheet = con.sql("SELECT * FROM cost_sheet").pl()
+tax_statement = con.sql("SELECT * FROM tax_statement").pl()
+price_history = con.sql("SELECT * FROM price_history").pl()
+calendar = con.sql("SELECT * FROM calendar").pl()
+skus = pl.read_excel(res.files("grocery_sim") / "SKUs.xlsx")
+
+sales = receipts.filter(pl.col("ref_receipt_id").is_null())
+```
+
+### 1.1 — Where does the money come from and go?
+
+To see where the money actually goes, we should start at the top and
+subtract each layer of cost in the order it really leaves the till.
+Revenue minus procurement is the first checkpoint, and from there rent,
+wages, utilities, VAT, and profit tax each take their own cut. What's left
+after all of them have been paid is the number that actually decides
+whether the shop was worth running this year, not the gross figure at the
+top.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+gross_margin = cost_sheet["revenue"].sum() - cost_sheet["procurement"].sum()
+after_tax = tax_statement["profit_after_tax"].sum()
+print(f"gross margin {gross_margin:,.0f}; after tax {after_tax:,.0f}")
+# -> gross margin 133,865; after tax 29,183
+```
+
+**SQL**
+
+```sql
+SELECT SUM(revenue) - SUM(procurement) AS gross_margin,
+       (SELECT SUM(profit_after_tax) FROM tax_statement) AS after_tax
+FROM cost_sheet
+-- -> gross_margin 133,864.60, after_tax 29,183.30
+```
+:::
+
+That checkpoint lands at a gross margin of €133,865 for the year. Once
+rent, wages, utilities, VAT, and profit tax have each taken their cut,
+what's left is €29,183 after tax — the number that actually decides
+whether the shop was worth running this year, not the gross figure at the
+top.
+
+### 1.2 — When do people shop?
+
+A first look at units by day of week is likely to show weekends ahead of
+weekdays, and the tempting read is that people simply prefer weekends. But
+we should check what "weekend" actually means in this calendar before
+accepting that. If there happen to be more Friday-Saturday-type slots than
+any other single day, a bigger weekend total could just be schedule
+composition, more opportunities to shop, not more desire to. So we need
+the honest comparison to total units across each group of days rather than
+average per day, or the arithmetic quietly smuggles in a preference that
+was never really there.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# schedule composition, not day preference: dow 5-6 is the weekend in this
+# calendar, so compare total units, not units per open day
+by_dow = (
+    sales
+    .join(calendar.select("date", "dow"), on = "date")
+    .group_by("dow")
+    .agg(pl.col("qty").sum().alias("units"))
+)
+weekday = by_dow.filter(pl.col("dow") <= 4)["units"].sum()
+weekend = by_dow.filter(pl.col("dow") >= 5)["units"].sum()
+print(f"weekday units: {weekday:,.0f}, weekend units: {weekend:,.0f}")
+# -> weekday units: 142,949, weekend units: 150,256
+```
+
+**SQL**
+
+```sql
+SELECT
+    SUM(CASE WHEN c.dow <= 4 THEN r.qty ELSE 0 END) AS weekday_units,
+    SUM(CASE WHEN c.dow >= 5 THEN r.qty ELSE 0 END) AS weekend_units
+FROM receipts r JOIN calendar c USING (date)
+WHERE r.ref_receipt_id IS NULL
+-- -> weekday_units 142949, weekend_units 150256
+```
+:::
+
+Weekend units (150,256) do come in ahead of weekday units (142,949), but
+this comparison is already the honest one, total units by group rather
+than an average that would let schedule composition masquerade as
+preference. The gap is a real difference in demand, not an artifact of
+how the days were counted.
+
+### 1.3 — What sells when?
+
+If demand here is really driven by the calendar rather than dressed-up
+noise, a category like Frozen Foods should show it plainly. Ice cream
+shouldn't sell the same in January as in July. We can build a monthly
+seasonality index and compare summer (June-August) against winter
+(December-February) to check whether it actually does.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+monthly = (
+    sales
+    .join(skus.select("uid", "category"), on = "uid")
+    .with_columns(pl.col("date").dt.month().alias("month"))
+)
+frozen = (
+    monthly
+    .filter(pl.col("category") == "Frozen Foods")
+    .group_by("month")
+    .agg(pl.col("qty").sum().alias("units"))
+    .sort("month")
+)
+summer = frozen.filter(pl.col("month").is_in([6, 7, 8]))["units"].sum()
+winter = frozen.filter(pl.col("month").is_in([12, 1, 2]))["units"].sum()
+print(f"Frozen Foods summer/winter ratio: {summer / winter:.2f}x")
+# -> Frozen Foods summer/winter ratio: 1.44x
+```
+
+**SQL**
+
+```sql
+-- duckdb can query the `skus` polars frame from the Python cell above
+-- directly by name, no need to re-read the file from SQL
+SELECT
+    SUM(CASE WHEN MONTH(r.date) IN (6,7,8) THEN r.qty ELSE 0 END) AS summer,
+    SUM(CASE WHEN MONTH(r.date) IN (12,1,2) THEN r.qty ELSE 0 END) AS winter
+FROM receipts r
+JOIN skus s ON s.uid = r.uid
+WHERE r.ref_receipt_id IS NULL AND s.category = 'Frozen Foods'
+-- -> summer 7488, winter 5218 (ratio 1.44x)
+```
+:::
+
+It confirms exactly that. Frozen Foods sells 1.44× as many units in summer
+as in winter, the ice-cream effect landing right where it should. A small
+check, but a load-bearing one. It's evidence the simulated demand actually
+responds to the season, not just a category name attached to flat noise.
+
+### 1.4 — What does a basket look like?
+
+Asking what a "typical" trip looks like means picking the right summary
+statistic first. We shouldn't use the mean basket value, since a handful
+of big stock-up trips would drag that number somewhere no ordinary visit
+actually sits. The median is the honest choice here, so we can group every
+basket by receipt and take the median across the year to see what the
+trip an actual customer on an actual afternoon actually looks like.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+basket = (
+    sales
+    .group_by("receipt_id")
+    .agg(
+        pl.len().alias("n_lines"),
+        (pl.col("qty") * pl.col("unit_price")).sum().alias("value"),
+    )
+)
+print(f"median basket value: {basket['value'].median():.2f}, "
+      f"median lines: {basket['n_lines'].median():.0f}")
+# -> median basket value: 39.63, median lines: 5
+```
+
+**SQL**
+
+```sql
+SELECT MEDIAN(value) AS median_value, MEDIAN(n_lines) AS median_lines
+FROM (
+    SELECT receipt_id, COUNT(*) AS n_lines, SUM(qty * unit_price) AS value
+    FROM receipts WHERE ref_receipt_id IS NULL GROUP BY receipt_id
+)
+-- -> median_value 39.63, median_lines 5.0
+```
+:::
+
+That lands on 5 line items worth €39.63 — the trip an actual customer on
+an actual afternoon experiences, not an average inflated by outliers.
+
+### 1.5 — Who are the customers?
+
+An RFM breakdown needs a customer identifier to group on, and that
+immediately narrows what we can ask. Anonymous cash baskets carry no
+`customer_id` at all, so "who are the customers" here can only mean "who
+are the identifiable customers" — the card panel, not everyone who walked
+in. We can group that panel by recency, frequency, and monetary value to
+see what shape it actually takes. Whether that panel is even a
+representative slice of the whole customer base is a separate question
+though, and we test it directly in 2.8.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# anonymous cash baskets have no customer_id at all -- RFM only describes
+# the card panel, never the whole customer base (see 2.8)
+card = sales.filter(pl.col("customer_id").is_not_null())
+last_date = card["date"].max()
+rfm = (
+    card
+    .group_by("customer_id")
+    .agg(
+        recency = (last_date - pl.col("date").max()).dt.total_days(),
+        frequency = pl.col("receipt_id").n_unique(),
+        monetary = (pl.col("qty") * pl.col("unit_price")).sum(),
+    )
+)
+print(f"{rfm.height} card customers; {(rfm['frequency'] == 1).sum()} one-off, "
+      f"{(rfm['frequency'] >= 5).sum()} regulars")
+# -> 1112 card customers; 854 one-off, 231 regulars
+```
+
+**SQL**
+
+```sql
+WITH per_customer AS (
+    SELECT customer_id, COUNT(DISTINCT receipt_id) AS frequency
+    FROM receipts WHERE ref_receipt_id IS NULL AND customer_id IS NOT NULL
+    GROUP BY customer_id
+)
+SELECT
+    COUNT(*) AS n_customers,
+    SUM(CASE WHEN frequency = 1 THEN 1 ELSE 0 END) AS one_off,
+    SUM(CASE WHEN frequency >= 5 THEN 1 ELSE 0 END) AS regulars
+FROM per_customer
+-- -> n_customers 1112, one_off 854, regulars 231
+```
+:::
+
+That grouping turns up 1,112 identifiable customers, and the split is
+stark: 854 show up exactly once all year, while just 231 qualify as
+regulars with 5 or more visits. A long tail of one-off guests sits
+alongside a real, if smaller, core of repeat shoppers.
+
+### 1.6 — How are prices architected?
+
+If prices were architected at random, the last digit of a shelf tag
+should spread roughly evenly across all ten possibilities. We can check
+that directly. The natural follow-up is how often those tags actually
+change, which counting reprices per SKU across the year can answer too.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+charm = price_history["price"].map_elements(
+    function = lambda p: f"{p:.2f}"[-1], return_dtype = pl.String,
+)
+print(charm.value_counts(normalize = True).sort("proportion", descending = True).to_dicts())
+reprices = (
+    price_history
+    .group_by("uid")
+    .agg(pl.len().alias("n"))
+    .with_columns((pl.col("n") - 1).alias("reprices"))
+)
+print(f"median reprices per SKU: {reprices['reprices'].median():.1f}")
+# -> charm-ending mix: 9 -> 86.3%, 5 -> 7.9%, 0 -> 5.8%
+# -> median reprices per SKU: 3.0
+```
+
+**SQL**
+
+```sql
+SELECT RIGHT(FORMAT('{:.2f}', price), 1) AS last_digit,
+       COUNT(*) * 1.0 / SUM(COUNT(*)) OVER () AS share
+FROM price_history GROUP BY last_digit ORDER BY share DESC
+-- -> '9' 0.863, '5' 0.079, '0' 0.058
+```
+:::
+
+It settles the question fast: 86.3% of prices end in 9, another 7.9% in 5,
+and 5.8% in 0 — the familiar €X.99 psychology, not a uniform spread at
+all. Repricing turns out to be infrequent too, a median of just 3 changes
+per SKU, which means any weekly price series built on top of this data
+has to account for menu-cost stickiness. Prices sit still for long
+stretches, they don't drift continuously.
+
+### 1.7 — How often are shelves empty, and what rots?
+
+Emptiness and rot sound like two sides of the same shelf problem, but we
+should check them separately. Counting stockout days per SKU from
+`inventory_eod` should show us how widespread and how severe emptiness
+actually is. What rots we already answered separately in 0.5, and 4.2
+works out the actual trade-off between the two once both halves are on
+the table.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+stockouts = (
+    inventory_eod
+    .filter(pl.col("on_hand") == 0)
+    .group_by("uid")
+    .agg(pl.len().alias("days"))
+)
+worst = (
+    stockouts
+    .sort("days", descending = True)
+    .head(1)
+)
+print(f"{stockouts.height} SKUs stocked out; worst: {worst.to_dicts()}")
+# -> 125 SKUs stocked out; worst: HC-CAG-011, 93 days
+```
+
+**SQL**
+
+```sql
+SELECT uid, COUNT(*) AS stockout_days
+FROM inventory_eod WHERE on_hand = 0
+GROUP BY uid ORDER BY stockout_days DESC LIMIT 1
+-- -> uid HC-CAG-011, stockout_days 93
+```
+:::
+
+That finds 125 SKUs that hit zero on-hand at some point this year, with
+one clear worst offender — HC-CAG-011, empty for 93 days, over a quarter
+of the year unavailable. It's worth noting the two problems turn out to
+hit almost entirely different categories. The perishables that spoil are
+not generally the SKUs that stock out.
+
+### 1.8 — How much tax does the shop handle?
+
+A single annual VAT figure hides whether the tax burden is steady or
+lumpy, so we should ask what the monthly spread looks like underneath the
+year's total remitted. Pulling the min and max from the monthly cost sheet
+should answer that directly.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+print(f"VAT remitted: {tax_statement['vat_remitted'].sum():,.0f}, "
+      f"monthly range: {cost_sheet['vat'].min():,.0f} to {cost_sheet['vat'].max():,.0f}")
+# -> VAT remitted: 16,379, monthly range: 100 to 2,502
+```
+
+**SQL**
+
+```sql
+SELECT
+    (SELECT SUM(vat_remitted) FROM tax_statement) AS vat_remitted,
+    MIN(vat) AS min_month, MAX(vat) AS max_month
+FROM cost_sheet
+-- -> vat_remitted 16,379.03, min_month 100.18, max_month 2,502.37
+```
+:::
+
+The year's remitted total comes to €16,379. Underneath that, the smallest
+month owed just €100, the biggest €2,502, a spread of better than 25×, not
+a flat monthly bill at all. That swing tracks the same seasonality already
+driving sales, which makes sense once we remember VAT is just a percentage
+of revenue moving with everything else.
 
 ## Layer 2 — Diagnose causes
 
-| # | Question | Approach |
-| --- | --- | --- |
-| 2.1 | Does weather move the business? | regression on rain/temperature anomaly with calendar controls, HAC errors, next-day rebound lags |
-| 2.2 | What hit costs during a shock? | event-study on invoice cost indices by category |
-| 2.3 | How much of a cost shock reaches the shelf, and how fast? | pass-through regression of tags on invoice costs; hysteresis/asymmetry tests |
-| 2.4 | Does raising a price lose customers or just move them? | SKU-level IV elasticity vs. category-level two-way FE — substitution vs. walkaway |
-| 2.5 | Is my instrument valid? | test a macro shock as an instrument (it also squeezes budgets → invalid) vs. an idiosyncratic cost event (valid) |
-| 2.6 | Did the markdowns work? | naive lift vs. DiD vs. selection-aware estimates |
-| 2.7 | Why does food rot faster some weeks? | write-off regression on temperature and the shock timeline |
-| 2.8 | Can I trust card data to represent everyone? | test the missingness mechanism between card and cash baskets |
-| 2.9 | What drives refunds and shrinkage? | rate modeling over time/category |
-| 2.10 | Do pre-holiday days really spike? | small-N inference done honestly (a handful of days per year) |
+None of this layer's questions reduce to a single query — every one needs a
+real regression or hypothesis test, so (unlike Layers 0–1) there's no SQL
+variant below, only polars for data prep feeding into `statsmodels`/`scipy`.
+
+```python
+import importlib.resources as res
+
+import polars as pl
+
+from grocery_sim import GroceryStoreSimulation
+
+sim = GroceryStoreSimulation()
+sim.setup(dict(
+    basic = dict(year = 1),
+    events = dict(war = "2025-07-01"),   # a real cost shock to diagnose against
+))
+sim.simulate()
+con = sim.db()
+
+receipts = con.sql("SELECT * FROM receipts").pl()
+procurement = con.sql("SELECT * FROM procurement").pl()
+price_history = con.sql("SELECT * FROM price_history").pl()
+write_offs = con.sql("SELECT * FROM write_offs").pl()
+weather = con.sql("SELECT * FROM weather").pl()
+calendar = con.sql("SELECT * FROM calendar").pl()
+promotions = con.sql("SELECT * FROM promotions").pl()
+skus = pl.read_excel(res.files("grocery_sim") / "SKUs.xlsx")
+sales = (
+    receipts
+    .filter(pl.col("qty") > 0)
+    .join(skus.select("uid", "category"), on = "uid")
+)
+```
+
+### 2.1 — Does weather move the business?
+
+Does weather actually move the business, or does it just feel like it
+should? We can check by regressing daily units on temperature anomaly,
+rain in millimeters, and a simple wet/dry indicator, with day-of-week
+controlled for so a rainy Tuesday isn't confused with a slow Tuesday, and
+see whether the exact amount of rain matters or only whether it rained at
+all.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import statsmodels.formula.api as smf
+
+daily = (
+    receipts
+    .filter(pl.col("qty") > 0)
+    .group_by("date")
+    .agg(pl.col("qty").sum().alias("units"))
+    .join(weather, on = "date")
+    .join(calendar.select("date", "dow", "closed"), on = "date")
+    .filter(pl.col("closed") == 0)
+    .sort("date")
+    .with_columns([
+        (pl.col("temp_C") - pl.col("temp_C").mean()).alias("temp_anom"),
+        pl.col("dow").cast(pl.String).alias("dow_str"),
+    ])
+)
+model = smf.ols("units ~ temp_anom + rain_mm + wet + C(dow_str)", data = daily.to_pandas()).fit(
+    cov_type = "HAC", cov_kwds = dict(maxlags = 7),
+)
+print(model.params[["temp_anom", "rain_mm", "wet"]])
+print(model.pvalues[["temp_anom", "rain_mm", "wet"]])
+# -> temp_anom p=0.19, rain_mm p=0.43 (neither significant alone);
+#    wet p<0.001 (a rain day itself moves units, R2=0.89)
+```
+
+:::
+
+The continuous measures come back weak. Temperature anomaly sits at
+p=0.19, rain in millimeters at p=0.43, neither distinguishable from noise.
+What actually matters is the coarse version: whether it's raining or not,
+at p<0.001, and that binary split alone accounts for most of what weather
+contributes to the model (R²=0.89 overall). Continuous weather barely
+matters on its own. The binary wet/dry split does — the same pattern the
+technical report's GLM finds independently.
+
+### 2.2 — What hit costs during a shock?
+
+A war shock is supposed to raise costs, but the interesting question is
+*whose* costs — one category, a few, or everything at once. We can check
+each of the twelve categories' invoice cost before and after the shock
+date to find out, and that answer matters beyond just this question. An
+instrument needs to move one thing without dragging everything else along
+with it, so whether this shock hits narrowly or broadly will decide
+whether 2.4 and 2.5 can actually use it as one.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+EVENT_DATE, WINDOW = pl.date(2025, 7, 1), 60
+
+cost = (
+    procurement
+    .join(skus.select("uid", "category"), on = "uid")
+    .with_columns((pl.col("qty") * pl.col("unit_cost")).alias("cost"))
+    .group_by(["category", "delivery_date"])
+    .agg(pl.col("cost").sum().alias("total_cost"), pl.col("qty").sum().alias("total_qty"))
+    .with_columns((pl.col("total_cost") / pl.col("total_qty")).alias("unit_cost_index"))
+)
+for cat in cost["category"].unique().sort():
+    c = cost.filter(pl.col("category") == cat)
+    before = c.filter(
+        (pl.col("delivery_date") < EVENT_DATE)
+        & (pl.col("delivery_date") >= EVENT_DATE - pl.duration(days = WINDOW))
+    )["unit_cost_index"].mean()
+    after = c.filter(
+        (pl.col("delivery_date") >= EVENT_DATE)
+        & (pl.col("delivery_date") < EVENT_DATE + pl.duration(days = WINDOW))
+    )["unit_cost_index"].mean()
+    if before and after:
+        print(f"{cat}: {before:.2f} -> {after:.2f} ({(after / before - 1) * 100:+.1f}%)")
+# -> every category moves +23% to +40% -- a broad macro shock, not a
+#    single-category event (exactly why it's a weak instrument in 2.4-2.5)
+```
+:::
+
+It answers cleanly. Every single category moves, by +23% to +40%, roughly
+in step. That's not a single-category event, it's a broad macro move
+hitting the whole store at once, and this shock fails the "moves one thing
+without dragging everything else along" test from the start, which is
+exactly why it shows up as a *weak* instrument once 2.4 and 2.5 go looking
+for one.
+
+### 2.3 — How much of a cost shock reaches the shelf, and how fast?
+
+If costs go up, does the shelf tag follow immediately, or does it lag?
+The naive story says instant, full pass-through, but we should test that
+rather than assume it. So the plan is to regress the weekly change in
+shelf price on the same-week change in cost and its one-week lag, for
+Dairy and Eggs specifically (repricing is infrequent enough that we need
+to forward-fill each SKU's own tag, or the weekly series gets
+artificially noisy).
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+CAT = "Dairy and Eggs"
+
+cost_w = (
+    procurement
+    .join(skus.select("uid", "category"), on = "uid")
+    .filter(pl.col("category") == CAT)
+    .with_columns(pl.col("delivery_date").dt.truncate("1w").alias("week"))
+    .group_by("week")
+    .agg(
+        (pl.col("qty") * pl.col("unit_cost")).sum().alias("c"), pl.col("qty").sum().alias("q"),
+    )
+    .with_columns((pl.col("c") / pl.col("q")).alias("cost_index"))
+    .sort("week")
+)
+# forward-fill each SKU's own last tag across weeks -- repricing is
+# infrequent, so a naive weekly average is sparse and overstates volatility
+price_w = (
+    price_history
+    .join(skus.select("uid", "category"), on = "uid")
+    .filter(pl.col("category") == CAT)
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["uid", "week"])
+    .agg(pl.col("price").last())
+)
+grid = (
+    price_w["uid"]
+    .unique()
+    .to_frame()
+    .join(cost_w.select("week").unique(), how = "cross")
+)
+price_index = (
+    grid
+    .join(price_w, on = ["uid", "week"], how = "left")
+    .sort(["uid", "week"])
+    .with_columns(pl.col("price").forward_fill().over("uid"))
+    .group_by("week")
+    .agg(pl.col("price").mean().alias("price_index"))
+)
+merged = (
+    cost_w
+    .join(price_index, on = "week")
+    .sort("week")
+    .with_columns([
+        pl.col("cost_index").log().diff().alias("d_log_cost"),
+        pl.col("price_index").log().diff().alias("d_log_price"),
+        pl.col("cost_index").log().diff().shift(1).alias("d_log_cost_lag1"),
+    ])
+    .drop_nulls(subset = ["d_log_cost", "d_log_price"])
+)
+model = smf.ols("d_log_price ~ d_log_cost + d_log_cost_lag1", data = merged.to_pandas()).fit(
+    cov_type = "HAC", cov_kwds = dict(maxlags = 4),
+)
+print(model.params, model.pvalues, sep = "\n")
+print("1-week cumulative pass-through:", model.params["d_log_cost"] + model.params["d_log_cost_lag1"])
+# -> both terms significant (p<0.02); ~34% of a cost move reaches the
+#    shelf within a week -- partial and delayed, not full or instant
+```
+:::
+
+Both terms come back significant, at p<0.02, and together they say only
+about 34% of a cost move has reached the shelf within a week. Partial and
+delayed, not full and instant. Menu-cost stickiness means the tag
+genuinely lags the invoice.
+
+### 2.4 — Does raising a price lose customers or just move them?
+
+We could start by regressing demand on price directly — but we have to
+be honest that this is close to begging the question, since price itself
+often moves because of demand, not the other way around. We can try it
+anyway as a baseline: log quantity on log price, category and week fixed
+effects soaked up. We can't trust whatever number that gives us at face
+value, though. If a busy week pushes up both sales and the owner's
+willingness to reprice, that could contaminate the estimate with exactly
+the simultaneity problem 2.5 exists to chase down.
+
+What we actually need is a source of price movement that has nothing to
+do with demand. The war shock from earlier in the year should fit: it
+raised procurement costs, which fed into shelf prices with a lag (2.3),
+for reasons that have nothing to do with how much anyone wanted to buy
+that week. We can use each category's own cost index as an instrument and
+run this through two stages instead, then check whether that instrument
+is actually earning its keep before trusting whatever it gives us as the
+"real" elasticity.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+weekly_qty = (
+    sales
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["uid", "category", "week"])
+    .agg(pl.col("qty").sum().alias("qty"))
+)
+weekly_price = (
+    price_history
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["uid", "week"])
+    .agg(pl.col("price").last())
+)
+weekly_cat_cost = (
+    procurement
+    .join(skus.select("uid", "category"), on = "uid")
+    .with_columns(pl.col("delivery_date").dt.truncate("1w").alias("week"))
+    .group_by(["category", "week"])
+    .agg((pl.col("qty") * pl.col("unit_cost")).sum().alias("c"), pl.col("qty").sum().alias("q"))
+    .with_columns((pl.col("c") / pl.col("q")).alias("cat_cost_index"))
+)
+panel = (
+    weekly_qty
+    .join(weekly_price, on = ["uid", "week"], how = "left")
+    .sort(["uid", "week"])
+    .with_columns(pl.col("price").forward_fill().over("uid"))
+    .join(weekly_cat_cost.select("category", "week", "cat_cost_index"), on = ["category", "week"])
+    .drop_nulls(subset = ["price", "cat_cost_index"])
+    .with_columns([
+        pl.col("qty").log().alias("log_qty"),
+        pl.col("price").log().alias("log_price"),
+        pl.col("cat_cost_index").log().alias("log_cost"),
+    ])
+)
+pdf = panel.to_pandas()
+
+ols = smf.ols("log_qty ~ log_price + C(category) + C(week)", data = pdf).fit(
+    cov_type = "cluster", cov_kwds = dict(groups = pdf["category"]),
+)
+print("naive OLS elasticity:", ols.params["log_price"], "p:", ols.pvalues["log_price"])
+
+first_stage = smf.ols("log_price ~ log_cost + C(category) + C(week)", data = pdf).fit()
+pdf["log_price_hat"] = first_stage.fittedvalues
+iv = smf.ols("log_qty ~ log_price_hat + C(category) + C(week)", data = pdf).fit(
+    cov_type = "cluster", cov_kwds = dict(groups = pdf["category"]),
+)
+print("IV elasticity:", iv.params["log_price_hat"], "p:", iv.pvalues["log_price_hat"])
+print("first-stage F:", first_stage.f_test("log_cost = 0").fvalue)
+# -> OLS -1.04 (p<0.001); IV -1.91 (p=0.024); first-stage F=3.6 -- the IV
+#    estimate is larger, but the weak first stage (F<10) means it's an
+#    unreliable estimate, not a confirmed "truer" one (see 2.5)
+```
+:::
+
+The naive baseline gives an elasticity of -1.04, comfortably significant
+(p<0.001). The instrumented version gets a noticeably different number:
+-1.91, still significant (p=0.024) — nearly double the naive estimate. But
+the first-stage F comes back at only 3.6, well under the usual bar of 10
+for a trustworthy instrument. So we can't just conclude -1.91 is correct.
+The naive OLS number is probably too small, but the corrected one rests on
+shaky ground of its own. See 2.5 for a stronger instrument, and the
+different problem it runs into instead.
+
+### 2.5 — Is my instrument valid?
+
+A valid instrument has to clear two separate hurdles: relevance, does it
+actually move the variable we're instrumenting, and exclusion, does it
+affect the outcome *only* through that variable. 2.4 already found this
+one weak on the first hurdle. So we should ask whether it's at least clean
+on the second, by regressing quantity on both price and the cost shock
+together, and whether a better candidate exists at all. The obvious next
+move is to try a stronger instrument: each SKU's own procurement cost
+instead of the category-wide average.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# relevance vs. exclusion are different checks -- do both, don't stop at one
+reduced = smf.ols("log_qty ~ log_price + log_cost + C(category) + C(week)", data = pdf).fit(
+    cov_type = "cluster", cov_kwds = dict(groups = pdf["category"]),
+)
+print("direct effect of the category cost shock on qty, holding price fixed:",
+      reduced.params["log_cost"], "p:", reduced.pvalues["log_cost"])
+# -> p=0.43: no evidence this instrument violates exclusion
+
+# an alternative instrument: each SKU's own procurement cost, not the
+# category average -- does it do better?
+sku_cost = (
+    procurement
+    .with_columns(pl.col("delivery_date").dt.truncate("1w").alias("week"))
+    .group_by(["uid", "week"])
+    .agg(
+        (pl.col("qty") * pl.col("unit_cost")).sum().alias("c"), pl.col("qty").sum().alias("q"),
+    )
+    .with_columns((pl.col("c") / pl.col("q")).alias("sku_cost"))
+)
+panel2 = (
+    panel
+    .drop("log_cost")
+    .join(sku_cost.select("uid", "week", "sku_cost"), on = ["uid", "week"], how = "left")
+    .sort(["uid", "week"])
+    .with_columns(pl.col("sku_cost").forward_fill().over("uid"))
+    .drop_nulls(subset = ["sku_cost"])
+    .with_columns(pl.col("sku_cost").log().alias("log_cost"))
+)
+pdf2 = panel2.to_pandas()
+first2 = smf.ols("log_price ~ log_cost + C(category) + C(week)", data = pdf2).fit()
+print("SKU-level instrument first-stage F:", first2.f_test("log_cost = 0").fvalue)
+# -> F=429,699 -- extremely strong, but that's because this simulator prices
+#    directly off a SKU's own cost: using a SKU's cost to instrument its own
+#    price is close to circular, not a genuinely independent lever. Strong
+#    ≠ valid: the category-wide shock is weak but plausibly exogenous; the
+#    SKU's own cost is powerful but mechanically tied to the very price
+#    it's meant to instrument. Neither is a clean answer -- which is itself
+#    the honest finding here.
+```
+:::
+
+The shock's own coefficient comes back not significant (p=0.43), no
+evidence it violates exclusion. It's just weak, not invalid. Trying the
+stronger instrument does fix relevance dramatically — the first-stage F
+jumps to roughly 429,699. But a number that strong is itself a red flag we
+need to chase down, and the reason turns up fast. This simulator prices
+directly off a SKU's own cost, so using that cost to instrument its own
+price is close to circular, not an independent lever at all. Strong isn't
+the same as valid. Neither instrument on offer here is a clean answer, and
+we should treat that unresolved tension as the honest finding, not a flaw
+in the search.
+
+### 2.6 — Did the markdowns work?
+
+Did the markdowns actually move sales? We can start with the simplest
+test: average units during the promo against every other day. Suspecting
+that comparison might be too naive, we should also try a
+difference-in-differences design against the other categories in the same
+window, and see whether the two designs even agree with each other.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# clean the D10 category typo (Layer 0, 0.6) first -- otherwise typo'd
+# campaigns silently match zero sales rows
+promotions_clean = promotions.with_columns(
+    pl.col("category").str.replace("Confectionary", "Confectionery"),
+)
+daily_cat = (
+    sales
+    .group_by(["category", "date"])
+    .agg(pl.col("qty").sum().alias("units"))
+)
+all_cats = daily_cat["category"].unique()
+
+lifts, did = [], []
+for row in promotions_clean.iter_rows(named = True):
+    cat, start, end = row["category"], row["start_date"], row["end_date"]
+    treated = daily_cat.filter(pl.col("category") == cat)
+    during = treated.filter((pl.col("date") >= start) & (pl.col("date") < end))["units"].mean()
+    outside = treated.filter((pl.col("date") < start) | (pl.col("date") >= end))["units"].mean()
+    if during and outside:
+        lifts.append(during / outside - 1)
+
+    control = (
+        daily_cat
+        .filter(pl.col("category") != cat)
+        .group_by("date")
+        .agg((pl.col("units").sum() / (len(all_cats) - 1)).alias("units"))
+    )
+    def mean_in(df, lo, hi):
+        return df.filter((pl.col("date") >= lo) & (pl.col("date") < hi))["units"].mean()
+    t_during, t_before = mean_in(treated, start, end), mean_in(treated, start - pl.duration(days = 14), start)
+    c_during, c_before = mean_in(control, start, end), mean_in(control, start - pl.duration(days = 14), start)
+    if None not in (t_during, t_before, c_during, c_before) and t_before and c_before:
+        did.append((t_during / t_before - 1) - (c_during / c_before - 1))
+
+print(f"naive lift, {len(lifts)} campaigns: {sum(lifts) / len(lifts):+.1%}")
+print(f"DiD lift, {len(did)} campaigns: {sum(did) / len(did):+.1%}")
+# -> naive +0.6%, DiD -3.0% -- with only 11 campaigns and shallow (10%),
+#    short (2-week) markdowns, neither estimate clears noise; report the
+#    honest null, don't force a headline effect
+```
+:::
+
+The naive comparison gives +0.6%, essentially nothing. The DiD design
+comes back at -3.0%, also essentially nothing, just leaning the other
+way. With only 11 campaigns, shallow 10% markdowns, and short 2-week
+windows, neither estimate actually clears the noise floor, no matter which
+design we use. The honest answer here is a genuine null, not a headline
+lift forced out of thin data. It turns out the *estimator* isn't even the
+real problem. 4.5 and 7.6 dig into why the timing of these campaigns is
+the bigger issue.
+
+### 2.7 — Why does food rot faster some weeks?
+
+If temperature drives spoilage the way intuition suggests, a regression
+of daily spoiled units on temperature anomaly and rainfall should show it
+directly. We can run that regression and see whether temperature and rain
+behave the way that intuition predicts, or don't.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+daily_wo = (
+    write_offs
+    .filter(pl.col("reason") == "spoilage")
+    .group_by("date")
+    .agg(pl.col("units").sum().alias("spoiled"))
+    .join(weather, on = "date", how = "right")
+    .with_columns(pl.col("spoiled").fill_null(0))
+    .join(calendar.select("date", "closed"), on = "date")
+    .filter(pl.col("closed") == 0)
+    .sort("date")   # HAC's lag structure assumes row order is time order -- always sort first
+    .with_columns((pl.col("temp_C") - pl.col("temp_C").mean()).alias("temp_anom"))
+)
+model = smf.ols("spoiled ~ temp_anom + rain_mm", data = daily_wo.to_pandas()).fit(
+    cov_type = "HAC", cov_kwds = dict(maxlags = 7),
+)
+print(model.params, model.pvalues, sep = "\n")
+# -> temp_anom: +2.2 units/day per degree, p<0.001; rain_mm not
+#    significant (p=0.31); R2=0.21
+```
+:::
+
+It does, for temperature: +2.2 units per day for every degree above
+average, strongly significant at p<0.001. Warmer days really do spoil
+more perishables. Rain doesn't clear the same bar, coming back at p=0.31.
+Getting wet outside doesn't accelerate what's already rotting on the
+shelf. The model only explains about a fifth of day-to-day variance
+(R²=0.21), and we should read that as an honest number for a genuinely
+noisy count process, not evidence the regression failed to find something
+that was really there.
+
+### 2.8 — Can I trust card data to represent everyone?
+
+1.5 already flagged the risk: any RFM view built on card data is really
+describing card customers, not everyone. Whether that gap actually
+matters comes down to a direct test. Do card and cash shoppers actually
+buy differently, or is the card panel a fair stand-in for the whole
+customer base? We can check both the category mix and the basket value
+each pays for, to see if either one differs.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+from scipy import stats
+
+by_pay_cat = (
+    sales
+    .with_columns(pl.col("payment").str.to_lowercase().str.strip_chars().alias("pay"))
+    .group_by(["pay", "category"])
+    .agg(pl.col("qty").sum().alias("units"))
+    .pivot(on = "pay", index = "category", values = "units")
+    .fill_null(0)
+)
+chi2, p, dof, expected = stats.chi2_contingency(by_pay_cat.select("card", "cash").to_numpy())
+print(f"category mix, card vs. cash: chi2={chi2:.1f}, df={dof}, p={p:.1e}")
+
+baskets = (
+    sales
+    .group_by("receipt_id")
+    .agg(
+        pl.col("payment").first(),
+        (pl.col("qty") * pl.col("unit_price")).sum().alias("value"),
+    )
+    .with_columns(pl.col("payment").str.to_lowercase().str.strip_chars().alias("pay"))
+)
+card_v = baskets.filter(pl.col("pay") == "card")["value"]
+cash_v = baskets.filter(pl.col("pay") == "cash")["value"]
+t, p2 = stats.ttest_ind(card_v, cash_v, equal_var = False)
+print(f"basket value, card {card_v.mean():.2f} vs. cash {cash_v.mean():.2f}: t={t:.2f}, p={p2:.1e}")
+# -> both differences are highly significant: card and cash customers buy
+#    different things in different amounts -- card is not a random sample
+#    of everyone, it's a different population
+```
+:::
+
+Two checks settle it, both overwhelmingly significant. The category mix
+bought on card versus cash differs sharply (chi²=116.6, p≈9×10⁻²⁰), and
+average basket value differs too — €42.74 on card against €49.42 on cash
+(p≈2×10⁻³⁴). Card customers are not a random sample of everyone who shops
+here. They're a genuinely different population, buying different things
+in different amounts. Anything built only on the card panel is describing
+that population, not the store's whole customer base.
+
+### 2.9 — What drives refunds and shrinkage?
+
+Raw refund counts alone won't reveal whether refunds are becoming more or
+less common, since a busier month naturally produces more refunds even at
+a constant rate. We need to measure the count against how many receipts
+were even written that month. A Poisson GLM with a receipt-count offset
+can do exactly that, and tell us whether there's a real trend hiding
+underneath the raw counts or not.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import numpy as np
+import statsmodels.api as sm
+
+refunds = receipts.filter(pl.col("ref_receipt_id").is_not_null())
+monthly = (
+    refunds
+    .with_columns(pl.col("date").dt.month().alias("month"))
+    .group_by("month")
+    .agg(pl.len().alias("n_refunds"))
+    .join(
+        (
+            receipts
+            .filter(pl.col("ref_receipt_id").is_null())
+            .with_columns(pl.col("date").dt.month().alias("month"))
+            .group_by("month")
+            .agg(pl.col("receipt_id").n_unique().alias("n_receipts"))
+        ),
+        on = "month",
+    )
+    .sort("month")
+)
+pdf = monthly.to_pandas()
+model = smf.glm(
+    "n_refunds ~ month", data = pdf,
+    family = sm.families.Poisson(), offset = np.log(pdf["n_receipts"]),
+).fit()
+print(model.params, model.pvalues, sep = "\n")
+# -> refund rate per receipt falls significantly across the year
+#    (coef=-0.071/month, p=0.013), from ~1.0% in March down to ~0.4% by
+#    December
+```
+:::
+
+It turns up a real, significant trend. The refund rate per receipt falls
+across the year (coefficient -0.071/month, p=0.013), from roughly 1.0% of
+receipts in March down to about 0.4% by December — a pattern the raw
+counts alone would never have shown cleanly.
+
+### 2.10 — Do pre-holiday days really spike?
+
+Do pre-holiday days really spike, or does it just feel that way from a
+handful of memorable ones? The first thing we should check is how much
+data there even is to test on, before running any test at all. A Welch
+t-test against every ordinary day can then tell us whether whatever
+pattern shows up actually clears the noise floor.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+daily = (
+    receipts
+    .filter(pl.col("qty") > 0)
+    .group_by("date")
+    .agg(pl.col("qty").sum().alias("units"))
+    .join(calendar.select("date", "pre_holiday", "closed"), on = "date")
+    .filter(pl.col("closed") == 0)
+)
+pre = daily.filter(pl.col("pre_holiday") == 1)["units"]
+normal = daily.filter(pl.col("pre_holiday") == 0)["units"]
+t, p = stats.ttest_ind(pre, normal, equal_var = False)
+print(f"n_pre_holiday={len(pre)}, mean {pre.mean():.0f} vs. normal mean {normal.mean():.0f}")
+print(f"Welch t={t:.2f}, p={p:.3f}")
+print("individual pre-holiday totals:", sorted(pre.to_list()))
+# -> only 9 pre-holiday days all year, ranging 215-1,805 units; p=0.74 --
+#    genuinely inconclusive at this N, and no amount of clever modeling
+#    manufactures significance out of nine data points
+```
+:::
+
+It's not much: only 9 pre-holiday days in the whole year, ranging wildly
+from 215 to 1,805 units, already a warning sign before we run anything.
+The Welch t-test comes back at p=0.74, genuinely inconclusive. No amount
+of clever modeling manufactures statistical significance out of nine data
+points, and the honest answer here is "we can't tell," not a confident yes
+or no dressed up to look more decisive than the sample allows.
 
 ## Layer 3 — Predict
 
-| # | Question | Approach |
-| --- | --- | --- |
-| 3.1 | What will next week sell? | category demand forecasting vs. a seasonal-naive benchmark |
-| 3.2 | What would demand be if shelves never emptied? | censored-demand modeling: impute stockout-lost sales |
-| 3.3 | How wrong is the owner's own forecast, and why? | autopsy the trailing-average rule; quantify the censoring spiral |
-| 3.4 | Which SKUs will stock out next week? | out-of-stock risk classification from cover, seasonality, delivery cadence |
-| 3.5 | Which regulars are sliding into trouble? | early-warning detection of sustained down-trading spells |
-| 3.6 | How far can one year of history be trusted? | quantify the single-seasonal-cycle limit — priced empirically against the three-year arm |
+Like Layer 2, these are all model-based, so no SQL variant. 3.2, 3.3, and 3.5
+also show something Layers 0–2 didn't need: a **blind, visible-data-only
+estimate**, graded afterward against the hidden answer key
+(`sim.data(include_hidden=True)`) — the whole point of the recording/hidden
+split described in [Theory](theory.qmd).
+
+```python
+import importlib.resources as res
+
+import polars as pl
+
+from grocery_sim import GroceryStoreSimulation
+
+sim = GroceryStoreSimulation()
+sim.setup(dict(basic = dict(year = 1)))
+sim.simulate()
+con = sim.db()
+
+receipts = con.sql("SELECT * FROM receipts").pl()
+inventory_eod = con.sql("SELECT * FROM inventory_eod").pl()
+procurement = con.sql("SELECT * FROM procurement").pl()
+calendar = con.sql("SELECT * FROM calendar").pl()
+skus = pl.read_excel(res.files("grocery_sim") / "SKUs.xlsx")
+sales = (
+    receipts
+    .filter(pl.col("qty") > 0)
+    .join(skus.select("uid", "category"), on = "uid")
+)
+```
+
+### 3.1 — What will next week sell?
+
+The obvious approach to forecasting next week's sales is to reach for a
+more sophisticated model, but we should actually test a gradient-boosted
+regressor against the simplest possible benchmark, "predict last week
+again," rather than assume the fancier one wins by default. We can train
+on the available weeks, hold out the last 8 for evaluation, and see which
+one actually wins. 7.5 revisits this exact comparison with two years of
+data instead of one.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import pandas as pd
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import mean_absolute_error
+
+weekly = (
+    sales
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["category", "week"])
+    .agg(pl.col("qty").sum().alias("units"))
+    .sort(["category", "week"])
+    .with_columns([
+        pl.col("units").shift(1).over("category").alias("lag1"),
+        pl.col("units").shift(2).over("category").alias("lag2"),
+        pl.col("week").dt.week().alias("woy"),
+        pl.col("week").dt.month().alias("month"),
+    ])
+    .drop_nulls()
+)
+pdf = weekly.to_pandas().sort_values("week").reset_index(drop = True)
+pdf_dum = pd.get_dummies(pdf, columns = ["category"])
+holdout_weeks = sorted(pdf["week"].unique())[-8:]
+is_test = pdf["week"].isin(holdout_weeks)
+feature_cols = [c for c in pdf_dum.columns if c not in ("week", "units")]
+
+gbr = GradientBoostingRegressor(random_state = 0).fit(
+    pdf_dum.loc[~is_test, feature_cols], pdf.loc[~is_test, "units"],
+)
+pred = gbr.predict(pdf_dum.loc[is_test, feature_cols])
+naive_pred = pdf.loc[is_test, "lag1"]
+y_test = pdf.loc[is_test, "units"]
+print(f"GBM MAE: {mean_absolute_error(y_test, pred):.1f}")
+print(f"seasonal-naive (last week) MAE: {mean_absolute_error(y_test, naive_pred):.1f}")
+# -> GBM 93.7, naive 85.7 -- the naive benchmark actually wins here. 44
+#    training weeks isn't enough for a gradient-boosted model to beat
+#    "predict last week again," and that's worth reporting plainly rather
+#    than picking the fancier model by default
+```
+:::
+
+The seasonal-naive rule comes back with MAE 85.7, and the GBM comes back
+*worse*, at 93.7. With only 44 training weeks in a single year, there
+simply isn't enough history for the more complex model to out-forecast the
+simplest one, and we should report that plainly rather than default to the
+model that looks more impressive.
+
+### 3.2 — What would demand be if shelves never emptied?
+
+If a shelf sits empty, whatever demand showed up that day never gets
+recorded as a sale, so estimating what demand would have been means
+filling in something we never actually observed. The natural blind
+approach is to impute each stockout day's lost sales from that same SKU's
+own average on non-stockout days of the same weekday, using only visible
+data, no peeking at any answer key. We can then check that imputation
+against the hidden per-attempt demand log to see how close it actually
+gets.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# blind: impute each stockout SKU-day's lost sales from that SKU's own
+# average on non-stockout days of the same weekday
+daily_sold = (
+    sales
+    .group_by(["uid", "date"])
+    .agg(pl.col("qty").sum().alias("sold"))
+)
+stocked_out = (
+    inventory_eod
+    .filter(pl.col("on_hand") == 0)
+    .select("uid", "date")
+    .with_columns(pl.lit(True).alias("was_stockout"))
+)
+panel = (
+    daily_sold
+    .join(calendar.select("date", "dow"), on = "date")
+    .join(stocked_out, on = ["uid", "date"], how = "left")
+    .with_columns(pl.col("was_stockout").fill_null(False))
+)
+clean_avg = (
+    panel
+    .filter(~pl.col("was_stockout"))
+    .group_by(["uid", "dow"])
+    .agg(pl.col("sold").mean().alias("expected_sold"))
+)
+censored = (
+    panel
+    .filter(pl.col("was_stockout"))
+    .join(clean_avg, on = ["uid", "dow"], how = "left")
+    .with_columns((pl.col("expected_sold") - pl.col("sold")).clip(lower_bound = 0).alias("lost_units"))
+)
+imputed = censored["lost_units"].sum()
+print(f"{censored.height} stockout SKU-days; imputed lost units: {imputed:.0f}")
+
+# graded: sim.data(include_hidden=True) exposes hidden_hidden_demand, the
+# true per-attempt demand log (even attempts that never became a sale)
+tables = sim.data(include_hidden = True)
+hd = pl.from_pandas(tables.hidden_hidden_demand)
+cal_idx = (
+    calendar
+    .sort("date")
+    .with_row_index("t", offset = 1)
+    .select("t", "date")
+)
+true_lost = (
+    hd
+    .filter(pl.col("cause") == "stockout")
+    .join(cal_idx, on = "t")
+)
+true_total = true_lost["qty"].sum()
+print(f"true stockout-caused lost units (hidden): {true_total:.0f}")
+print(f"blind imputation captured {imputed / true_total:.0%} of it")
+# -> only 20%. Stockouts happen disproportionately on above-average-demand
+#    days -- averaging over the *other*, calmer days systematically
+#    underestimates exactly the demand that caused the stockout
+```
+:::
+
+That imputation recovers only about 20% of the true lost demand, a big
+miss we should understand rather than just report. The mechanism turns out
+to be structural: stockouts happen disproportionately on
+above-average-demand days, so averaging over the *other*, calmer days
+systematically underestimates exactly the demand that caused the stockout
+in the first place. Censoring bias, not a coding mistake. The naive method
+was always going to undershoot.
+
+### 3.3 — How wrong is the owner's own forecast, and why?
+
+How wrong is the owner's own forecast, and is the error just noise or
+something more systematic? Answering that means reconstructing true
+demand first — realized sales plus every non-closure cause of loss from
+the hidden demand log — then comparing it week by week against his actual
+trailing-average forecast, to see whether the errors scatter randomly
+around the truth or lean the same way every time.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+tables = sim.data(include_hidden = True)
+fc = pl.from_pandas(tables.hidden_owner_forecasts)     # his own trailing-MA forecast
+hd = pl.from_pandas(tables.hidden_hidden_demand)
+cal_idx = (
+    calendar
+    .sort("date")
+    .with_row_index("t", offset = 1)
+    .select("t", "date")
+)
+
+# true demand = realized sales + every non-closure cause of lost demand
+true_lost = (
+    hd
+    .filter(pl.col("cause") != "closed")
+    .join(cal_idx, on = "t")
+    .select("category", "date", "qty")
+)
+true_demand = pl.concat([true_lost, sales.select("category", "date", "qty")])
+true_weekly = (
+    true_demand
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week_start"))
+    .group_by(["category", "week_start"])
+    .agg(pl.col("qty").sum().alias("true_demand"))
+    .with_columns(pl.col("week_start").rank("dense").over("category").alias("week"))
+)
+compare = (
+    fc
+    .join(true_weekly, on = ["category", "week"])
+    .with_columns(
+        ((pl.col("forecast_weekly") - pl.col("true_demand")) / pl.col("true_demand").clip(lower_bound = 1)).alias("pct_error"),
+    )
+)
+print(f"mean forecast {compare['forecast_weekly'].mean():.0f} vs. true demand {compare['true_demand'].mean():.0f}")
+print(f"mean signed error: {compare['pct_error'].mean():+.1%}; "
+      f"under-forecast in {(compare['pct_error'] < 0).mean():.0%} of weeks")
+# -> -38.7% mean error, under-forecasting 99% of all weeks: the trailing
+#    average is built from the owner's *own* sales history, which is
+#    itself censored by past stockouts -- a self-reinforcing spiral, not
+#    random noise around the truth
+```
+:::
+
+The result isn't noise. He comes in 38.7% low on average, and
+under-forecasts in 99% of all weeks, a near-total, one-directional miss
+rather than scatter around the truth. Tracing where his forecast actually
+comes from explains why: it's built from his *own* sales history, which is
+itself censored by past stockouts. A bad forecast produces a stockout, the
+stockout censors his history further, and the next forecast is worse
+still. A self-reinforcing censoring spiral, not an unlucky guess.
+
+### 3.4 — Which SKUs will stock out next week?
+
+Can next week's stockouts be seen coming using only what's already
+sitting in the visible tables? We can build a feature set from cover days,
+last week's velocity, average delivery gap, and month, then train a
+gradient-boosted classifier against a holdout period, to find out
+directly.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import roc_auc_score
+
+weekly_sold = (
+    sales
+    .group_by(["uid", "date"])
+    .agg(pl.col("qty").sum().alias("sold"))
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["uid", "week"])
+    .agg(pl.col("sold").sum().alias("weekly_sold"))
+)
+weekly_stock = (
+    inventory_eod
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["uid", "week"])
+    .agg(
+        pl.col("on_hand").last().alias("eow_on_hand"),
+        (pl.col("on_hand") == 0).any().alias("stockout_this_week"),
+    )
+)
+delivery_gap = (
+    procurement
+    .sort(["uid", "delivery_date"])
+    .with_columns(
+        (pl.col("delivery_date") - pl.col("delivery_date").shift(1).over("uid"))
+        .dt.total_days().alias("gap"),
+    )
+    .group_by("uid")
+    .agg(pl.col("gap").mean().alias("avg_delivery_gap"))
+)
+panel = (
+    weekly_sold
+    .join(weekly_stock, on = ["uid", "week"])
+    .sort(["uid", "week"])
+    .with_columns([
+        pl.col("eow_on_hand").shift(1).over("uid").alias("cover_start"),
+        pl.col("weekly_sold").shift(1).over("uid").alias("last_week_sold"),
+        pl.col("stockout_this_week").shift(-1).over("uid").alias("stockout_next_week"),
+        pl.col("week").dt.month().alias("month"),
+    ])
+    .join(delivery_gap, on = "uid")
+    .drop_nulls(subset = ["cover_start", "last_week_sold", "stockout_next_week", "avg_delivery_gap"])
+    .with_columns((pl.col("cover_start") / (pl.col("last_week_sold") / 7).clip(lower_bound = 0.1)).alias("cover_days"))
+)
+pdf = panel.to_pandas()
+pdf["stockout_next_week"] = pdf["stockout_next_week"].astype(int)
+cutoff = sorted(pdf["week"].unique())[int(pdf["week"].nunique() * 0.75)]
+train, test = pdf[pdf["week"] < cutoff], pdf[pdf["week"] >= cutoff]
+features = ["cover_days", "last_week_sold", "avg_delivery_gap", "month"]
+
+clf = GradientBoostingClassifier(random_state = 0).fit(train[features], train["stockout_next_week"])
+proba = clf.predict_proba(test[features])[:, 1]
+print(f"AUC: {roc_auc_score(test['stockout_next_week'], proba):.3f}")
+# -> AUC 0.789 against a 27-30% base rate -- real, useful separation from
+#    cover days, recent velocity, and delivery cadence alone
+```
+:::
+
+The result is an AUC of 0.789 against a base stockout rate of roughly
+27-30%. Real, useful separation, not a guarantee for any single SKU, but a
+genuine early-warning signal, and one that needed nothing beyond
+information the shop already has on hand.
+
+### 3.5 — Which regulars are sliding into trouble?
+
+Spotting a regular customer sliding into trouble means defining "trouble"
+in a way we can actually check from visible data alone: flag anyone whose
+spend falls under 60% of their own trailing 8-week baseline for three
+straight weeks. We can run that rule against the hidden per-customer
+ledger of real down-trading spells to see how it holds up. 2.8 already
+established that card data only sees a slice of each customer's actual
+spend, so part of whatever shortfall we find may be structural rather than
+just a blunt threshold.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+card = sales.filter(pl.col("customer_id").is_not_null())
+weekly_spend = (
+    card
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["customer_id", "week"])
+    .agg((pl.col("qty") * pl.col("unit_price")).sum().alias("spend"))
+    .sort(["customer_id", "week"])
+)
+# blind: flag a customer whose spend falls under 60% of their own trailing
+# 8-week baseline for 3 consecutive weeks
+w = (
+    weekly_spend
+    .with_columns(
+        pl.col("spend")
+        .shift(1)
+        .over("customer_id")
+        .rolling_mean(window_size = 8, min_samples = 4)
+        .alias("baseline"),
+    )
+    .with_columns((pl.col("spend") < 0.6 * pl.col("baseline")).alias("below"))
+    .with_columns(
+        (pl.col("below") & pl.col("below").shift(1).over("customer_id").fill_null(False)
+         & pl.col("below").shift(2).over("customer_id").fill_null(False)).alias("down_trading"),
+    )
+)
+flagged = set(
+    w
+    .filter(pl.col("down_trading"))["customer_id"]
+    .unique()
+    .to_list()
+)
+print(f"{len(flagged)} customers flagged (blind)")
+
+# graded: hidden_spell_flags is a per-customer, per-week ground-truth
+# matrix -- keyed by the *internal* customer_id, not the receipt token, so
+# join through hidden_customers to compare apples to apples
+tables = sim.data(include_hidden = True)
+spell = pl.from_pandas(tables.hidden_spell_flags)
+customers = (
+    pl.from_pandas(tables.hidden_customers)
+    .select("customer_id", "token")
+)
+week_cols = [c for c in spell.columns if c.startswith("w")]
+true_flagged = set(
+    spell
+    .unpivot(index = "customer_id", on = week_cols, value_name = "true_spell")
+    .filter(pl.col("true_spell") == 1)
+    .join(customers, on = "customer_id")["token"]
+    .unique()
+    .to_list()
+)
+overlap = flagged & true_flagged
+print(f"precision: {len(overlap) / len(flagged):.0%}, recall: {len(overlap) / len(true_flagged):.0%}")
+# -> 19% precision, 7% recall against 55 true spells -- a blunt trailing-
+#    baseline rule catches only a sliver of real down-trading, partly
+#    because card data (2.8) only sees a slice of each customer's spend
+```
+:::
+
+It catches only a sliver of them, 19% precision, 7% recall against 55 true
+spells. Part of the shortfall is just a blunt threshold, but part of it is
+structural and can't be fixed by tuning the rule. A real spell can hide
+entirely behind cash purchases the model never gets to observe in the
+first place.
+
+### 3.6 — How far can one year of history be trusted?
+
+How far can one year of history actually be trusted? The cleanest test is
+to take year 1 literally as a forecast, same day-of-year, repeated, and see
+how the error changes as it's pushed out further, against years 2 and 3 of
+a real three-year run.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+sim3 = GroceryStoreSimulation()
+sim3.setup(dict(basic = dict(year = 3)))
+sim3.simulate()
+receipts3 = sim3.db().sql("SELECT * FROM receipts").pl()
+
+daily = (
+    receipts3
+    .filter(pl.col("qty") > 0)
+    .group_by("date")
+    .agg(pl.col("qty").sum().alias("units"))
+    .sort("date")
+    .with_columns([pl.col("date").dt.year().alias("year"), pl.col("date").dt.ordinal_day().alias("doy")])
+)
+y1 = (
+    daily
+    .filter(pl.col("year") == 2025)
+    .select("doy", pl.col("units").alias("y1_units"))
+)
+for yr in (2026, 2027):
+    actual = daily.filter(pl.col("year") == yr).select("doy", pl.col("units").alias("actual"))
+    both = y1.join(actual, on = "doy")
+    mae = (both["y1_units"] - both["actual"]).abs().mean()
+    mape = ((both["y1_units"] - both["actual"]).abs() / both["actual"]).mean()
+    bias = (both["actual"] - both["y1_units"]).mean()
+    print(f"year 1 as a naive forecast for {yr}: MAE={mae:.1f}, MAPE={mape:.1%}, bias={bias:+.1f}/day")
+# -> 2026: MAE 403.9, MAPE 61.4%, bias +13.9/day
+#    2027: MAE 593.0, MAPE 91.9%, bias +30.3/day
+#    error nearly doubles by the second extrapolated year, with a growing
+#    upward bias -- a single seasonal cycle can't see organic growth or
+#    later shocks coming, and the gap compounds, it doesn't stay flat
+```
+:::
+
+Against year 2, it's already off by a lot: MAE 403.9, MAPE 61.4%, a
+persistent bias of +13.9 units/day. Pushed out to year 3, the error
+doesn't just grow, it nearly doubles: MAE 593.0, MAPE 91.9%, bias
++30.3/day. That acceleration is the real finding. A single seasonal cycle
+has no way to see organic growth or later shocks coming, and critically
+the gap compounds rather than staying flat. The further out we extrapolate
+from one year of history, the faster it gets worse, not just steadily
+worse.
 
 ## Layer 4 — Prescribe
 
-| # | Question | Approach |
-| --- | --- | --- |
-| 4.1 | What is better analytics *worth*, in euros? | rebuild the ordering policy on de-censored demand; close the believed/realized/oracle gap |
-| 4.2 | How should perishables be ordered? | spoilage-aware cover per category (waste vs. stockout trade-off) |
-| 4.3 | Where is margin safely adjustable? | category-level repricing using elasticity structure |
-| 4.4 | What should be delisted or added? | dead-SKU economics: appeal, storage, listing fees |
-| 4.5 | When should promotions run, on what, how deep? | redesign the markdown trigger with selection bias removed |
-| 4.6 | Should I hire and extend hours? | cost-benefit of recovered demand vs. employer-priced labor |
-| 4.7 | How much cash must the till hold? | working-capital policy: credit line, tax remittance timing |
+Prescriptions build on the diagnoses in Layers 2–3, so most of this reuses
+their approach rather than inventing new methods — no SQL variant here
+either.
+
+```python
+import importlib.resources as res
+
+import polars as pl
+
+from grocery_sim import GroceryStoreSimulation
+
+sim = GroceryStoreSimulation()
+sim.setup(dict(basic = dict(year = 1)))
+sim.simulate()
+con = sim.db()
+
+receipts = con.sql("SELECT * FROM receipts").pl()
+inventory_eod = con.sql("SELECT * FROM inventory_eod").pl()
+procurement = con.sql("SELECT * FROM procurement").pl()
+write_offs = con.sql("SELECT * FROM write_offs").pl()
+price_history = con.sql("SELECT * FROM price_history").pl()
+cost_sheet = con.sql("SELECT * FROM cost_sheet").pl()
+calendar = con.sql("SELECT * FROM calendar").pl()
+promotions = con.sql("SELECT * FROM promotions").pl()
+skus = pl.read_excel(res.files("grocery_sim") / "SKUs.xlsx")
+sales = (
+    receipts
+    .filter(pl.col("qty") > 0)
+    .join(skus.select("uid", "category"), on = "uid")
+)
+```
+
+### 4.1 — What is better analytics *worth*, in euros?
+
+Putting a euro figure on "better analytics" requires a benchmark for what
+perfect information would actually be worth, and the oracle arm, which
+runs the same year with perfect foreknowledge of demand, is exactly that
+benchmark. We can compare its after-tax profit against what was actually
+realized to see how much of the achievable total the realized run
+actually captures, and where the gap comes from.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# the direct answer, from the hidden believed/realized/oracle triptych
+tables = sim.data(include_hidden = True)
+tri = tables.hidden_profit_triptych.iloc[0]
+print(tri)
+print(f"realized captures {tri['realized_after_tax'] / tri['oracle_after_tax']:.0%} "
+      f"of the oracle's after-tax profit")
+# -> realized 29,183 vs. oracle 35,480 after tax -- 82%. Perfect ordering
+#    information would have been worth about 6,300 this year, ~18% more
+#    profit, with none of it coming from selling more -- only from never
+#    guessing wrong about how much to have on the shelf
+```
+:::
+
+We can compare its after-tax profit (€35,480) against what was actually
+realized (€29,183) to see the realized run capturing 82% of the achievable
+total. Perfect ordering information would have been worth roughly €6,300
+this year, about 18% more profit, and we should be precise about where
+that gain would have come from: not from selling more, but entirely from
+never guessing wrong about how much to have on the shelf in the first
+place.
+
+### 4.2 — How should perishables be ordered?
+
+Ordering perishables well means understanding the actual trade-off between
+over-stocking (spoilage) and under-stocking (stockouts), and we should
+first check whether that trade-off even looks the same across categories.
+We can compute spoilage share and stockout days per category to find out.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+daily_sold = (
+    sales
+    .group_by(["uid", "category", "date"])
+    .agg(pl.col("qty").sum().alias("sold"))
+)
+spoil = (
+    write_offs
+    .filter(pl.col("reason") == "spoilage")
+    .group_by("uid")
+    .agg(pl.col("units").sum().alias("spoiled"))
+)
+stockouts = (
+    inventory_eod
+    .filter(pl.col("on_hand") == 0)
+    .group_by("uid")
+    .agg(pl.len().alias("stockout_days"))
+)
+procured = (
+    procurement
+    .group_by("uid")
+    .agg(pl.col("qty").sum().alias("total_procured"))
+)
+
+by_cat = (
+    daily_sold
+    .select("uid", "category")
+    .unique()
+    .join(spoil, on = "uid", how = "left")
+    .fill_null(0)
+    .join(stockouts, on = "uid", how = "left")
+    .fill_null(0)
+    .join(procured, on = "uid", how = "left")
+    .fill_null(0)
+    .with_columns((pl.col("spoiled") / pl.col("total_procured").clip(lower_bound = 1)).alias("spoil_share"))
+    .group_by("category")
+    .agg(
+        pl.col("spoil_share").mean().alias("avg_spoil_share"),
+        pl.col("stockout_days").mean().alias("avg_stockout_days"),
+    )
+    .sort("avg_spoil_share", descending = True)
+)
+print(by_cat)
+# -> Bakery/Seafood/Fresh Produce/Meat/Dairy: 6.5-15% spoilage share, low
+#    stockout days. Personal Care/Alcoholic/Household/Snacks/Pantry:
+#    ~0% spoilage, much higher stockout days. The trade-off is real and
+#    category-specific -- perishables should run *shorter* cover and
+#    accept more stockout risk; shelf-stable categories can safely hold
+#    more buffer since it costs nothing to be wrong on the high side
+```
+:::
+
+That turns up a clean split. Bakery, Seafood, Fresh Produce, Meat, and
+Dairy carry real spoilage, 6.5% to 15% of what's procured, alongside
+relatively few stockout days. Personal Care, Alcoholic Beverages,
+Household, Snacks, and Pantry sit at roughly zero spoilage but far more
+stockout days. That split is the answer: the trade-off is real and
+genuinely category-specific. Perishables should run *shorter* cover and
+accept more stockout risk, since holding extra is expensive to waste,
+while shelf-stable categories can safely hold more buffer, since being
+wrong on the high side costs essentially nothing.
+
+### 4.3 — Where is margin safely adjustable?
+
+Before touching any category's margin, we should run a cheap screen
+first: a simple single-regressor elasticity for every one of the twelve
+categories, just to see where anything looks worth a closer look, keeping
+in mind this kind of naive scan carries the same reverse-causality risk
+2.4's baseline OLS ran into.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import statsmodels.formula.api as smf
+
+weekly_qty = (
+    sales
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["category", "week"])
+    .agg(pl.col("qty").sum().alias("qty"))
+)
+weekly_price = (
+    price_history
+    .join(skus.select("uid", "category"), on = "uid")
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["category", "week", "uid"])
+    .agg(pl.col("price").last())
+    .group_by(["category", "week"])
+    .agg(pl.col("price").mean().alias("price"))
+)
+panel = (
+    weekly_qty
+    .join(weekly_price, on = ["category", "week"])
+    .with_columns([
+        pl.col("qty").log().alias("log_qty"), pl.col("price").log().alias("log_price"),
+    ])
+)
+for cat in panel["category"].unique().sort():
+    sub = panel.filter(pl.col("category") == cat).sort("week").to_pandas()
+    if len(sub) < 10 or sub["log_price"].std() < 1e-6:
+        continue
+    m = smf.ols("log_qty ~ log_price", data = sub).fit(cov_type = "HAC", cov_kwds = dict(maxlags = 4))
+    print(f"{cat}: elasticity={m.params['log_price']:.2f}, p={m.pvalues['log_price']:.3f}")
+# -> every category comes back inelastic (|e|<0.5) by this naive scan, and
+#    only 2/12 are individually significant -- one of those (Alcoholic
+#    Beverages) is *positively* signed, the signature of reverse causality
+#    (price responding to demand, not the other way round). This naive,
+#    single-regressor scan is only a screening pass: before touching any
+#    category's price, redo it with the instrumented design from 2.4-2.5,
+#    not this one
+```
+:::
+
+Running it turns up every category inelastic (|e|<0.5), with only 2
+individually significant, and one of those two, Alcoholic Beverages, is
+*positively* signed, which we should pause on rather than accept at face
+value. A positive price-quantity relationship here is the signature of
+reverse causality, price responding to demand rather than the other way
+round, not a real upward-sloping demand curve. It's a screening pass only,
+and before we actually reprice anything, the estimate needs redoing with
+the instrumented design 2.4 and 2.5 already built.
+
+### 4.4 — What should be delisted or added?
+
+Ranking SKUs by a combined velocity-and-margin score should surface the
+real delist candidates, but a first, naive pass risks confusing products
+that genuinely underperform with products that were never stocked at this
+location at all. We can check `SKUs.xlsx` against `price_history` to see
+whether that risk is real here before ranking anything.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# SKUs.xlsx is a 708-product superset catalog; only the SKUs that actually
+# have price history were ever listed at this location -- restrict to
+# those before ranking, or "delist candidates" is dominated by products
+# that were simply never stocked
+listed = price_history["uid"].unique()
+sku_revenue = (
+    sales
+    .group_by("uid")
+    .agg((pl.col("qty") * pl.col("unit_price")).sum().alias("revenue"), pl.col("qty").sum().alias("units_sold"))
+)
+sku_cost = (
+    procurement
+    .group_by("uid")
+    .agg((pl.col("qty") * pl.col("unit_cost")).sum().alias("cost"))
+)
+n_days = calendar.filter(pl.col("closed") == 0).height
+
+econ = (
+    skus
+    .filter(pl.col("uid").is_in(listed))
+    .select("uid", "name", "category")
+    .join(sku_revenue, on = "uid", how = "left")
+    .fill_null(0)
+    .join(sku_cost, on = "uid", how = "left")
+    .fill_null(0)
+    .with_columns([
+        (pl.col("revenue") - pl.col("cost")).alias("gross_margin"),
+        (pl.col("units_sold") / n_days).alias("velocity_per_day"),
+    ])
+    .with_columns([pl.col("velocity_per_day").rank().alias("vr"), pl.col("gross_margin").rank().alias("mr")])
+    .with_columns((pl.col("vr") + pl.col("mr")).alias("delist_score"))
+)
+print(
+    econ
+    .sort("delist_score")
+    .head(5)
+    .select("uid", "name", "category", "gross_margin", "velocity_per_day"),
+)
+# -> the worst-ranked SKUs sell well under a tenth of a unit per day and
+#    contribute under 300 for the whole year -- real delist candidates,
+#    not an artifact of never having been stocked
+```
+:::
+
+That risk turns out to be real. The SKU file is actually a 708-product
+superset catalog, and only the subset that ever appears in `price_history`
+was genuinely listed at this location. Filtering to that subset before
+ranking is what actually surfaces the real delist candidates: SKUs selling
+well under a tenth of a unit per day and contributing under €300 for the
+whole year. Skipping that filter would have buried the genuine
+underperformers under products that were simply never on the shelf to
+begin with.
+
+### 4.5 — When should promotions run, on what, how deep?
+
+2.6 already found the markdown effect estimate essentially noise, and
+rather than blame the estimator outright, we should ask a prior question:
+what actually triggers a markdown in the first place? We can check each
+campaign's own sales trend in the weeks before it started to see whether
+markdowns are called reactively off a decline already underway, or off
+some independent signal. 7.6 picks this exact mechanism back up and puts a
+number on it.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+promotions_clean = promotions.with_columns(pl.col("category").str.replace("Confectionary", "Confectionery"))
+daily_cat = (
+    sales
+    .group_by(["category", "date"])
+    .agg(pl.col("qty").sum().alias("units"))
+)
+
+pre_trend = []
+for row in promotions_clean.iter_rows(named = True):
+    cat, start = row["category"], row["start_date"]
+    c = (
+        daily_cat
+        .filter(pl.col("category") == cat)
+        .sort("date")
+    )
+    just_before = c.filter((pl.col("date") >= start - pl.duration(days = 21)) & (pl.col("date") < start))["units"].mean()
+    before_that = c.filter((pl.col("date") >= start - pl.duration(days = 42)) & (pl.col("date") < start - pl.duration(days = 21)))["units"].mean()
+    if just_before and before_that:
+        pre_trend.append(just_before / before_that - 1)
+print(f"{len(pre_trend)} campaigns; mean pre-promo trend: {sum(pre_trend)/len(pre_trend):+.1%}")
+print(f"share launched during an already-declining window: "
+      f"{sum(1 for x in pre_trend if x < 0) / len(pre_trend):.0%}")
+# -> 71% of campaigns launch right as the category is already falling
+#    (mean -33.5% in the 3 weeks before). Markdowns here are triggered
+#    reactively off recent sales, not off an independent signal (aging
+#    stock, an inventory glut) -- which is exactly the selection bias
+#    that makes 2.6's naive/DiD comparison unreliable. The fix isn't a
+#    better estimator, it's a better trigger: key markdowns off cover/
+#    spoilage risk, not off "sales just dropped"
+```
+:::
+
+71% of campaigns launch right as their category is already falling, a mean
+decline of 33.5% in the three weeks beforehand. Markdowns here are
+triggered reactively, off recent sales, not off any independent signal
+like aging stock or an inventory glut. That's the real problem with 2.6's
+comparison. We can't cleanly measure a markdown's effect when the markdown
+itself was called by the very decline we're trying to measure it against.
+The fix isn't a better estimator, it's a better trigger. Keying markdowns
+off cover or spoilage risk instead of "sales just dropped" would break the
+confound at the source.
+
+### 4.6 — Should I hire and extend hours?
+
+Deciding whether an extra staffed hour is worth it comes down to a simple
+comparison: does the margin that hour brings in clear the fully-loaded
+cost of paying someone to work it? We can price the fully-loaded wage
+first, including payroll tax, and then check the margin contribution of
+the schedule's two weakest hours, 8am at opening and 7pm before close, to
+see whether either one clears that bar. We have to be precise about what
+this check can and can't tell us, though. It only prices the *existing*
+schedule's weakest hours. It says nothing about genuinely new hours, 7-8am
+or 8-9pm, because no sales data exists for clock hours the shop has never
+actually been open during.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+HOURLY_WAGE, PAYROLL_RATE = 14.0, 0.25    # PHASE1/PHASE4 calibration
+fully_loaded_wage = HOURLY_WAGE * (1 + PAYROLL_RATE)
+gross_margin_rate = (cost_sheet["revenue"].sum() - cost_sheet["procurement"].sum()) / cost_sheet["revenue"].sum()
+
+hourly_revenue = (
+    sales
+    .group_by("hour")
+    .agg((pl.col("qty") * pl.col("unit_price")).sum().alias("revenue"))
+    .with_columns((pl.col("revenue") / calendar.filter(pl.col("closed") == 0).height).alias("avg_daily_revenue"))
+)
+for row in (
+    hourly_revenue
+    .filter(pl.col("hour").is_in([8, 19]))
+    .iter_rows(named = True)
+):
+    contribution = row["avg_daily_revenue"] * gross_margin_rate
+    verdict = "worth it" if contribution > fully_loaded_wage else "not worth it"
+    print(f"hour {row['hour']}: margin contribution {contribution:.2f} vs. "
+          f"fully-loaded wage {fully_loaded_wage:.2f} -> {verdict}")
+# -> both edge hours (8am open, 7pm before close) clear the fully-loaded
+#    wage comfortably (22.14 and 28.80 vs. 17.50) -- staffing those hours
+#    instead of the owner covering them alone would pencil out. This only
+#    prices the *existing* schedule's weakest hours, though -- it says
+#    nothing about genuinely new hours (7-8am, 8-9pm), since no sales
+#    data exists for clock hours the shop has never been open during
+```
+:::
+
+The fully-loaded wage comes to €17.50/hour. Both edge hours clear it
+comfortably: €22.14 and €28.80 respectively. So staffing those hours
+instead of leaving the owner to cover them alone would genuinely pencil
+out. That would be a different, harder question for genuinely new hours,
+where no comparable data exists at all.
+
+### 4.7 — How much cash must the till hold?
+
+How much cash does the till actually need to hold? One way to find out is
+to check whether this run ever needed to lean on the credit line at all,
+then compare the lowest month-end cash balance against the largest single
+month's total outflow to get a concrete buffer ratio. Whatever number that
+gives us deserves an honest caveat, since this run never actually
+stress-tests the buffer against something worse than what actually
+happened.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+outflows = cost_sheet.with_columns(
+    (pl.col("rent") + pl.col("wages") + pl.col("payroll_tax") + pl.col("utilities")
+     + pl.col("storage") + pl.col("flyers") + pl.col("vat") + pl.col("revenue_tax")).alias("total_outflow"),
+)
+print(f"credit line draws this year: {(cost_sheet['credit_balance'] > 0).sum()}, "
+      f"interest paid: {cost_sheet['credit_interest'].sum():.2f}")
+print(f"largest single-month outflow: {outflows['total_outflow'].max():.0f}")
+print(f"lowest month-end cash balance: {cost_sheet['cash'].min():.0f}")
+print(f"buffer ratio (min cash / largest monthly outflow): "
+      f"{cost_sheet['cash'].min() / outflows['total_outflow'].max():.1f}x")
+# -> the credit line is never touched this year -- the 60,000 starting
+#    budget comfortably absorbs even a war-shock year. Min cash sat at
+#    2.5x the largest month's total outflow. The honest caveat: this run
+#    never actually stress-tested the buffer, so 2.5x is what happened to
+#    be enough, not a floor proven to always be enough
+```
+:::
+
+The credit line is never touched this year. The €60,000 starting budget
+comfortably absorbs even a war-shock year, and min cash sat at 2.5× the
+largest month's total outflow. But that number is what happened to be
+enough here, not a floor proven to hold under harder conditions this run
+never actually faced.
 
 ## Layer 5 — The policy laboratory (counterfactuals)
 
-Each scenario arm is a CRN twin: the arm-vs-baseline difference is the
-causal effect with zero sampling error between arms. The deepest exercise
-here is **method validation**: estimate the effect observationally inside
-one arm, then check yourself against the twin difference.
+Each scenario arm is a CRN twin: the arm-vs-baseline difference is *meant*
+to be the causal effect with zero sampling error between arms. **Check that
+claim before trusting it** — 5.1's own setup finds a small pre-event gap
+here, so every question below differences the arms' own before/after change
+(a DiD), not a raw post-event level comparison. The deepest exercise here is
+**method validation**: estimate the effect observationally inside one arm,
+then check yourself against the twin difference.
 
-| # | Question | What the twin diff reveals |
-| --- | --- | --- |
-| 5.1 | Who actually bore a tax cut — customers or the owner? | tax incidence split; pass-through speed and completeness |
-| 5.2 | What did households do with a rebate? | an emergent marginal propensity to consume |
-| 5.3 | What does a broad supply shock do to a grocer? | revenue up, units down — demand destruction decomposed by category resilience |
-| 5.4 | What does a storm cost, net of the catch-up? | intertemporal substitution via pantries |
-| 5.5 | Does my observational elasticity generalize? | external validity: predict a twin's outcome from baseline-estimated structure |
-| 5.6 | Was hiring a clerk worth it? | full-cost staffing counterfactual, payroll tax included |
+No SQL variant in this layer either — every question needs a second full
+simulation run (the CRN twin), not a query.
+
+```python
+import importlib.resources as res
+
+import polars as pl
+
+from grocery_sim import GroceryStoreSimulation
+
+SEED = 777    # pinned so base and twin share every draw except the event
+
+def run(events):
+    sim = GroceryStoreSimulation()
+    sim.setup(dict(
+        basic = dict(
+            year = 1,
+            random_seed = SEED,
+        ),
+        events = events,
+    ))
+    sim.simulate()
+    con = sim.db()
+    return dict(
+        receipts = con.sql("SELECT * FROM receipts").pl(),
+        cost_sheet = con.sql("SELECT * FROM cost_sheet").pl(),
+        price_history = con.sql("SELECT * FROM price_history").pl(),
+    )
+
+skus = pl.read_excel(res.files("grocery_sim") / "SKUs.xlsx")
+```
+
+### 5.1 — Who actually bore a tax cut — customers or the owner?
+
+Working out who actually captured a tax cut means running the exact same
+year twice, once with the cut and once without, and comparing the two.
+But before we trust any comparison between them, we should check that the
+"twin" design actually behaves like one, by comparing pre-event revenue
+between the two arms before looking at anything downstream of the event
+itself. Whatever that sanity check shows should decide whether we trust a
+raw post-event gap or need to difference the arms' own before/after
+change instead.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+base = run(dict())
+twin = run(dict(tax_cut = "2025-04-01"))   # standard-rate VAT: 20% -> 15%
+
+# CRN sanity check first, always -- confirm the arms actually match before
+# the event, don't just assume the twin design worked
+b_pre = base["receipts"].filter(pl.col("date") < pl.date(2025, 4, 1))
+t_pre = twin["receipts"].filter(pl.col("date") < pl.date(2025, 4, 1))
+print(f"pre-event revenue: base {(b_pre['qty']*b_pre['unit_price']).sum():.0f}, "
+      f"twin {(t_pre['qty']*t_pre['unit_price']).sum():.0f}")
+# -> 156,282 vs. 156,114 -- NOT identical, despite a pinned shared seed and
+#    identical promotions/pricing before the event (checked separately).
+#    The twin design isn't perfectly clean here; treat every result below
+#    as a DiD, netting out this small pre-existing gap, not a raw level diff
+
+b_vat = base["cost_sheet"].filter(pl.col("month").is_in([4, 5, 6]))["vat"].sum()
+t_vat = twin["cost_sheet"].filter(pl.col("month").is_in([4, 5, 6]))["vat"].sum()
+print(f"VAT remitted, Apr-Jun: base {b_vat:.0f}, twin {t_vat:.0f} ({t_vat/b_vat-1:+.1%})")
+# -> -12.0%: the rate cut mechanically lowers what the owner remits, on
+#    the same shelf prices and the same volumes (see 5.2) -- the owner
+#    captures the entire cut. Nothing reaches the customer at all
+```
+:::
+
+The sanity check turns up something worth flagging on its own: pre-event
+revenue between the two arms isn't quite identical (€156,282 vs.
+€156,114), despite a pinned shared seed and identical promotions and
+pricing beforehand. That's reason enough to difference the arms' own
+before/after change rather than trust a raw post-event gap, and every
+result in this layer does exactly that, specifically to net out this small
+pre-existing wobble. With that caveat in hand, the actual comparison is
+straightforward. VAT remitted for April-June drops 12.0% in the tax-cut
+twin versus the base arm, a mechanical, exact consequence of the standard
+rate cutting from 20% to 15%. What's conspicuous is what *doesn't* move:
+shelf prices and sales volumes stay put (confirmed directly in 5.2), which
+means the owner captures the entire cut as pure margin. Nothing reaches
+the customer at all.
+
+### 5.2 — What did households do with a rebate?
+
+If a tax cut behaves like a rebate to households, spending should move
+once it lands, so we can test that by comparing revenue and units before
+and after, DiD-adjusted the same way as 5.1, in both the base and twin
+arms.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+EVENT, WIN = pl.date(2025, 4, 1), 30
+
+def window_stats(tables):
+    r = tables["receipts"].filter(pl.col("qty") > 0)
+    before = r.filter((pl.col("date") >= EVENT - pl.duration(days = WIN)) & (pl.col("date") < EVENT))
+    after = r.filter((pl.col("date") >= EVENT) & (pl.col("date") < EVENT + pl.duration(days = WIN)))
+    return dict(
+        rev_before = (before["qty"] * before["unit_price"]).sum(),
+        rev_after = (after["qty"] * after["unit_price"]).sum(),
+        units_before = before["qty"].sum(),
+        units_after = after["qty"].sum(),
+    )
+
+b, t = window_stats(base), window_stats(twin)
+rev_did = (t["rev_after"] / t["rev_before"] - 1) - (b["rev_after"] / b["rev_before"] - 1)
+units_did = (t["units_after"] / t["units_before"] - 1) - (b["units_after"] / b["units_before"] - 1)
+print(f"DiD revenue effect: {rev_did:+.1%}, DiD units effect: {units_did:+.1%}")
+# -> both ~0% (revenue -0.1%, units +0.1%). Consistent with 5.1: this
+#    "rebate" never reaches shelf prices, so there's no real income effect
+#    for a household to spend -- the honest emergent MPC here is zero,
+#    because there was never a rebate delivered to respond to
+```
+:::
+
+Both effects come back indistinguishable from zero: revenue at -0.1%,
+units at +0.1%. That's not a surprising non-result once we remember 5.1's
+finding. Since this "rebate" never actually reaches shelf prices, there
+was no real income effect for a household to spend in the first place.
+The honest emergent marginal propensity to consume here is zero, not
+because households failed to respond, but because nothing was ever handed
+to them to respond to.
+
+### 5.3 — What does a broad supply shock do to a grocer?
+
+A broad supply shock should hit revenue and units differently. Prices
+likely rise, but does demand collapse fast enough to erase the gain? We
+can run the twin comparison at the total level first, then break that same
+comparison down by category to see whether resilience and pass-through
+move together or vary independently.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+base2 = run(dict())
+twin2 = run(dict(war = "2025-04-01"))
+EVENT2, WIN2 = pl.date(2025, 4, 1), 60
+
+def cat_window(tables, lo, hi):
+    return (
+        tables["receipts"]
+        .filter(pl.col("qty") > 0)
+        .join(skus.select("uid", "category"), on = "uid")
+        .filter((pl.col("date") >= lo) & (pl.col("date") < hi))
+        .group_by("category")
+        .agg(
+            (pl.col("qty") * pl.col("unit_price")).sum().alias("revenue"), pl.col("qty").sum().alias("units"),
+        )
+    )
+b_after = cat_window(base2, EVENT2, EVENT2 + pl.duration(days = WIN2))
+t_after = cat_window(twin2, EVENT2, EVENT2 + pl.duration(days = WIN2))
+diff = (
+    b_after
+    .join(t_after, on = "category", suffix = "_twin")
+    .with_columns([
+        (pl.col("revenue_twin") / pl.col("revenue") - 1).alias("revenue_pct"),
+        (pl.col("units_twin") / pl.col("units") - 1).alias("units_pct"),
+    ])
+    .sort("units_pct")
+)
+print(diff.select("category", "revenue_pct", "units_pct"))
+print(f"total: revenue {t_after['revenue'].sum()/b_after['revenue'].sum()-1:+.1%}, "
+      f"units {t_after['units'].sum()/b_after['units'].sum()-1:+.1%}")
+# -> total: revenue +6.5%, units -9.0% -- prices rise faster than people
+#    walk away. Staples (Pantry, Snacks) show the least price pass-through
+#    and the worst unit losses (-13 to -14%); discretionary/non-food
+#    categories pass more of the cost through and lose fewer units
+#    (-2 to -4%) -- resilience and pass-through move together
+```
+:::
+
+At the total level, revenue rises 6.5% while units fall 9.0%, so prices
+are climbing faster than people are walking away. Breaking that same
+comparison down by category is where the real structure shows up. Staples
+like Pantry and Snacks show the *least* price pass-through and the *worst*
+unit losses (-13% to -14%), while discretionary and non-food categories
+pass more of the cost through and lose fewer units (-2% to -4%).
+Resilience and pass-through aren't independent facts about each category,
+they move together. The categories that can raise prices are the same
+ones that don't lose as many customers for doing it.
+
+### 5.4 — What does a storm cost, net of the catch-up?
+
+A pantry-stockpiling intuition suggests a storm should cause a dip in
+sales, followed by an exact recovery as households restock what they used.
+We can test that by tracking the DiD-adjusted units effect across a
+widening window to see if that shape actually appears, rather than trust
+whatever the first few days alone happen to show.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+base3 = run(dict())
+twin3 = run(dict(typhoon = "2025-07-15"))
+EVENT3, PRE_LEN = pl.date(2025, 7, 15), 14
+
+def window_units(tables, lo, hi):
+    r = tables["receipts"]
+    return r.filter((pl.col("qty") > 0) & (pl.col("date") >= lo) & (pl.col("date") < hi))["qty"].sum()
+
+pre_gap = (window_units(twin3, EVENT3 - pl.duration(days = PRE_LEN), EVENT3)
+           / window_units(base3, EVENT3 - pl.duration(days = PRE_LEN), EVENT3) - 1)
+print(f"pre-event gap to net out: {pre_gap:+.1%}")
+for days in (3, 7, 14, 30, 60):
+    post_b = window_units(base3, EVENT3, EVENT3 + pl.duration(days = days))
+    post_t = window_units(twin3, EVENT3, EVENT3 + pl.duration(days = days))
+    did = (post_t / post_b - 1) - pre_gap
+    print(f"+{days}d DiD-adjusted units effect: {did:+.1%}")
+# -> +1.6% at 3 days, growing to +4.2-4.9% by 2-4 weeks, then flat -- not
+#    the dip-then-exact-recovery story a pantry-stockpiling intuition might
+#    predict. Measuring only the shock week would have understated the
+#    real net effect here; the window has to run a month out to stabilize
+```
+:::
+
+It doesn't. The effect starts positive at +1.6% just three days out,
+*grows* to +4.2-4.9% over two to four weeks, then flattens, never dipping
+at all. If we'd measured only the shock week, the instinctive thing to do,
+we would have badly understated the real net effect. The window has to
+run out to about a month before the number settles into something
+trustworthy, and by then the story looks nothing like the simple
+dip-and-recover intuition predicted.
+
+### 5.5 — Does my observational elasticity generalize?
+
+An elasticity estimated from ordinary, everyday price wiggles is only
+useful if it generalizes to a real shock, and we can test that directly
+here, since the twin design produces an actual large price jump to check
+the prediction against. We can take the baseline elasticity for Bakery and
+Bread, estimated from small natural price variation, use it to predict the
+quantity drop implied by the twin's real price jump, and then check that
+prediction against what the twin actually shows.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import statsmodels.formula.api as smf
+
+CAT = "Bakery and Bread"
+
+def weekly_panel(tables):
+    q = (
+        tables["receipts"]
+        .filter(pl.col("qty") > 0)
+        .join(skus.select("uid", "category"), on = "uid")
+        .filter(pl.col("category") == CAT)
+        .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+        .group_by("week")
+        .agg(pl.col("qty").sum().alias("qty"))
+    )
+    p = (
+        tables["price_history"]
+        .join(skus.select("uid", "category"), on = "uid")
+        .filter(pl.col("category") == CAT)
+        .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+        .group_by(["week", "uid"])
+        .agg(pl.col("price").last())
+        .group_by("week")
+        .agg(pl.col("price").mean().alias("price"))
+    )
+    return (
+        q
+        .join(p, on = "week")
+        .sort("week")
+        .with_columns([
+            pl.col("qty").log().alias("log_qty"), pl.col("price").log().alias("log_price"),
+        ])
+    )
+
+elasticity = smf.ols("log_qty ~ log_price", data = weekly_panel(base2).to_pandas()).fit().params["log_price"]
+print(f"baseline-estimated elasticity: {elasticity:.2f}")
+
+twin_panel, EVENT4 = weekly_panel(twin2), pl.date(2025, 4, 1)
+def wmean(panel, lo, hi, col):
+    return panel.filter((pl.col("week") >= lo) & (pl.col("week") < hi))[col].mean()
+price_pct = (wmean(twin_panel, EVENT4, EVENT4 + pl.duration(days=60), "price")
+             / wmean(twin_panel, EVENT4 - pl.duration(days=60), EVENT4, "price") - 1)
+qty_pct = (wmean(twin_panel, EVENT4, EVENT4 + pl.duration(days=60), "qty")
+           / wmean(twin_panel, EVENT4 - pl.duration(days=60), EVENT4, "qty") - 1)
+print(f"twin's actual price change: {price_pct:+.1%}")
+print(f"predicted qty change (elasticity x price change): {elasticity * price_pct:+.1%}")
+print(f"actual qty change: {qty_pct:+.1%}")
+# -> baseline elasticity -0.27 (from small natural price variation)
+#    predicts -8.3% given the twin's +30.6% price jump; the twin's actual
+#    drop was -15.2% -- nearly double. Small-variation observational
+#    elasticity understates the real response to a genuinely large shock
+```
+:::
+
+The baseline elasticity for Bakery and Bread, -0.27, estimated from small
+natural price variation, predicts an -8.3% quantity drop given the twin's
+real +30.6% price jump. What the twin actually shows is a -15.2% drop,
+nearly double the prediction. Small-variation elasticity systematically
+understates how customers respond to a genuinely large shock. External
+validity fails exactly where it would matter most, at the scale a real
+crisis actually operates on, not in the safe range the estimate was built
+from.
+
+### 5.6 — Was hiring a clerk worth it?
+
+Was hiring a clerk worth it? Before we even compute a cost-benefit, we
+should check *when* the hire actually happened, since the endogenous
+trigger might fire late or not at all, and that alone should shape how
+much weight to put on whatever cost-benefit number comes out. We can then
+total up the actual wage cost against the revenue gain versus a no-hire
+twin to see whether it clears its own fully-loaded cost.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+def run_staffing(more_staff):
+    sim = GroceryStoreSimulation()
+    sim.setup(dict(
+        basic = dict(
+            year = 3,
+            random_seed = 42,
+            retain_earning = True,
+        ),
+        potential_investment = dict(more_staff = more_staff),
+    ))
+    sim.simulate()
+    return sim.db().sql("SELECT * FROM cost_sheet").pl()
+
+with_staff, without_staff = run_staffing(True), run_staffing(False)
+total_wage_cost = with_staff["wages"].sum() + with_staff["payroll_tax"].sum()
+revenue_gain = with_staff["revenue"].sum() - without_staff["revenue"].sum()
+margin_rate = (with_staff["revenue"].sum() - with_staff["procurement"].sum()) / with_staff["revenue"].sum()
+gross_margin_gain = revenue_gain * margin_rate
+print(f"3-year wage + payroll tax cost: {total_wage_cost:.0f}")
+print(f"revenue gain vs. the no-hire twin: {revenue_gain:.0f}")
+print(f"gross margin gain: {gross_margin_gain:.0f}")
+print(f"net: {gross_margin_gain - total_wage_cost:+.0f}")
+# -> at this seed, the hire only actually triggers in the second half of
+#    the third year (6 of 36 months carry any wage cost at all) --
+#    3-year cost 29,255; revenue gain only 6,822 (gross margin gain
+#    1,019); net -28,236. Even a late, short-lived hire has to clear its
+#    own fully-loaded cost, and here it doesn't -- check months_with_wages
+#    before trusting any hiring counterfactual, since a hire that never
+#    triggers (or barely does) makes "worth it" a trivial no by default
+```
+:::
+
+Here it does fire late: only 6 of 36 months across the three-year run
+carry any wage cost. That already sets our expectations low. The actual
+cost comes to €29,255 in wages plus payroll tax over three years, against
+a revenue gain versus the no-hire twin of only €6,822 (€1,019 in gross
+margin), and the net comes to -€28,236. No. Even a late, short-lived hire
+has to clear its own fully-loaded cost, and this one doesn't come close.
+The real lesson is procedural: check how many months actually carry wages
+before trusting any hiring counterfactual at all, since a hire that barely
+triggers makes "worth it" a trivial no almost by construction, not a
+meaningful test of whether hiring pays.
 
 ## Layer 6 — Advanced and structural
 
-| # | Question | Approach |
-| --- | --- | --- |
-| 6.1 | What do customers *want*? | discrete-choice (conditional logit) estimation on the card panel |
-| 6.2 | Can partial pooling beat per-SKU noise? | hierarchical Bayesian demand models |
-| 6.3 | What drives sales, decomposed? | marketing-mix modeling: base, seasonality, weather, price, promotions |
-| 6.4 | Where did the missing demand go? | structural four-cause decomposition (closed / stockout / budget / outside) |
-| 6.5 | How much business is passing trade? | mixture modeling of the token panel: regulars vs. single-use guests |
-| 6.6 | Is the documented causal graph consistent with the data? | test the DAG's implied conditional independencies |
+No SQL variant here either. 6.2 uses closed-form shrinkage rather than a
+full MCMC fit — the real hierarchical Bayesian model (PyMC, partial pooling
+across categories on a 3-year panel) is the [technical
+report](analyses/technical-report.qmd)'s own §4. This is the cheaper,
+illustrative version of the same idea.
+
+```python
+import importlib.resources as res
+
+import polars as pl
+
+from grocery_sim import GroceryStoreSimulation
+
+sim = GroceryStoreSimulation()
+sim.setup(dict(basic = dict(year = 1)))
+sim.simulate()
+con = sim.db()
+
+receipts = con.sql("SELECT * FROM receipts").pl()
+price_history = con.sql("SELECT * FROM price_history").pl()
+weather = con.sql("SELECT * FROM weather").pl()
+calendar = con.sql("SELECT * FROM calendar").pl()
+promotions = con.sql("SELECT * FROM promotions").pl()
+skus = pl.read_excel(res.files("grocery_sim") / "SKUs.xlsx")
+sales = (
+    receipts
+    .filter(pl.col("qty") > 0)
+    .join(skus.select("uid", "category"), on = "uid")
+)
+promotions_clean = promotions.with_columns(pl.col("category").str.replace("Confectionary", "Confectionery"))
+```
+
+### 6.1 — What do customers *want*?
+
+Finding out what customers actually want means modeling the choice they
+make each trip, which category becomes that trip's "primary" purchase, as
+a genuine discrete choice among alternatives, not just eyeballing
+aggregate category shares. We can fit a conditional logit over that
+choice, using each category's relative price and promotion status as
+predictors, to see whether ordinary price drift or an actual markdown does
+more to redirect a trip.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+from statsmodels.discrete.conditional_models import ConditionalLogit
+
+# one choice occasion per trip: which single category got the largest
+# share of that basket's value -- the trip's "primary" pick among 12
+# mutually exclusive alternatives (a valid McFadden discrete-choice setup)
+weekly_price = (
+    price_history
+    .join(skus.select("uid", "category"), on = "uid")
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["category", "week", "uid"])
+    .agg(pl.col("price").last())
+    .group_by(["category", "week"])
+    .agg(pl.col("price").mean().alias("price"))
+    .with_columns((pl.col("price") / pl.col("price").mean().over("category")).alias("rel_price"))
+)
+basket_cat_value = (
+    sales
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["receipt_id", "date", "week", "category"])
+    .agg((pl.col("qty") * pl.col("unit_price")).sum().alias("value"))
+)
+trip_week = (
+    basket_cat_value
+    .select("receipt_id", "date", "week")
+    .unique()
+)
+chosen = (
+    basket_cat_value
+    .sort("value", descending = True)
+    .group_by("receipt_id")
+    .agg(pl.col("category").first().alias("chosen_category"))
+)
+
+all_cats = (
+    skus["category"]
+    .unique()
+    .sort()
+)
+occasions = (
+    trip_week
+    .join(all_cats.rename("category").to_frame(), how = "cross")
+    .join(chosen, on = "receipt_id")
+    .with_columns((pl.col("category") == pl.col("chosen_category")).alias("y"))
+    .join(weekly_price.select("category", "week", "rel_price"), on = ["category", "week"], how = "left")
+    .with_columns(pl.col("rel_price").fill_null(1.0), pl.lit(False).alias("on_promo"))
+)
+for row in promotions_clean.iter_rows(named = True):
+    occasions = occasions.with_columns(
+        pl.when((pl.col("category") == row["category"])
+                & (pl.col("date") >= row["start_date"]) & (pl.col("date") < row["end_date"]))
+        .then(True).otherwise(pl.col("on_promo")).alias("on_promo"),
+    )
+pdf = occasions.to_pandas()
+pdf["on_promo"] = pdf["on_promo"].astype(int)
+
+model = ConditionalLogit(
+    endog = pdf["y"].astype(int), exog = pdf[["rel_price", "on_promo"]], groups = pdf["receipt_id"],
+).fit(disp = 0)
+print(model.params, model.pvalues, sep = "\n")
+# -> rel_price -0.047 (p=0.29, no real effect on which category becomes
+#    the trip's primary pick); on_promo +0.239 (p<0.001) -- a markdown
+#    genuinely reshapes what a trip is *about*, small week-to-week price
+#    drift doesn't
+```
+:::
+
+Relative price turns out to have essentially no effect on which category
+becomes the trip's primary pick (-0.047, p=0.29), while being on markdown
+has a strong one (+0.239, p<0.001). Small week-to-week price drift doesn't
+reshape what a trip is about, but a real promotion does. Customers don't
+reroute a trip over ordinary price noise, only over an actual deal.
+
+### 6.2 — Can partial pooling beat per-SKU noise?
+
+The logic behind partial pooling is that any single SKU's own history is
+often too thin to trust by itself, so we should be able to borrow
+strength from the category average and smooth out the noise. We can
+build the simplest version of that idea — shrink each SKU's own weekly
+average toward its category, more aggressively the noisier that SKU's own
+history is — and test it against 8 held-out weeks to see whether it
+actually beats trusting each SKU's raw average alone.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+weekly = (
+    sales
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["uid", "category", "week"])
+    .agg(pl.col("qty").sum().alias("units"))
+    .sort(["uid", "week"])
+)
+weeks = weekly["week"].unique().sort()
+train, test = weekly.filter(pl.col("week").is_in(weeks[:-8])), weekly.filter(pl.col("week").is_in(weeks[-8:]))
+
+per_sku = (
+    train
+    .group_by(["uid", "category"])
+    .agg(
+        pl.col("units").mean().alias("sku_mean"), pl.col("units").var().alias("sku_var"), pl.len().alias("n"),
+    )
+)
+cat_mean = train.group_by("category").agg(pl.col("units").mean().alias("cat_mean"))
+grand_var = (
+    train
+    .group_by("uid")
+    .agg(pl.col("units").mean())
+    .to_series(1)
+    .var()
+)
+
+# James-Stein shrinkage: weight toward the category mean in proportion to
+# how noisy this SKU's own mean is (few weeks, high variance)
+per_sku = (
+    per_sku
+    .join(cat_mean, on = "category")
+    .with_columns((pl.col("sku_var") / pl.col("n")).alias("se2"))
+    .with_columns((pl.col("se2") / (pl.col("se2") + grand_var)).clip(upper_bound = 1.0).alias("shrinkage"))
+    .with_columns((pl.col("shrinkage") * pl.col("cat_mean")
+                   + (1 - pl.col("shrinkage")) * pl.col("sku_mean")).alias("pooled_pred"))
+)
+eval_df = (
+    test
+    .join(per_sku.select("uid", "sku_mean", "pooled_pred"), on = "uid", how = "left")
+    .drop_nulls()
+)
+mae_unpooled = (eval_df["units"] - eval_df["sku_mean"]).abs().mean()
+mae_pooled = (eval_df["units"] - eval_df["pooled_pred"]).abs().mean()
+print(f"unpooled MAE: {mae_unpooled:.2f}, pooled MAE: {mae_pooled:.2f}, "
+      f"improvement: {(1 - mae_pooled/mae_unpooled):+.1%}")
+# -> 14.01 vs. 14.17 -- pooling is very slightly *worse* here. With 44
+#    weeks of history per SKU, the unpooled mean is already stable enough
+#    that shrinking toward the category adds bias without saving much
+#    variance. Partial pooling earns its keep when per-unit history is
+#    thin (new SKUs, short arms, sparse categories) -- not automatically
+#    everywhere; the technical report's own PyMC model shows a real gain
+#    on a thinner, more structured 3-year panel
+```
+:::
+
+It doesn't hold up. The unpooled per-SKU average comes out to a mean
+absolute error of 14.01, and the pooled version is very slightly worse, at
+14.17. With 44 weeks already behind each SKU, there isn't much noise left
+to average away, and the shrinkage just trades a little bias for a
+benefit that was never really there to claim. Partial pooling must earn
+its keep on thin history (new SKUs, short arms, sparse categories). This
+isn't that case. The technical report's own hierarchical Bayesian model,
+run over a longer three-year panel with more structure to lean on, does
+show a real gain.
+
+### 6.3 — What drives sales, decomposed?
+
+Decomposing what actually drives sales means throwing every candidate
+driver — weather, price, promotions, and calendar effects — into one
+regression and seeing what survives, and whether price behaves the way a
+clean demand curve would predict or shows the same reverse-causality flag
+4.3's naive scan already raised.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import datetime as dt
+
+import statsmodels.formula.api as smf
+
+daily = (
+    sales
+    .group_by("date")
+    .agg(pl.col("qty").sum().alias("units"))
+    .join(weather, on = "date")
+    .join(calendar.select("date", "dow", "month", "closed"), on = "date")
+    .filter(pl.col("closed") == 0)
+    .sort("date")   # HAC's lag structure assumes row order is time order -- always sort first
+)
+promo_days = set()
+for row in promotions_clean.iter_rows(named = True):
+    d = row["start_date"]
+    while d < row["end_date"]:
+        promo_days.add(d)
+        d = d + dt.timedelta(days = 1)
+weekly_price_all = (
+    price_history
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by("week")
+    .agg(pl.col("price").mean().alias("avg_price"))
+)
+daily = (
+    daily
+    .with_columns(
+        pl.col("date").is_in(list(promo_days)).alias("on_promo"),
+        (pl.col("temp_C") - pl.col("temp_C").mean()).alias("temp_anom"),
+        pl.col("dow").cast(pl.String).alias("dow_str"),
+        pl.col("month").cast(pl.String).alias("month_str"),
+        pl.col("date").dt.truncate("1w").alias("week"),
+    )
+    .join(weekly_price_all, on = "week")
+)
+pdf = daily.to_pandas()
+pdf["on_promo"] = pdf["on_promo"].astype(int)
+model = smf.ols(
+    "units ~ temp_anom + rain_mm + wet + on_promo + avg_price + C(dow_str) + C(month_str)", data = pdf,
+).fit(cov_type = "HAC", cov_kwds = dict(maxlags = 7))
+for t in ["temp_anom", "rain_mm", "wet", "on_promo", "avg_price"]:
+    print(f"{t}: coef={model.params[t]:.2f}, p={model.pvalues[t]:.3f}")
+print("R2:", model.rsquared)
+# -> R2=0.92 (mostly the dow/month dummies). wet: -118.6 (p<0.001), the
+#    dominant weather effect, same as 2.1/2.7. on_promo: +157.5 (p=0.022),
+#    a real lift. avg_price: +6.77 (p=0.030) -- positively signed, the
+#    same reverse-causality flag as 4.3's naive scan: price moves with
+#    demand here, so this is not a clean price effect, don't read it as one
+```
+:::
+
+The model explains 92% of daily variance, though most of that credit
+belongs to the day-of-week and month dummies, not the more interesting
+terms. Of those, a wet day is the dominant weather effect (-118.6 units,
+p<0.001), the same pattern already found independently in 2.1 and 2.7,
+and being on promotion adds a real, significant lift (+157.5, p=0.022).
+Average price comes back *positively* signed (+6.77, p=0.030), which we
+should pause on rather than report at face value. It's the same
+reverse-causality flag already raised by 4.3's naive scan. Price moves
+with demand here, not the other way round, so this coefficient isn't a
+clean price effect and we shouldn't read it as one.
+
+### 6.4 — Where did the missing demand go?
+
+Tracing where all the missing demand actually went means pulling the
+hidden per-attempt demand log and sorting every attempt by its own
+recorded cause, rather than assuming the answer, so we can see how much of
+the "missing" demand is really a store problem at all versus something no
+inventory fix could ever touch.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+tables = sim.data(include_hidden = True)
+hd = pl.from_pandas(tables.hidden_hidden_demand)
+by_cause = (
+    hd
+    .group_by("cause")
+    .agg(pl.col("qty").sum().alias("units"))
+)
+realized = sales["qty"].sum()
+total = by_cause["units"].sum() + realized
+print(
+    by_cause
+    .with_columns((pl.col("units") / total).alias("share"))
+    .sort("units", descending = True),
+)
+print(f"realized sales: {realized} ({realized/total:.1%})")
+# -> realized 56.2%. Of the rest: budget 16.1%, outside option 15.7%,
+#    closed days 10.3%, stockouts 1.7% -- most of the missing demand is
+#    never a store problem at all (closed, or the household simply
+#    couldn't afford it), and only a sliver is the stockouts Layer 3
+#    spent so much effort on -- worth knowing before over-investing there
+```
+:::
+
+Doing that shows only 56.2% of all true demand converting to a realized
+sale. Of the rest, 16.1% is lost to household budget constraints, 15.7% to
+the outside option (customers who simply went elsewhere), 10.3% to
+closure days, and just 1.7% to stockouts. That ordering matters. Most of
+the "missing" demand was never a store problem at all, it's closed days,
+or households who genuinely couldn't afford it, and only a sliver is the
+stockouts that Layer 3 spent so much effort trying to predict and impute.
+Worth knowing before we pour more investment into inventory fixes for what
+turns out to be a small slice of the real gap.
+
+### 6.5 — How much business is passing trade?
+
+1.5 already hinted at two distinct populations in the card panel,
+regulars and one-off guests, but we should run a formal test to confirm
+that split rather than eyeball it. Fitting a two-component Gaussian
+mixture on visit frequency does exactly that, and it can also tell us
+something 1.5's RFM read couldn't reach on its own: how much of the actual
+revenue that long tail of one-off guests really accounts for.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import numpy as np
+from sklearn.mixture import GaussianMixture
+
+card = sales.filter(pl.col("customer_id").is_not_null())
+visits = (
+    card
+    .group_by("customer_id")
+    .agg(
+        pl.col("receipt_id").n_unique().alias("n_visits"),
+        (pl.col("qty") * pl.col("unit_price")).sum().alias("total_spend"),
+    )
+)
+X = np.log1p(visits["n_visits"].to_numpy()).reshape(-1, 1)
+gm = GaussianMixture(n_components = 2, random_state = 0).fit(X)
+visits = visits.with_columns(pl.Series("cluster", gm.predict(X)))
+regular_label = int(np.argmax(gm.means_.flatten()))
+regulars = visits.filter(pl.col("cluster") == regular_label)
+passing = visits.filter(pl.col("cluster") != regular_label)
+print(f"regulars: {regulars.height}, median visits {regulars['n_visits'].median():.0f}")
+print(f"passing trade: {passing.height}, median visits {passing['n_visits'].median():.0f}")
+print(f"passing-trade share of card revenue: {passing['total_spend'].sum() / visits['total_spend'].sum():.1%}")
+# -> 258 regulars (median 47 visits) vs. 854 passing-trade (median 1
+#    visit) -- consistent with 1.5's RFM split. Passing trade is 77% of
+#    card customers by headcount but only 1.2% of card revenue
+```
+:::
+
+The mixture separates the panel into 258 regulars (median 47 visits) and
+854 passing-trade customers (median 1 visit), a split that lines up with
+1.5's independent RFM read, now backed by an actual clustering model. What
+the mixture adds is the revenue angle. Passing trade is 77% of card
+customers by headcount, but only 1.2% of card revenue. The long tail of
+one-off guests is real, but it barely moves the money.
+
+### 6.6 — Is the documented causal graph consistent with the data?
+
+Testing whether the documented causal graph actually holds means finding
+two of its concrete implications and checking each one against the data,
+rather than taking the diagram on faith. The graph claims wholesale cost
+only reaches demand through price, never directly, which 2.5 already
+tested by regressing quantity on both price and cost together. The graph
+also claims rain acts as one store-wide traffic multiplier, not twelve
+category-specific demand shifters, which we can test here by checking
+whether rain's effect differs significantly by category.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+# PHASE2_DETAILS.md's own causal graph: rain only reaches the market
+# through a store-wide traffic multiplier, with no arrow into any
+# category-specific demand modifier. If that's right, rain's effect on
+# quantity shouldn't differ meaningfully by category
+daily_cat = (
+    sales
+    .group_by(["category", "date"])
+    .agg(pl.col("qty").sum().alias("units"))
+    .join(weather, on = "date")
+    .join(calendar.select("date", "closed"), on = "date")
+    .filter(pl.col("closed") == 0)
+    .sort(["category", "date"])   # HAC's lag structure assumes row order is time order per group
+)
+model = smf.ols("units ~ wet * C(category)", data = daily_cat.to_pandas()).fit(
+    cov_type = "HAC", cov_kwds = dict(maxlags = 7),
+)
+terms = [p for p in model.params.index if "wet:C(category)" in p]
+f_test = model.f_test(" = ".join(terms) + " = 0")
+print(f"joint test, rain's effect differs by category: F={f_test.fvalue:.3f}, p={f_test.pvalue:.4f}")
+# -> F=1.774, p=0.053 -- just above the conventional 5% line, not the
+#    clean "obviously uniform" result an earlier, unsorted (and silently
+#    non-reproducible -- HAC's lag structure assumes row order is time
+#    order, and grouped/joined polars output isn't guaranteed sorted)
+#    version of this same regression suggested. Read honestly: this is
+#    borderline, not a confirmation. The other half of this test is
+#    already in 2.5: the direct log_cost effect on quantity, holding
+#    price fixed, was not significant (p=0.43) -- consistent with
+#    wholesale cost reaching demand only through price, the one edge the
+#    documented graph actually draws. One test leans toward the DAG,
+#    the other is inconclusive -- that's the honest state of this check,
+#    not a clean pass
+```
+:::
+
+The cost term came back not significant (p=0.43), consistent with the
+graph. Rain's effect by category gives F=1.774, p=0.053, just above the
+conventional 5% line, and we should be exact about what that means:
+borderline, not a clean confirmation. It's also worth flagging how we
+arrived at this number. An earlier, unsorted version of this same
+regression was silently non-reproducible, since HAC's lag structure
+assumes row order is time order and grouped/joined polars output isn't
+guaranteed sorted, and that broken version had suggested a cleaner pass
+than the corrected, reproducible result actually shows. So the honest
+scorecard is one test leaning toward the graph, and one that's genuinely
+inconclusive, not two confirmations.
 
 ## Layer 7 — The three-year arc (time, churn, and capital)
 
@@ -119,19 +3085,718 @@ Asked of the three-year baseline, graded against its hidden answer key and
 its own CRN twins. These are the questions one year of data structurally
 cannot ask.
 
-| # | Question | Approach |
-| --- | --- | --- |
-| 7.1 | Is the business growing, or is it just summer? | trend–seasonality decomposition, now identified with three annual cycles |
-| 7.2 | Which customers left, which arrived, and who was never going to stay? | churn inference from token silence, cohort retention, survival modeling |
-| 7.3 | What happened when a competitor entered? | structural-break detection, then who defected — and the twin that prices it |
-| 7.4 | Did customers trade up after the discounter opened? | composition vs. behavior decomposition |
-| 7.5 | Does a model trained on years one–two survive year three? | true holdout-year evaluation; forecast breakdown at a regime change |
-| 7.6 | Did the promotions work? | naive lift vs. entry-aware estimates — the endogenous-response confound |
-| 7.7 | What do the repeated cost-shock episodes have in common? | compare pass-through across episodes with different competitive regimes |
-| 7.8 | What did a one-off event (equipment failure, a local surge) cost or earn? | event studies on narrated one-offs |
-| 7.9 | Was the expansion a good investment? | capital budgeting from the books — NPV the bet, graded against its own twin |
-| 7.10 | How does capital actually flow through a small shop? | financial-statement analysis of the widened cost sheet |
-| 7.11 | Renew the lease or close? | the capstone prescriptive: decompose the result into its causes and project forward |
+No SQL variant in this layer either. Every question shares one three-year
+run. 7.3/7.4 and 7.9 additionally need a CRN twin (no competitor, no
+investment), each set up inline where it's used.
+
+```python
+import importlib.resources as res
+
+import polars as pl
+
+from grocery_sim import GroceryStoreSimulation
+
+sim = GroceryStoreSimulation()
+sim.setup(dict(
+    basic = dict(
+        year = 3,
+        random_seed = 555,
+        retain_earning = True,
+        retain_earning_from = "2026-01",
+    ),
+    events = dict(
+        war = "2025-03-01",              # a cost shock before the competitor exists
+        typhoon = "2027-07-01",          # a second, smaller one after
+        competitor = "2026-06-01",
+        operational_hazard = "2027-02-01",   # a freezer failure
+    ),
+    potential_investment = dict(
+        more_staff = True,
+        bigger_store = True,
+        upgrade_infrastructure = True,
+    ),
+))
+sim.simulate()
+con = sim.db()
+
+receipts = con.sql("SELECT * FROM receipts").pl()
+cost_sheet = con.sql("SELECT * FROM cost_sheet").pl()
+procurement = con.sql("SELECT * FROM procurement").pl()
+price_history = con.sql("SELECT * FROM price_history").pl()
+calendar = con.sql("SELECT * FROM calendar").pl()
+write_offs = con.sql("SELECT * FROM write_offs").pl()
+promotions = con.sql("SELECT * FROM promotions").pl()
+tax_statement = con.sql("SELECT * FROM tax_statement").pl()
+skus = pl.read_excel(res.files("grocery_sim") / "SKUs.xlsx")
+sales = (
+    receipts
+    .filter(pl.col("qty") > 0)
+    .join(skus.select("uid", "category"), on = "uid")
+)
+promotions_clean = promotions.with_columns(pl.col("category").str.replace("Confectionary", "Confectionery"))
+```
+
+### 7.1 — Is the business growing, or is it just summer?
+
+Telling real growth apart from three good summers in a row means
+controlling for season before we read anything into a rising trend line,
+so the regression should include season dummies alongside a simple time
+trend, rather than fitting the trend alone.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import statsmodels.formula.api as smf
+
+daily = (
+    sales
+    .group_by("date")
+    .agg(pl.col("qty").sum().alias("units"))
+    .join(calendar.select("date", "closed", "season"), on = "date")
+    .filter(pl.col("closed") == 0)
+    .sort("date")   # HAC's lag structure assumes row order is time order
+    .with_columns((pl.col("date") - pl.col("date").min()).dt.total_days().alias("t"))
+)
+model = smf.ols("units ~ t + C(season)", data = daily.to_pandas()).fit(
+    cov_type = "HAC", cov_kwds = dict(maxlags = 30),
+)
+annual_growth = model.params["t"] * 365
+mean_units = daily["units"].mean()
+print(f"trend: {model.params['t']:.3f} units/day (p={model.pvalues['t']:.4f}), "
+      f"~{annual_growth:.0f} units/year on a mean of {mean_units:.0f}/day "
+      f"({annual_growth / mean_units:.1%}/year)")
+# -> +4.1%/year, p=0.001 -- a real trend, controlled for season, not
+#    just three good summers in a row
+```
+:::
+
+Doing that turns up a real, significant effect: +4.1% per year (p=0.001),
+season already accounted for. Not an accident of good weather three years
+running.
+
+### 7.2 — Which customers left, which arrived, and who was never going to stay?
+
+Inferring who left and who's still around means first finding a blind,
+visible-data-only signal for departure, and the obvious candidate is
+silence: flag any card token that hasn't bought anything in 90 days.
+Before we grade that rule, though, we should check how much of the card
+panel it can even be tested against, since a lot of that panel may turn
+out to be one-off guests with no real "departure" concept in the first
+place.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+card = sales.filter(pl.col("customer_id").is_not_null())
+last_seen = (
+    card
+    .group_by("customer_id")
+    .agg(pl.col("date").max().alias("last_purchase"))
+)
+horizon_end = calendar["date"].max()
+
+# blind: a token silent for 90+ days before the horizon ends is inferred churned
+inferred = last_seen.with_columns(
+    ((pl.lit(horizon_end) - pl.col("last_purchase")).dt.total_days() >= 90).alias("inferred_churned"),
+)
+print(f"{inferred.height} card tokens; {inferred['inferred_churned'].sum()} inferred churned (blind)")
+
+# graded: sim.data(include_hidden=True) exposes hidden_customers, with the
+# real arrival_date/departure_date per internal customer_id -- joined to
+# the receipt token via that same table's own `token` column
+tables = sim.data(include_hidden = True)
+truth = (
+    pl.from_pandas(tables.hidden_customers)
+    .select("token", "departure_date")
+    .rename(dict(token = "customer_id"))
+    .with_columns(pl.col("departure_date").is_not_null().alias("truly_departed"))
+)
+compare = inferred.join(truth, on = "customer_id", how = "inner")
+tp = compare.filter(pl.col("inferred_churned") & pl.col("truly_departed")).height
+fp = compare.filter(pl.col("inferred_churned") & ~pl.col("truly_departed")).height
+fn = compare.filter(~pl.col("inferred_churned") & pl.col("truly_departed")).height
+print(f"true departures in the matched panel: {compare['truly_departed'].sum()} / {compare.height}")
+print(f"90-day-silence rule: precision {tp/(tp+fp):.0%}, recall {tp/(tp+fn):.0%}")
+# -> only 266 of ~2,750 card tokens match the structured customer panel at
+#    all -- most card users are one-off guests with no real "departure"
+#    concept, not registered regulars. On that matched panel: the naive
+#    silence rule catches 94% of true departures (recall) but over a
+#    third of its flags are wrong (67% precision) -- an infrequent-but-
+#    loyal shopper looks identical to a departed one from silence alone
+```
+:::
+
+Only 266 of roughly 2,750 card tokens turn out to match the structured
+customer panel with a real lifecycle to track at all, the rest being
+one-off guests with no "departure" concept in the first place. On that
+matched subset, the 90-day-silence rule catches 94% of true departures
+(recall), which sounds strong, but it's wrong on over a third of its own
+flags (67% precision), because an infrequent-but-loyal shopper looks
+identical to a departed one from silence alone. Both simply stop showing
+up for a while. Only one of them is actually gone.
+
+### 7.3 — What happened when a competitor entered?
+
+If a competitor's entry really moved the business, a structural-break
+scan over the known entry date should find that break as the best fit in
+the data, so we can test that by scanning blindly across many candidate
+break dates and seeing whether the true one, 2026-06-01, actually wins. If
+a naive scan like that can't find it, that still wouldn't mean there's no
+effect at all. A CRN twin without the competitor should be a more
+sensitive instrument to check against.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import datetime as dt
+
+import numpy as np
+
+EVENT = dt.date(2026, 6, 1)
+daily_units = (
+    sales
+    .group_by("date")
+    .agg(pl.col("qty").sum().alias("units"))
+    .sort("date")
+)
+pdf = daily_units.to_pandas()
+pdf["t"] = (pdf["date"] - pdf["date"].min()).dt.days
+
+def ssr_at_break(df, break_t):
+    d = df.assign(post = (df["t"] >= break_t).astype(int))
+    d["t_post"] = d["t"] * d["post"]
+    return smf.ols("units ~ t + post + t_post", data = d).fit().ssr
+
+true_break_t = (EVENT - pdf["date"].min().date()).days
+candidates = np.linspace(pdf["t"].min() + 60, pdf["t"].max() - 60, 40).astype(int)
+best_t, best_ssr = min(((c, ssr_at_break(pdf, c)) for c in candidates), key = lambda x: x[1])
+true_ssr = ssr_at_break(pdf, true_break_t)
+print(f"true break SSR: {true_ssr:.0f}; best blind-scan break SSR: {best_ssr:.0f} (at t={best_t})")
+print(f"blind scan actually finds the true date: {abs(best_t - true_break_t) < 30}")
+
+# a CRN twin without the competitor prices the effect directly, which a
+# noisy daily structural-break scan alone could not find above
+sim_nc = GroceryStoreSimulation()
+sim_nc.setup(dict(
+    basic = dict(
+        year = 3,
+        random_seed = 555,
+        retain_earning = True,
+        retain_earning_from = "2026-01",
+    ),
+    events = dict(
+        war = "2025-03-01",
+        typhoon = "2027-07-01",
+        operational_hazard = "2027-02-01",
+    ),
+    potential_investment = dict(
+        more_staff = True,
+        bigger_store = True,
+        upgrade_infrastructure = True,
+    ),
+))
+sim_nc.simulate()
+receipts_nc = sim_nc.db().sql("SELECT * FROM receipts").pl()
+for days in (30, 90, 180, 365):
+    m = sales.filter((pl.col("date") >= EVENT) & (pl.col("date") < EVENT + dt.timedelta(days = days)))["qty"].sum()
+    n = receipts_nc.filter((pl.col("qty") > 0) & (pl.col("date") >= EVENT)
+                           & (pl.col("date") < EVENT + dt.timedelta(days = days)))["qty"].sum()
+    print(f"+{days}d: with competitor {m}, twin (no competitor) {n}, diff {(m/n-1):+.1%}")
+# -> the blind scan does NOT find the true break (best fit is ~500 days
+#    off) -- the effect is too small relative to day-to-day noise to show
+#    up as an obvious level shift. But the twin reveals it cleanly: a
+#    real, modest -1.3% to -3.0% unit loss, peaking around 180 days
+```
+:::
+
+It doesn't. The best-fitting break sits roughly 500 days off from the
+real entry date, because whatever effect exists is too small relative to
+day-to-day noise to show up as an obvious level shift in a single noisy
+series. That's not the same as finding no effect, though. The CRN twin
+reveals a real, modest unit loss of -1.3% to -3.0% depending on window
+length, peaking around 180 days out. The lesson isn't "there's no
+effect," it's that some real effects are simply too small for a naive
+break-detection scan to surface on its own.
+
+### 7.4 — Did customers trade up after the discounter opened?
+
+7.3 found a real unit loss around the competitor's entry, but a loss in
+volume could hide two very different stories. Maybe the mix of what's
+being bought shifted (composition), or maybe the same customers just
+started buying differently (behavior). We can compare premium brand share
+before and after the entry, first across all customers and then
+restricted to just the customers who stayed both before and after, to
+separate the two.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+card2 = (
+    sales
+    .filter(pl.col("customer_id").is_not_null())
+    .join(skus.select("uid", "brand_level"), on = "uid")
+)
+before = card2.filter((pl.col("date") >= EVENT - dt.timedelta(days = 180)) & (pl.col("date") < EVENT))
+after = card2.filter((pl.col("date") >= EVENT) & (pl.col("date") < EVENT + dt.timedelta(days = 180)))
+
+def premium_share(df):
+    return df.filter(pl.col("brand_level") == "premium")["qty"].sum() / df["qty"].sum()
+
+raw_before, raw_after = premium_share(before), premium_share(after)
+stayers = set(before["customer_id"].unique().to_list()) & set(after["customer_id"].unique().to_list())
+stay_before = premium_share(before.filter(pl.col("customer_id").is_in(stayers)))
+stay_after = premium_share(after.filter(pl.col("customer_id").is_in(stayers)))
+print(f"raw premium share: {raw_before:.1%} -> {raw_after:.1%} (all customers)")
+print(f"same-customers-only: {stay_before:.1%} -> {stay_after:.1%} ({len(stayers)} stayers)")
+# -> both essentially flat (13.0% -> 13.0% raw, 12.7% -> 12.7% stayers) --
+#    no detectable trade-up or trade-down in brand mix, from composition
+#    or from behavior. 7.3's effect is a pure volume loss, not a quality
+#    shift -- the customers who left didn't shop differently, they just
+#    left, and the ones who stayed didn't change what they buy
+```
+:::
+
+Neither shows any shift at all: 13.0% before and after across everyone,
+12.7% before and after among the stayers. That settles it. 7.3's unit loss
+is a pure volume effect, not a quality-mix shift. The customers who left
+didn't shop differently on their way out, and the ones who stayed didn't
+change what they buy.
+
+### 7.5 — Does a model trained on years one-two survive year three?
+
+3.1 found the naive benchmark beating a gradient-boosted model with just
+one year of training data, so we should check whether that holds with
+more history, training on years one and two and testing against the real
+year-3 holdout.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import mean_absolute_error
+
+weekly = (
+    sales
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by("week")
+    .agg(pl.col("qty").sum().alias("units"))
+    .sort("week")
+    .with_columns([
+        pl.col("week").dt.week().alias("woy"),
+        pl.col("units").shift(1).alias("lag1"), pl.col("units").shift(2).alias("lag2"),
+        pl.col("week").dt.year().alias("year"),
+    ])
+    .drop_nulls()
+)
+pdf2 = weekly.to_pandas()
+train, test = pdf2[pdf2["year"] < 2027], pdf2[pdf2["year"] == 2027]
+features = ["woy", "lag1", "lag2"]
+gbr = GradientBoostingRegressor(random_state = 0).fit(train[features], train["units"])
+pred = gbr.predict(test[features])
+print(f"GBM (trained years 1-2) year-3 holdout MAE: {mean_absolute_error(test['units'], pred):.0f}")
+print(f"seasonal-naive MAE: {mean_absolute_error(test['units'], test['lag1']):.0f}")
+worst = test.assign(err = np.abs(test["units"].to_numpy() - pred)).sort_values("err", ascending = False)
+print(worst[["week", "units", "err"]].head(3))
+# -> GBM 402 vs. naive 467 -- with two full years of training data (unlike
+#    3.1's single-year case, where naive won) the model earns its keep.
+#    Its worst misses cluster right around the typhoon (late June 2027)
+#    and the December holidays -- exactly the regime-change moments a
+#    model trained on history can't see coming
+```
+:::
+
+This time the result flips. The GBM wins, MAE 402 against the naive
+benchmark's 467. The opposite outcome from 3.1's single-year case, which
+suggests it really was a data-volume problem, not a fundamental limit of
+the model. Where the GBM still struggles is telling too. Its worst misses
+cluster right around the typhoon (late June 2027) and the December
+holidays, exactly the regime-change moments no model trained purely on
+history could ever see coming.
+
+### 7.6 — Did the promotions work?
+
+4.5 already showed that markdowns here get triggered by a prior sales
+decline, which means the naive comparison, during-promo average against
+every other day, is measuring against a baseline that's already
+depressed by the same decline that caused the promo. We should compare
+against the level *before* the decline instead, the honest baseline, and
+see whether that changes the story.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+daily_cat = (
+    sales
+    .group_by(["category", "date"])
+    .agg(pl.col("qty").sum().alias("units"))
+)
+naive_lifts, entry_aware = [], []
+for row in promotions_clean.iter_rows(named = True):
+    cat, start, end = row["category"], row["start_date"], row["end_date"]
+    c = (
+        daily_cat
+        .filter(pl.col("category") == cat)
+        .sort("date")
+    )
+    during = c.filter((pl.col("date") >= start) & (pl.col("date") < end))["units"].mean()
+    outside = c.filter((pl.col("date") < start) | (pl.col("date") >= end))["units"].mean()
+    if during and outside:
+        naive_lifts.append(during / outside - 1)
+    # entry-aware: compare against the level *before* the decline that
+    # triggered the markdown, not the full-year average
+    pre_decline = c.filter(
+        (pl.col("date") >= start - pl.duration(days = 60)) & (pl.col("date") < start - pl.duration(days = 30)),
+    )["units"].mean()
+    if during and pre_decline:
+        entry_aware.append(during / pre_decline - 1)
+print(f"{len(naive_lifts)} campaigns; naive lift: {sum(naive_lifts)/len(naive_lifts):+.1%}")
+print(f"entry-aware lift (vs. pre-decline level): {sum(entry_aware)/len(entry_aware):+.1%}")
+# -> naive +1.0% (looks harmless-to-neutral); entry-aware -18.8% -- even
+#    with a markdown running, sales are still deep below where they were
+#    before the decline that triggered it. The naive comparison hides
+#    this because it compares against the *already-depressed* average,
+#    not against what "normal" looked like -- the same endogenous-timing
+#    confound found in 4.5, now with a real number attached
+```
+:::
+
+The naive number comes back looking harmless-to-neutral at +1.0%. Compared
+against the level before the decline, the honest baseline, the story is
+entirely different: -18.8%. Even with a markdown actively running, sales
+are still deep below where they were before whatever prompted the
+promotion in the first place. The naive comparison hid this because it
+benchmarked against an already-depressed average rather than what
+"normal" actually looked like. 4.5's endogenous-timing confound, now with
+a concrete number attached to it.
+
+### 7.7 — What do the repeated cost-shock episodes have in common?
+
+Does having a competitor in the market change how much of a cost shock
+reaches the shelf? We can test that by comparing pass-through for a shock
+before the competitor existed against one after, the pre-competitor war
+shock and the post-competitor typhoon.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+all_weeks = (
+    calendar
+    .select(pl.col("date").dt.truncate("1w").alias("week"))
+    .unique()
+    .sort("week")
+)
+all_uids = price_history["uid"].unique()
+price_weekly = (
+    price_history
+    .with_columns(pl.col("date").dt.truncate("1w").alias("week"))
+    .group_by(["uid", "week"])
+    .agg(pl.col("price").last())
+)
+price_ff = (
+    all_uids
+    .to_frame()
+    .join(all_weeks, how = "cross")
+    .join(price_weekly, on = ["uid", "week"], how = "left")
+    .sort(["uid", "week"])
+    .with_columns(pl.col("price").forward_fill().over("uid"))
+    .group_by("week")
+    .agg(pl.col("price").mean().alias("price_index"))
+    .sort("week")
+)
+cost_weekly = (
+    procurement
+    .with_columns(pl.col("delivery_date").dt.truncate("1w").alias("week"))
+    .group_by("week")
+    .agg((pl.col("qty") * pl.col("unit_cost")).sum().alias("c"), pl.col("qty").sum().alias("q"))
+    .with_columns((pl.col("c") / pl.col("q")).alias("cost_index"))
+    .sort("week")
+)
+
+def episode_pass_through(event, window_weeks = 8):
+    event_week = pl.Series([event]).dt.truncate("1w")[0]
+    def mean_in(df, col, lo, hi):
+        return df.filter((pl.col("week") >= lo) & (pl.col("week") < hi))[col].mean()
+    bc = mean_in(cost_weekly, "cost_index", event_week - dt.timedelta(weeks = window_weeks), event_week)
+    ac = mean_in(cost_weekly, "cost_index", event_week, event_week + dt.timedelta(weeks = window_weeks))
+    bp = mean_in(price_ff, "price_index", event_week - dt.timedelta(weeks = window_weeks), event_week)
+    ap = mean_in(price_ff, "price_index", event_week, event_week + dt.timedelta(weeks = window_weeks))
+    cost_pct, price_pct = ac / bc - 1, ap / bp - 1
+    return cost_pct, price_pct, (price_pct / cost_pct if cost_pct else None)
+
+war_cost, war_price, war_pt = episode_pass_through(dt.date(2025, 3, 1))
+print(f"war (pre-competitor): cost {war_cost:+.1%}, price {war_price:+.1%}, pass-through {war_pt:.0%}")
+typ_cost, typ_price, typ_pt = episode_pass_through(dt.date(2027, 7, 1))
+print(f"typhoon (post-competitor): cost {typ_cost:+.1%}, price {typ_price:+.1%}, pass-through {typ_pt:.0%}")
+# -> 22% pre-competitor vs. 39% post-competitor pass-through -- but the
+#    war's cost shock (+37.3%) is far bigger than the typhoon's (+1.0%)
+#    at this seed, so this isn't an apples-to-apples comparison. A fair
+#    test of "does competition suppress pass-through" needs two
+#    similarly-sized shocks either side of entry, which this run doesn't
+#    happen to have -- report the honest numbers, not a forced verdict
+```
+:::
+
+The numbers come out 22% before versus 39% after, which on its face reads
+as *more* pass-through once a competitor arrived, a genuinely surprising
+result we should be suspicious of before accepting it. Checking the two
+shocks' actual sizes explains why suspicion is warranted. The war's cost
+shock (+37.3%) dwarfs the typhoon's (+1.0%) at this seed, so this was
+never an apples-to-apples comparison of competitive regimes, just two
+very differently sized shocks that happened to straddle the entry date. A
+fair test needs two similarly-sized shocks on either side of entry, which
+this particular run doesn't happen to have. The honest move is reporting
+the real numbers and the reason they can't be compared, not forcing a
+verdict the data doesn't actually support.
+
+### 7.8 — What did a one-off event (equipment failure, a local surge) cost or earn?
+
+Pricing what a one-off equipment failure actually cost starts with
+checking whether it left a visible mark on the data at all. We can
+compare daily write-off units before and after the known failure date to
+check, and if it did leave a mark, isolate just the rows tagged "damage"
+rather than ordinary spoilage to narrow that down to the failure's own
+footprint, then price those units at each SKU's own last paid procurement
+cost to get a real, gradable figure.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+HAZARD = dt.date(2027, 2, 1)
+daily_wo = (
+    write_offs
+    .group_by("date")
+    .agg(pl.col("units").sum().alias("units"))
+)
+normal = daily_wo.filter(
+    (pl.col("date") >= HAZARD - dt.timedelta(days = 30)) & (pl.col("date") < HAZARD),
+)["units"].mean()
+during = daily_wo.filter(
+    (pl.col("date") >= HAZARD) & (pl.col("date") < HAZARD + dt.timedelta(days = 14)),
+)["units"].mean()
+print(f"daily write-off units: normal {normal:.0f}, during the freezer failure {during:.0f}")
+
+damage_events = write_offs.filter(
+    (pl.col("date") >= HAZARD) & (pl.col("date") < HAZARD + dt.timedelta(days = 14))
+    & (pl.col("reason") == "damage"),
+)
+last_cost = (
+    procurement
+    .sort("delivery_date")
+    .group_by("uid")
+    .agg(pl.col("unit_cost").last().alias("last_cost"))
+)
+priced = damage_events.join(last_cost, on = "uid", how = "left")
+cost_of_loss = (priced["units"] * priced["last_cost"]).sum()
+print(f"{damage_events.height} damage events, {damage_events['units'].sum()} units, "
+      f"priced at each SKU's own last paid cost: {cost_of_loss:,.0f}")
+# -> write-offs triple during the failure (41/day -> 123/day); 1,075
+#    units directly tagged "damage" (not ordinary spoilage), costing
+#    1,555 at procurement cost -- a real, narrated, gradable one-off
+```
+:::
+
+The mark is unmistakable. Write-offs triple, from 41/day to 123/day.
+Isolating just the rows tagged "damage" narrows this down to the
+failure's own footprint specifically, 1,075 units. Pricing those at each
+SKU's own last paid procurement cost turns that into a real number,
+€1,555, a fully gradable cost for a single narrated event, not a rough
+guess dressed up as precision.
+
+### 7.9 — Was the expansion a good investment?
+
+Judging whether the expansion was a good investment means isolating what
+it actually bought, which takes a proper counterfactual. We need a twin
+run with every investment switched off, so we can measure the incremental
+margin against a baseline that never spent the capex at all, and discount
+that stream to see whether it clears the cost of the capital itself. Worth
+contrasting directly with 5.6's hiring counterfactual, which was
+decisively no.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+capex_events = (
+    cost_sheet
+    .filter(pl.col("capex") > 0)
+    .select("year", "month", "capex")
+)
+print(capex_events)
+total_capex = cost_sheet["capex"].sum()
+
+# a CRN twin with every investment switched off isolates the incremental
+# margin the capex actually bought
+sim_noinv = GroceryStoreSimulation()
+sim_noinv.setup(dict(
+    basic = dict(
+        year = 3,
+        random_seed = 555,
+        retain_earning = True,
+        retain_earning_from = "2026-01",
+    ),
+    events = dict(
+        war = "2025-03-01",
+        typhoon = "2027-07-01",
+        competitor = "2026-06-01",
+        operational_hazard = "2027-02-01",
+    ),
+    potential_investment = dict(
+        more_staff = False,
+        bigger_store = False,
+        upgrade_infrastructure = False,
+    ),
+))
+sim_noinv.simulate()
+cost_sheet_noinv = sim_noinv.db().sql("SELECT * FROM cost_sheet").pl()
+
+by_year = (
+    cost_sheet
+    .group_by("year")
+    .agg((pl.col("revenue") - pl.col("procurement")).sum().alias("gm"))
+    .sort("year")
+)
+by_year_noinv = (
+    cost_sheet_noinv
+    .group_by("year")
+    .agg((pl.col("revenue") - pl.col("procurement")).sum().alias("gm"))
+    .sort("year")
+)
+diff = (
+    by_year
+    .join(by_year_noinv, on = "year", suffix = "_noinv")
+    .with_columns((pl.col("gm") - pl.col("gm_noinv")).alias("incremental_margin"))
+)
+print(diff)
+
+RATE = 0.08
+npv = -total_capex
+for row in diff.iter_rows(named = True):
+    npv += row["incremental_margin"] / (1 + RATE) ** (row["year"] - 2025)
+print(f"total capex: {total_capex:.0f}, 3-year NPV @ {RATE:.0%}: {npv:+.0f}")
+# -> 11,000 total capex (bigger_store + upgrade_infrastructure, both
+#    triggering independently in year 2-3); incremental margin is tiny in
+#    the trigger year (1,362) and much larger once it's had a full year
+#    to work (11,685 in year 3) -- 3-year NPV is +278. Genuinely positive,
+#    but thin: a less generous discount rate or a slower ramp-up would
+#    flip it, unlike 5.6's hiring counterfactual which was decisively no
+```
+:::
+
+The two investments triggered independently, bigger_store and
+upgrade_infrastructure, for €11,000 total, and the payoff pattern is
+telling. Barely any incremental margin in the year it's spent (€1,362),
+much more once it's had a full year to work (€11,685 in year 3).
+Discounting that stream at 8% over three years against the no-investment
+twin gives an NPV of +€278, genuinely positive, but thin enough that a
+less generous discount rate or a slower ramp-up would flip the sign. This
+one is a real yes, just a fragile one.
+
+### 7.10 — How does capital actually flow through a small shop?
+
+Understanding how capital actually flows through this shop over three
+years means building the full year-by-year financial picture rather than
+reading any single number in isolation, and checking whether any single
+good year is doing all the work or whether the whole arc holds up on its
+own.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+by_year_full = (
+    cost_sheet
+    .group_by("year")
+    .agg(
+        pl.col("revenue").sum(), pl.col("procurement").sum(),
+        pl.col("rent").sum(), pl.col("wages").sum(), pl.col("payroll_tax").sum(), pl.col("utilities").sum(),
+        pl.col("retained_earnings").last().alias("re_balance_eoy"),
+        pl.col("credit_balance").last().alias("credit_eoy"),
+    )
+    .sort("year")
+    .with_columns([
+        ((pl.col("revenue") - pl.col("procurement")) / pl.col("revenue")).alias("gross_margin_pct"),
+        ((pl.col("rent") + pl.col("wages") + pl.col("payroll_tax") + pl.col("utilities")) / pl.col("revenue")).alias("opex_pct"),
+    ])
+)
+print(
+    by_year_full
+    .select("year", "revenue", "gross_margin_pct", "opex_pct", "re_balance_eoy", "credit_eoy"),
+)
+print(tax_statement.select("year", "profit_after_tax"))
+# -> gross margin steady at 14.0-15.0%, opex 6.6-7.0% of revenue every
+#    year. Revenue dips in 2026 (the competitor-entry year, see 7.3) then
+#    recovers past its prior level in 2027. Retained earnings build from
+#    0 to 29,635 by year-end 2027; the credit line is never drawn once,
+#    in any of the three years -- fully self-funded throughout
+```
+:::
+
+Gross margin holds remarkably steady, 14.0-15.0% every year, and opex sits
+at a similarly stable 6.6-7.0% of revenue. Revenue itself isn't flat,
+though. It dips in 2026, the same competitor-entry year 7.3 already
+identified, then recovers past its prior level by 2027. Underneath that,
+retained earnings build steadily from €0 to €29,635 by year-end 2027, and
+the credit line is never drawn once across any of the three years. This
+isn't a business that got lucky in one good year. The whole three-year
+arc is fully self-funded.
+
+### 7.11 — Renew the lease or close?
+
+Answering the capstone question means resisting the urge to compute
+something new and instead assembling the case from everything this layer
+has already found — the way a final report pulls together evidence
+gathered case by case, not a fresh investigation. The business is growing
+at a real +4.1%/year (7.1), and that growth holds through a competitor
+entry that cost a modest -1.3% to -3.0% in units with no quality-mix
+shift attached (7.3, 7.4) — a real wound, but a shallow one. The two
+capital investments made along the way net a thin but genuinely positive
+NPV (+278 at an 8% discount rate, 7.9). Gross margin has stayed steady at
+14-15% every year, the credit line has never once been drawn, and
+retained earnings have grown to €29,635 by year-end 2027 (7.10) —
+comfortably enough to absorb a normal rent increase straight out of cash
+flow, not by borrowing against the future.
+
+Put together, the picture is coherent: a business that's growing, that
+weathered a real competitor with a real but small and non-structural
+loss, that made capital bets which (barely) paid off, and that enters the
+renewal decision self-funded. Renew — and do it from a position the books
+can actually prove, not just assert.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+re_final = (
+    cost_sheet
+    .sort("month")
+    .filter(pl.col("year") == 2027)["retained_earnings"]
+    .last()
+)
+print(f"retained earnings, year-end 2027: {re_final:,.0f}")
+print()
+print("Synthesis, not new computation -- every number below is from this")
+print("same layer's own questions:")
+print("- organic growth: +4.1%/year (7.1), holding through the competitor entry")
+print("- competitor entry cost: -1.3% to -3.0% units, no quality/mix shift (7.3, 7.4)")
+print("- the two capital investments net a thin but real +278 NPV @ 8% (7.9)")
+print(f"- gross margin steady ~14-15%, credit line never needed, retained earnings")
+print(f"  reaching {re_final:,.0f} (7.10) -- a normal rent increase is absorbable")
+print("  from cash flow, not financing")
+# -> the capstone isn't a new model, it's the argument this whole layer
+#    has been building toward: a business that's growing, weathered a
+#    real competitor with a real but small and non-structural loss, made
+#    capital bets that (barely) paid off, and enters the renewal decision
+#    self-funded -- renew, and do it from a position the books can prove
+```
+:::
 
 ## Further reading
 

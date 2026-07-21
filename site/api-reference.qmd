@@ -1,0 +1,542 @@
+---
+title: "API reference"
+subtitle: "Every public method on GroceryStoreSimulation — signature, parameters, and real output"
+---
+
+This page walks through the whole public surface of `grocery_sim`: one
+class, `GroceryStoreSimulation`, plus the small `SimulationData` helper its
+`.data()` method returns. Every example on this page actually ran — output
+is real, trimmed for length in a few places (the validation report,
+`describe()`, `erd()`) but never invented.
+
+```python
+from grocery_sim import GroceryStoreSimulation
+```
+
+## `GroceryStoreSimulation()`
+
+**Signature**: `GroceryStoreSimulation()`
+
+**Description**: The constructor. Takes no arguments and doesn't run
+anything yet.
+
+**Returns**: A new instance, with `.settings` and `.validation` both
+`None` until `.setup()` and `.simulate()` are called.
+
+**Example**
+
+```python
+sim = GroceryStoreSimulation()
+print(sim.settings)      # -> None
+print(sim.validation)    # -> None
+```
+
+## `.setup(settings)`
+
+**Signature**: `sim.setup(settings: dict | None = None) -> GroceryStoreSimulation`
+
+**Description**: Validates `settings` against the schema (`settings.py`)
+and merges it onto the package's own defaults. A partial dict is always
+enough — missing keys and sections just inherit their default. Does not
+run anything yet.
+
+**Parameters**:
+
+- `settings` — a (possibly partial) settings dict, with up to three top-level
+  sections: `basic`, `events`, `potential_investment`. `None` resolves to
+  the full defaults, unmodified.
+
+**Raises**: `SettingsError` on anything invalid — an unknown key, an event
+date outside the horizon, a three-year-only field on a one-year run, and
+so on.
+
+**Returns**: `self`, so it chains into `.simulate()`.
+
+**Example**
+
+```python
+sim.setup(dict(basic = dict(year = 1)))
+print(list(sim.settings.keys()))
+print(sim.settings["basic"])
+```
+
+**Output**
+
+```text
+['basic', 'events', 'potential_investment']
+{'name': 'My Grocery Store', 'random_seed': 20260712, 'year': 1,
+ 'budget': 60000, 'year_start': '2025', 'retain_earning': False,
+ 'retain_earning_from': None}
+```
+
+Every key not mentioned in the call above — `random_seed`, `budget`,
+`year_start`, and everything under `events`/`potential_investment` — is
+filled in from `DEFAULTS`, not left unset.
+
+## `.simulate(out_dir=None)`
+
+**Signature**: `sim.simulate(out_dir: str | Path | None = None) -> GroceryStoreSimulation`
+
+**Description**: Runs the full phase1 → phase2 → phase3 → recording →
+export pipeline, then self-validates the result.
+
+**Parameters**:
+
+- `out_dir` — where to write the exported CSVs. `None` (the default)
+  writes to a fresh temp directory, cleaned up later by `.cleanup()`.
+  Pass a real path to keep the export.
+
+**Raises**: `ValidationError` if a *structural* invariant fails — that
+always means a generator bug, never an ordinary consequence of the
+settings (see `.validation` below for the structural/reported-only
+distinction).
+
+**Returns**: `self`.
+
+**Example**
+
+```python
+sim.simulate()
+```
+
+**Output**
+
+```text
+=== simulating: My Grocery Store ===
+  phase 1: location 5 (Q=0.33), 128 SKUs, 259 customers, believed profit 3,195  [1.7s]
+  phase 2: 5 events (energy_crisis, commodity_spike, import_disruption, import_disruption, commodity_spike)
+  calibrated outside option u0 = 3.88
+
+Validation — structural invariants (must always hold):
+  PASS  conservation (init+purchased-sold-spoiled == ending)  max err 0.00e+00
+  PASS  zero sales on closure days
+  PASS  card-ID long tail (many one-off tokens)  1112 ids, 77% appear <=2x
+  ...
+  PASS  dirty layer: every defect family present in the hidden ledger  637 ledger rows across 10 families
+```
+
+### `.validation`
+
+**Type**: `dict | None`, set by `.simulate()`.
+
+**Structure**: `{"structural_ok": bool, "checks": list[dict]}`. Each check
+dict is `{"name": str, "pass": bool, "detail": str, "tier": str}` —
+`tier` is `"structural"` (raises on failure, always a generator bug) or
+`"reported, not fatal"` (a band calibrated against the baseline, expected
+to drift once events are active, printed for visibility only).
+
+**Example**
+
+```python
+print(list(sim.validation.keys()))
+print(sim.validation["structural_ok"])
+print(len(sim.validation["checks"]))
+print(sim.validation["checks"][0])
+```
+
+**Output**
+
+```text
+['structural_ok', 'checks']
+True
+32
+{'name': 'conservation (init+purchased-sold-spoiled == ending)',
+ 'pass': True, 'detail': 'max err 0.00e+00', 'tier': 'structural'}
+```
+
+## `.data(include_hidden=False)`
+
+**Signature**: `sim.data(include_hidden: bool = False) -> SimulationData`
+
+**Description**: Reads every exported CSV back into a `SimulationData` —
+attribute-style access (`tables.receipts`) over pandas DataFrames, one per
+visible table.
+
+**Parameters**:
+
+- `include_hidden` — also load the hidden answer-key tables, each
+  prefixed `hidden_` (the generating mechanisms behind every defect,
+  demand event, and customer lifecycle — see [Theory](theory.qmd) and the
+  [Analysis catalog](analysis-catalog.qmd)'s many blind-vs-graded
+  examples).
+
+**Returns**: A `SimulationData` (see below).
+
+**Example**
+
+```python
+tables = sim.data()
+print(tables)
+```
+
+**Output**
+
+```text
+table                     rows   columns
+calendar                   365   date, dow, month, week, season, holiday, ...
+cost_sheet                  12   month, revenue, procurement, rent, wages, payroll_tax, ...
+inventory_eod            46720   uid, on_hand, date
+locations                    8   location_id, rent, setup_cost, operational_needs, shelf_capacity_units, shelf_slots
+price_history              730   uid, price, date
+procurement               5584   uid, qty, unit_cost, order_date, delivery_date, posted_date
+promotions                  11   type, category, depth, n_skus, flyer_cost, start_date, ...
+receipts                 80012   receipt_id, hour, payment, customer_id, uid, qty, ...
+tax_statement                1   year, vat_remitted, revenue_tax_remitted, payroll_tax, profit_before_tax, profit_tax, ...
+weather                    365   date, temp_C, rain_mm, wet
+write_offs                6799   uid, units, date, reason
+```
+
+**Example**
+
+```python
+print(tables.receipts.head(3))
+```
+
+**Output**
+
+```text
+   receipt_id  hour payment customer_id         uid  qty  unit_price  promo  ref_receipt_id        date
+0           1     8    cash         NaN  FP-HER-009   10        1.69      0             NaN  2025-01-02
+1           1     8    cash         NaN  MP-PRM-009    3        2.65      0             NaN  2025-01-02
+2           1     8    cash         NaN  BN-BTW-009    3        0.99      0             NaN  2025-01-02
+```
+
+**Example** — `include_hidden=True`
+
+```python
+tables_h = sim.data(include_hidden = True)
+print([k for k in tables_h.keys() if k.startswith("hidden_")][:5])
+```
+
+**Output**
+
+```text
+['hidden_budget_paths', 'hidden_category_loadings', 'hidden_cost_paths',
+ 'hidden_customers', 'hidden_decision_t0']
+```
+
+## `.db(path=None, include_hidden=False)`
+
+**Signature**: `sim.db(path: str | Path | None = None, include_hidden: bool = False)`
+
+**Description**: Loads every exported CSV into a real DuckDB connection,
+one table per CSV, typed rather than left as strings
+(`all_varchar=False`). This is the connection every SQL example in the
+[Analysis catalog](analysis-catalog.qmd) runs against.
+
+**Parameters**:
+
+- `path` — where to persist the database. `None` (the default) gives an
+  in-memory database.
+- `include_hidden` — also load the hidden answer-key tables under a
+  `hidden_` prefix, same as `.data()`.
+
+**Returns**: A `duckdb.DuckDBPyConnection`.
+
+**Example**
+
+```python
+con = sim.db()
+print(con.sql("SELECT COUNT(*) AS n FROM receipts").fetchone())
+print(con.sql("SHOW TABLES").fetchall())
+```
+
+**Output**
+
+```text
+(80012,)
+[('calendar',), ('cost_sheet',), ('inventory_eod',), ('locations',),
+ ('price_history',), ('procurement',), ('promotions',), ('receipts',),
+ ('tax_statement',), ('weather',), ('write_offs',)]
+```
+
+## `.erd(include_hidden=False)`
+
+**Signature**: `sim.erd(include_hidden: bool = False) -> str`
+
+**Description**: Returns a Mermaid `erDiagram` string built from the
+hand-declared table relationships in `schema.py` — CSV/DuckDB tables carry
+no foreign-key metadata of their own to introspect, so this is curated,
+not inferred.
+
+**Parameters**:
+
+- `include_hidden` — include the hidden answer-key tables in the diagram.
+
+**Returns**: A Mermaid diagram string. Render it with `mo.mermaid(sim.erd())`
+in marimo, or paste it into any Mermaid-aware renderer (this site
+included).
+
+**Example**
+
+```python
+print(sim.erd())
+```
+
+**Output** (2,130 characters in full — every visible table, plus its
+declared relationships to the others — shown here trimmed)
+
+```text
+erDiagram
+    calendar {
+        string date
+        string dow
+        string month
+        string week
+        string season
+        string holiday
+        string pre_holiday
+        string closed
+    }
+    cost_sheet {
+        string month
+        string revenue
+        string procurement
+        string rent
+        string wages
+        string payroll_tax
+        string utilities
+        string storage
+        string flyers
+        string vat
+        string revenue_tax
+        string credit_interest
+        string more_columns_2
+    }
+    ...
+```
+
+## `.describe()`
+
+**Signature**: `sim.describe() -> str`
+
+**Description**: Builds a fictional owner (`persona.py` — name, prior
+career, age; cosmetic only) who narrates this run's own real settings and
+results as a letter, an intake-interview Q&A, a data table, a list of
+questions, and the stakes — grounded entirely in this run's actual
+numbers, nothing templated. Reproducible per `random_seed`. Also prints
+the brief to stdout as a side effect, in addition to returning it.
+
+**Returns**: The brief as a string.
+
+**Example**
+
+```python
+text = sim.describe()
+```
+
+**Output** (4,402 characters in full: the letter, a full intake
+interview, the data dictionary, the client's own questions, and the
+stakes — shown here trimmed)
+
+```text
+# Vinter's Market — Engagement Brief
+
+*Client: Mikael Vinter, owner, Vinter's Market, Granstigen, Tjornby.*
+
+## The letter
+
+> Dear analyst,
+>
+> I'm 46. I spent 13 years working for Kornmagasinet before I opened
+> Vinter's Market myself, on Granstigen in Tjornby, with about 60,000
+> euros of my own money behind it. That was 2025.
+>
+> Over one year we have taken in about 743,000 euros across the till
+> altogether, and the bottom line came out to a real profit. I want
+> someone who isn't me to look at my numbers properly before I decide
+> whether to expand further or simply stay the course.
+>
+...
+
+*(This brief is generated from this run's own settings and its own real
+results — no hidden simulation parameter appears above. Edit freely;
+this is a starting outline, not a finished case.)*
+```
+
+**Note**: the owner's name, story, and phrasing change with
+`random_seed` — this is the same method the [Exemplar
+analyses](analyses/index.qmd) pages and the [generated
+briefs](analyses/generated-briefs.qmd) page are built from.
+
+## `.create_analysis(path, mode="student")`
+
+**Signature**: `sim.create_analysis(path: str | Path, mode: str = "student") -> Path`
+
+**Description**: Writes a real marimo notebook (`.py`, marimo's native
+format) to `path`, pre-wired to load this run's own exported tables into a
+DuckDB connection named `con`, with one cell per analysis-catalog layer
+already stubbed with that layer's own questions as markdown prompts.
+
+**Parameters**:
+
+- `path` — where to write the notebook.
+- `mode` — `"student"` leaves every cell as a prompt with a
+  `# your queries here` placeholder. `"instructor"` additionally fills in
+  a worked first pass.
+
+**Returns**: The path it wrote to.
+
+**Example**
+
+```python
+path = sim.create_analysis(
+    path = "analysis.py",
+    mode = "student",
+)
+```
+
+**Output** (1,659 characters in `student` mode for this run;
+`instructor` mode is 2,184 — the extra length is the worked first pass
+added to each cell — shown here trimmed)
+
+```text
+import marimo
+
+__generated_with = "0.23.14"
+app = marimo.App(width="full", app_title='My Grocery Store')
+
+
+@app.cell
+def _():
+    from pathlib import Path
+
+    import duckdb
+    import marimo as mo
+    import pandas as pd
+
+    VISIBLE = Path('/tmp/grocery_sim_t_13ly56/visible')
+
+    con = duckdb.connect(database = ":memory:")
+    for csv in sorted(VISIBLE.glob("*.csv")):
+        con.execute(
+            f"CREATE OR REPLACE TABLE {csv.stem} AS SELECT * FROM read_csv_auto('{csv.as_posix()}')"
+        )
+
+    mo.md("# Analysis — tables loaded into `con` (duckdb)")
+    return con, mo, pd
+
+
+@app.cell
+def _layer0cleantherecords(con, mo):
+    mo.md("## Layer 0 — Clean the records\n- Do the receipts reconcile to the ledger's revenue line?\n- Does book stock reconcile against deliveries, sales, and write-offs?")
+    # your queries here
+    return
+
+@app.cell
+def _layer1describethebusiness(con, mo):
+    mo.md('## Layer 1 — Describe the business\n- Where does the money come from and go?\n- When do people shop?')
+    # your queries here
+    return
+```
+
+## `.export_settings(path)`
+
+**Signature**: `sim.export_settings(path: str | Path) -> None`
+
+**Description**: Writes `sim.settings` (already resolved and validated,
+not the partial dict passed to `.setup()`) to `path` as indented JSON —
+the natural way to save a specific run's configuration for later reuse:
+`GroceryStoreSimulation().setup(json.load(open(path)))`.
+
+**Parameters**:
+
+- `path` — where to write the JSON file.
+
+**Returns**: `None`.
+
+**Example**
+
+```python
+sim.export_settings("settings.json")
+print(open("settings.json").read())
+```
+
+**Output**
+
+```json
+{
+  "basic": {
+    "name": "My Grocery Store",
+    "random_seed": 20260712,
+    "year": 1,
+    "budget": 60000,
+    "year_start": "2025",
+    "retain_earning": false,
+    "retain_earning_from": null
+  },
+  "events": {
+    "tax_cut": null,
+    "tax_raise": null,
+    "food_vat_cut": null,
+    "typhoon": null,
+    "competitor": null,
+    "operational_hazard": null,
+    "war": null
+  },
+  "potential_investment": {
+    "more_staff": true,
+    "bigger_store": false,
+    "upgrade_infrastructure": false
+  }
+}
+```
+
+## `.cleanup()`
+
+**Signature**: `sim.cleanup() -> None`
+
+**Description**: Removes the temp export directory, if `.simulate()` was
+called with `out_dir=None` (its default). Safe to call unconditionally —
+a no-op if nothing was ever simulated, or if a real `out_dir` was given
+(your own directory is never deleted for you).
+
+**Returns**: `None`.
+
+**Example**
+
+```python
+print(sim._out_dir.exists())
+sim.cleanup()
+print(sim._out_dir.exists())
+```
+
+**Output**
+
+```text
+True
+False
+```
+
+## `SimulationData`
+
+**Description**: The object returned by `.data()`. A thin wrapper, not a
+dict subclass, but it supports attribute access, item access, and
+iteration over table names.
+
+**Interface**:
+
+- `tables.receipts` — attribute access
+- `tables["receipts"]` — `__getitem__`
+- `list(tables)` — `__iter__` over table names
+- `tables.keys()` — same as `list(tables)`, spelled the familiar way
+- `repr(tables)` — the compact schema summary shown under `.data()` above
+
+**Example**
+
+```python
+tables = sim.data()
+
+tables.receipts
+tables["receipts"]
+list(tables)
+tables.keys()
+```
+
+## Further reading
+
+This page covers the object model; [Theory](theory.qmd) covers *why* it's
+built this way (the layer split that makes counterfactuals and grading
+possible), the [Analysis catalog](analysis-catalog.qmd) is 62 worked
+questions against these same methods, and [Exemplar
+analyses](analyses/index.qmd) are two full worked cases end to end.
