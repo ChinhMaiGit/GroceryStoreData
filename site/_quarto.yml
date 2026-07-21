@@ -1,6 +1,10 @@
 project:
   type: website
   output-dir: _site
+  render:
+    - "*.qmd"
+    - "analyses/*.qmd"
+    - "!stylesheet/"
 
 website:
   title: "grocery-sim"
@@ -29,9 +33,7 @@ website:
 
 format:
   html:
-    theme:
-      light: flatly
-      dark: darkly
+    theme: flatly
     css: styles.css
     toc: true
     number-sections: false

@@ -1,5 +1,58 @@
 /* grocery-sim site — small overrides on top of the Quarto theme */
 
+/* typography + accent, adapted from stylesheet/ (fonts and the WCAG-AA
+   light-mode accent shade are portable as plain CSS; the dark theme,
+   glass cards, and animated backdrop are not — see stylesheet/README.md) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+main.content p {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+code, pre, kbd, samp {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+a {
+  color: #c2410c; /* orange-700 — the light-mode-safe shade of the brand accent, 5.7:1 on white */
+}
+
+a:hover {
+  color: #ea580c; /* orange-600 — still WCAG AA at 4.6:1 */
+}
+
+/* navbar, thinned ~25% — default Bootstrap padding made it taller than this
+   content-dense site needs */
+.navbar {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+
+/* frosted, not fully see-through — the navbar's own text is light-colored
+   for a dark bar, so full transparency over the white page would repeat
+   the contrast problem the dark-mode toggle had */
+#quarto-header.fixed-top .navbar {
+  background-color: rgba(44, 62, 80, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.navbar-brand {
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+  font-size: 1.05rem;
+}
+
+.navbar-nav .nav-link {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+
 .quarto-title-banner {
   padding-top: 1rem;
   padding-bottom: 1rem;
@@ -11,4 +64,22 @@ main.content {
 
 table {
   font-size: 0.92rem;
+}
+
+/* long display equations (aligned constraint systems, wide subscripted
+   terms) must scroll inside their own box rather than overflow the page */
+mjx-container[display="true"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  padding-bottom: 0.15rem;
+}
+
+mjx-container {
+  max-width: 100%;
+}
+
+pre, code {
+  overflow-x: auto;
+  max-width: 100%;
 }

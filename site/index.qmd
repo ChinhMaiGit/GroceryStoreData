@@ -1,6 +1,6 @@
 ---
 title: "grocery-sim"
-subtitle: "A structural microsimulation of a small neighborhood grocery store — with a fully known causal ground truth"
+subtitle: "A structural microsimulation of a small neighborhood grocery store — with a fully known causal ground truth and a case that feels real"
 page-layout: full
 ---
 
@@ -19,7 +19,68 @@ Nothing here is sampled from a convenient distribution and called a
 business. Every figure has a traceable, documented cause — which is exactly
 what makes it possible to grade an analysis, not just admire it.
 
-## Install
+## Not just data — a case
+
+Ground truth is necessary, but it isn't what makes an analysis exercise feel
+real to the person doing it. What makes it feel real is a client: a person
+with a name, a history, a stake in the answer, and their own voice
+explaining what they need and where their own paperwork wobbles. So every
+run of `grocery-sim` also generates one — a business-case brief, in the
+tradition of the case method, built entirely from that run's own settings
+and its own real results. Nothing in it is decorative copy; every fact the
+owner states is something the simulation actually did.
+
+Here is one, unedited, from a real run:
+
+> Dear analyst,
+>
+> I'm 46. I spent 13 years working for Kornmagasinet before I opened
+> Vinter's Market myself, on Granstigen in Tjornby, with about 60,000 euros
+> of my own money behind it. That was 2025.
+>
+> Over one year we have taken in about 743,000 euros across the till
+> altogether, and the bottom line came out to a real profit. I want someone
+> who isn't me to look at my numbers properly before I decide whether to
+> expand further or simply stay the course.
+>
+> I've kept everything — every receipt, every invoice, every month's books.
+> My records aren't perfect, and I'll tell you honestly where they wobble,
+> but they're complete, and my own monthly ledger is right, because I check
+> it myself.
+>
+> Tell me what the numbers actually say.
+>
+> — Mikael Vinter
+
+The brief that follows this letter is a full engagement package: an intake
+interview in the owner's own words, a table of what records he's handing
+over and what each one is, the actual questions he wants answered, and what's
+at stake in the answer. The interview is where the paperwork's real defects
+surface honestly, in the owner's own voice, before an analyst opens a single
+file:
+
+> **Q: Anything I should know about the records before you start?**
+>
+> He: Yes, be careful with 4 things. First, the till terminal mis-rings an
+> item now and then — I void it and re-ring it, so you'll find 103 paired
+> correction lines in the receipts over the whole period, nothing missing,
+> just messy. Second, my supplier's system has posted the same invoice
+> twice before — I caught 22 such duplicates myself, but I'll admit I don't
+> check every single one. Third, some delivery paperwork never got typed in
+> — there were weeks I was alone and exhausted, and I paid the supplier for
+> goods you won't find an invoice line for; my bank-account ledger is still
+> right, I just can't always show you the paper behind it. Fourth, the
+> little weather log I keep goes dark for a few days now and then — the
+> station on the roof is nothing fancy.
+
+Change the run's settings — a different location, a competitor entering, a
+cost shock — and the brief changes with it: a different owner, a different
+letter, a different set of stakes, but the same discipline that every
+sentence traces back to a real, computed event in that run. This is the
+piece most existing synthetic data has no equivalent for at all: not a
+prettier spreadsheet, but a client to be briefed by.
+
+## How to start
 
 ```bash
 pip install grocery-sim
@@ -35,8 +96,7 @@ sim.simulate()
 sim.data()           # in-memory tables (receipts, invoices, ledger, ...)
 sim.db()             # the same tables behind a DuckDB connection
 sim.erd()            # a Mermaid ER diagram of this run's schema
-sim.describe()       # a business-case brief: a fictional owner narrating
-                      # this run's real events and results
+sim.describe()       # the business-case brief above, for this run
 ```
 
 ## Where to go from here
