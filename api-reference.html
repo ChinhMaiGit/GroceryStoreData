@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>API reference – grocery-sim</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-0a6b7249c26820e032cb0bd839ff02b1.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-69db8130462c98e8223ba8c76f5b5d2c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-434254ff45741151a91805d625c17c53.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-69db8130462c98e8223ba8c76f5b5d2c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">grocery-sim</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./theory.html"> 
+<span class="menu-text">Theory</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./api-reference.html" aria-current="page"> 
+<span class="menu-text">API reference</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./analysis-catalog.html"> 
+<span class="menu-text">Analysis catalog</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./analyses/index.html"> 
+<span class="menu-text">Exemplar analyses</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/ChinhMaiGit/grocery-sim"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://pypi.org/project/grocery-sim/"> <i class="bi bi-box-seam" role="img">
+</i> 
+<span class="menu-text">PyPI</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#grocerystoresimulation" id="toc-grocerystoresimulation" class="nav-link active" data-scroll-target="#grocerystoresimulation"><code>GroceryStoreSimulation()</code></a></li>
+  <li><a href="#setupsettings" id="toc-setupsettings" class="nav-link" data-scroll-target="#setupsettings"><code>.setup(settings)</code></a></li>
+  <li><a href="#simulateout_dirnone" id="toc-simulateout_dirnone" class="nav-link" data-scroll-target="#simulateout_dirnone"><code>.simulate(out_dir=None)</code></a>
+  <ul class="collapse">
+  <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation"><code>.validation</code></a></li>
+  </ul></li>
+  <li><a href="#datainclude_hiddenfalse" id="toc-datainclude_hiddenfalse" class="nav-link" data-scroll-target="#datainclude_hiddenfalse"><code>.data(include_hidden=False)</code></a></li>
+  <li><a href="#dbpathnone-include_hiddenfalse" id="toc-dbpathnone-include_hiddenfalse" class="nav-link" data-scroll-target="#dbpathnone-include_hiddenfalse"><code>.db(path=None, include_hidden=False)</code></a></li>
+  <li><a href="#erdinclude_hiddenfalse" id="toc-erdinclude_hiddenfalse" class="nav-link" data-scroll-target="#erdinclude_hiddenfalse"><code>.erd(include_hidden=False)</code></a></li>
+  <li><a href="#describe" id="toc-describe" class="nav-link" data-scroll-target="#describe"><code>.describe()</code></a></li>
+  <li><a href="#create_analysispath-modestudent" id="toc-create_analysispath-modestudent" class="nav-link" data-scroll-target="#create_analysispath-modestudent"><code>.create_analysis(path, mode="student")</code></a></li>
+  <li><a href="#export_settingspath" id="toc-export_settingspath" class="nav-link" data-scroll-target="#export_settingspath"><code>.export_settings(path)</code></a></li>
+  <li><a href="#cleanup" id="toc-cleanup" class="nav-link" data-scroll-target="#cleanup"><code>.cleanup()</code></a></li>
+  <li><a href="#simulationdata" id="toc-simulationdata" class="nav-link" data-scroll-target="#simulationdata"><code>SimulationData</code></a></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">API reference</h1>
+<p class="subtitle lead">Every public method on GroceryStoreSimulation — signature, parameters, and real output</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This page walks through the whole public surface of <code>grocery_sim</code>: one class, <code>GroceryStoreSimulation</code>, plus the small <code>SimulationData</code> helper its <code>.data()</code> method returns. Every example on this page actually ran — output is real, trimmed for length in a few places (the validation report, <code>describe()</code>, <code>erd()</code>) but never invented.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> grocery_sim <span class="im">import</span> GroceryStoreSimulation</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="grocerystoresimulation" class="level2">
+<h2 class="anchored" data-anchor-id="grocerystoresimulation"><code>GroceryStoreSimulation()</code></h2>
+<p><strong>Signature</strong>: <code>GroceryStoreSimulation()</code></p>
+<p><strong>Description</strong>: The constructor. Takes no arguments and doesn’t run anything yet.</p>
+<p><strong>Returns</strong>: A new instance, with <code>.settings</code> and <code>.validation</code> both <code>None</code> until <code>.setup()</code> and <code>.simulate()</code> are called.</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> GroceryStoreSimulation()</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.settings)      <span class="co"># -&gt; None</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.validation)    <span class="co"># -&gt; None</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="setupsettings" class="level2">
+<h2 class="anchored" data-anchor-id="setupsettings"><code>.setup(settings)</code></h2>
+<p><strong>Signature</strong>: <code>sim.setup(settings: dict | None = None) -&gt; GroceryStoreSimulation</code></p>
+<p><strong>Description</strong>: Validates <code>settings</code> against the schema (<code>settings.py</code>) and merges it onto the package’s own defaults. A partial dict is always enough — missing keys and sections just inherit their default. Does not run anything yet.</p>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>settings</code> — a (possibly partial) settings dict, with up to three top-level sections: <code>basic</code>, <code>events</code>, <code>potential_investment</code>. <code>None</code> resolves to the full defaults, unmodified.</li>
+</ul>
+<p><strong>Raises</strong>: <code>SettingsError</code> on anything invalid — an unknown key, an event date outside the horizon, a three-year-only field on a one-year run, and so on.</p>
+<p><strong>Returns</strong>: <code>self</code>, so it chains into <code>.simulate()</code>.</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim.setup(<span class="bu">dict</span>(basic <span class="op">=</span> <span class="bu">dict</span>(year <span class="op">=</span> <span class="dv">1</span>)))</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">list</span>(sim.settings.keys()))</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.settings[<span class="st">"basic"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<pre class="text"><code>['basic', 'events', 'potential_investment']
+{'name': 'My Grocery Store', 'random_seed': 20260712, 'year': 1,
+ 'budget': 60000, 'year_start': '2025', 'retain_earning': False,
+ 'retain_earning_from': None}</code></pre>
+<p>Every key not mentioned in the call above — <code>random_seed</code>, <code>budget</code>, <code>year_start</code>, and everything under <code>events</code>/<code>potential_investment</code> — is filled in from <code>DEFAULTS</code>, not left unset.</p>
+</section>
+<section id="simulateout_dirnone" class="level2">
+<h2 class="anchored" data-anchor-id="simulateout_dirnone"><code>.simulate(out_dir=None)</code></h2>
+<p><strong>Signature</strong>: <code>sim.simulate(out_dir: str | Path | None = None) -&gt; GroceryStoreSimulation</code></p>
+<p><strong>Description</strong>: Runs the full phase1 → phase2 → phase3 → recording → export pipeline, then self-validates the result.</p>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>out_dir</code> — where to write the exported CSVs. <code>None</code> (the default) writes to a fresh temp directory, cleaned up later by <code>.cleanup()</code>. Pass a real path to keep the export.</li>
+</ul>
+<p><strong>Raises</strong>: <code>ValidationError</code> if a <em>structural</em> invariant fails — that always means a generator bug, never an ordinary consequence of the settings (see <code>.validation</code> below for the structural/reported-only distinction).</p>
+<p><strong>Returns</strong>: <code>self</code>.</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>sim.simulate()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<pre class="text"><code>=== simulating: My Grocery Store ===
+  phase 1: location 5 (Q=0.33), 128 SKUs, 259 customers, believed profit 3,195  [1.7s]
+  phase 2: 5 events (energy_crisis, commodity_spike, import_disruption, import_disruption, commodity_spike)
+  calibrated outside option u0 = 3.88
+
+Validation — structural invariants (must always hold):
+  PASS  conservation (init+purchased-sold-spoiled == ending)  max err 0.00e+00
+  PASS  zero sales on closure days
+  PASS  card-ID long tail (many one-off tokens)  1112 ids, 77% appear &lt;=2x
+  ...
+  PASS  dirty layer: every defect family present in the hidden ledger  637 ledger rows across 10 families</code></pre>
+<section id="validation" class="level3">
+<h3 class="anchored" data-anchor-id="validation"><code>.validation</code></h3>
+<p><strong>Type</strong>: <code>dict | None</code>, set by <code>.simulate()</code>.</p>
+<p><strong>Structure</strong>: <code>{"structural_ok": bool, "checks": list[dict]}</code>. Each check dict is <code>{"name": str, "pass": bool, "detail": str, "tier": str}</code> — <code>tier</code> is <code>"structural"</code> (raises on failure, always a generator bug) or <code>"reported, not fatal"</code> (a band calibrated against the baseline, expected to drift once events are active, printed for visibility only).</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">list</span>(sim.validation.keys()))</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.validation[<span class="st">"structural_ok"</span>])</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(sim.validation[<span class="st">"checks"</span>]))</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.validation[<span class="st">"checks"</span>][<span class="dv">0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<pre class="text"><code>['structural_ok', 'checks']
+True
+32
+{'name': 'conservation (init+purchased-sold-spoiled == ending)',
+ 'pass': True, 'detail': 'max err 0.00e+00', 'tier': 'structural'}</code></pre>
+</section>
+</section>
+<section id="datainclude_hiddenfalse" class="level2">
+<h2 class="anchored" data-anchor-id="datainclude_hiddenfalse"><code>.data(include_hidden=False)</code></h2>
+<p><strong>Signature</strong>: <code>sim.data(include_hidden: bool = False) -&gt; SimulationData</code></p>
+<p><strong>Description</strong>: Reads every exported CSV back into a <code>SimulationData</code> — attribute-style access (<code>tables.receipts</code>) over pandas DataFrames, one per visible table.</p>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>include_hidden</code> — also load the hidden answer-key tables, each prefixed <code>hidden_</code> (the generating mechanisms behind every defect, demand event, and customer lifecycle — see <a href="./theory.html">Theory</a> and the <a href="./analysis-catalog.html">Analysis catalog</a>’s many blind-vs-graded examples).</li>
+</ul>
+<p><strong>Returns</strong>: A <code>SimulationData</code> (see below).</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> sim.data()</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tables)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<pre class="text"><code>table                     rows   columns
+calendar                   365   date, dow, month, week, season, holiday, ...
+cost_sheet                  12   month, revenue, procurement, rent, wages, payroll_tax, ...
+inventory_eod            46720   uid, on_hand, date
+locations                    8   location_id, rent, setup_cost, operational_needs, shelf_capacity_units, shelf_slots
+price_history              730   uid, price, date
+procurement               5584   uid, qty, unit_cost, order_date, delivery_date, posted_date
+promotions                  11   type, category, depth, n_skus, flyer_cost, start_date, ...
+receipts                 80012   receipt_id, hour, payment, customer_id, uid, qty, ...
+tax_statement                1   year, vat_remitted, revenue_tax_remitted, payroll_tax, profit_before_tax, profit_tax, ...
+weather                    365   date, temp_C, rain_mm, wet
+write_offs                6799   uid, units, date, reason</code></pre>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tables.receipts.head(<span class="dv">3</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<pre class="text"><code>   receipt_id  hour payment customer_id         uid  qty  unit_price  promo  ref_receipt_id        date
+0           1     8    cash         NaN  FP-HER-009   10        1.69      0             NaN  2025-01-02
+1           1     8    cash         NaN  MP-PRM-009    3        2.65      0             NaN  2025-01-02
+2           1     8    cash         NaN  BN-BTW-009    3        0.99      0             NaN  2025-01-02</code></pre>
+<p><strong>Example</strong> — <code>include_hidden=True</code></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tables_h <span class="op">=</span> sim.data(include_hidden <span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>([k <span class="cf">for</span> k <span class="kw">in</span> tables_h.keys() <span class="cf">if</span> k.startswith(<span class="st">"hidden_"</span>)][:<span class="dv">5</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<pre class="text"><code>['hidden_budget_paths', 'hidden_category_loadings', 'hidden_cost_paths',
+ 'hidden_customers', 'hidden_decision_t0']</code></pre>
+</section>
+<section id="dbpathnone-include_hiddenfalse" class="level2">
+<h2 class="anchored" data-anchor-id="dbpathnone-include_hiddenfalse"><code>.db(path=None, include_hidden=False)</code></h2>
+<p><strong>Signature</strong>: <code>sim.db(path: str | Path | None = None, include_hidden: bool = False)</code></p>
+<p><strong>Description</strong>: Loads every exported CSV into a real DuckDB connection, one table per CSV, typed rather than left as strings (<code>all_varchar=False</code>). This is the connection every SQL example in the <a href="./analysis-catalog.html">Analysis catalog</a> runs against.</p>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>path</code> — where to persist the database. <code>None</code> (the default) gives an in-memory database.</li>
+<li><code>include_hidden</code> — also load the hidden answer-key tables under a <code>hidden_</code> prefix, same as <code>.data()</code>.</li>
+</ul>
+<p><strong>Returns</strong>: A <code>duckdb.DuckDBPyConnection</code>.</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> sim.db()</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(con.sql(<span class="st">"SELECT COUNT(*) AS n FROM receipts"</span>).fetchone())</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(con.sql(<span class="st">"SHOW TABLES"</span>).fetchall())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<pre class="text"><code>(80012,)
+[('calendar',), ('cost_sheet',), ('inventory_eod',), ('locations',),
+ ('price_history',), ('procurement',), ('promotions',), ('receipts',),
+ ('tax_statement',), ('weather',), ('write_offs',)]</code></pre>
+</section>
+<section id="erdinclude_hiddenfalse" class="level2">
+<h2 class="anchored" data-anchor-id="erdinclude_hiddenfalse"><code>.erd(include_hidden=False)</code></h2>
+<p><strong>Signature</strong>: <code>sim.erd(include_hidden: bool = False) -&gt; str</code></p>
+<p><strong>Description</strong>: Returns a Mermaid <code>erDiagram</code> string built from the hand-declared table relationships in <code>schema.py</code> — CSV/DuckDB tables carry no foreign-key metadata of their own to introspect, so this is curated, not inferred.</p>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>include_hidden</code> — include the hidden answer-key tables in the diagram.</li>
+</ul>
+<p><strong>Returns</strong>: A Mermaid diagram string. Render it with <code>mo.mermaid(sim.erd())</code> in marimo, or paste it into any Mermaid-aware renderer (this site included).</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.erd())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong> (2,130 characters in full — every visible table, plus its declared relationships to the others — shown here trimmed)</p>
+<pre class="text"><code>erDiagram
+    calendar {
+        string date
+        string dow
+        string month
+        string week
+        string season
+        string holiday
+        string pre_holiday
+        string closed
+    }
+    cost_sheet {
+        string month
+        string revenue
+        string procurement
+        string rent
+        string wages
+        string payroll_tax
+        string utilities
+        string storage
+        string flyers
+        string vat
+        string revenue_tax
+        string credit_interest
+        string more_columns_2
+    }
+    ...</code></pre>
+</section>
+<section id="describe" class="level2">
+<h2 class="anchored" data-anchor-id="describe"><code>.describe()</code></h2>
+<p><strong>Signature</strong>: <code>sim.describe() -&gt; str</code></p>
+<p><strong>Description</strong>: Builds a fictional owner (<code>persona.py</code> — name, prior career, age; cosmetic only) who narrates this run’s own real settings and results as a letter, an intake-interview Q&amp;A, a data table, a list of questions, and the stakes — grounded entirely in this run’s actual numbers, nothing templated. Reproducible per <code>random_seed</code>. Also prints the brief to stdout as a side effect, in addition to returning it.</p>
+<p><strong>Returns</strong>: The brief as a string.</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> sim.describe()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong> (4,402 characters in full: the letter, a full intake interview, the data dictionary, the client’s own questions, and the stakes — shown here trimmed)</p>
+<pre class="text"><code># Vinter's Market — Engagement Brief
+
+*Client: Mikael Vinter, owner, Vinter's Market, Granstigen, Tjornby.*
+
+## The letter
+
+&gt; Dear analyst,
+&gt;
+&gt; I'm 46. I spent 13 years working for Kornmagasinet before I opened
+&gt; Vinter's Market myself, on Granstigen in Tjornby, with about 60,000
+&gt; euros of my own money behind it. That was 2025.
+&gt;
+&gt; Over one year we have taken in about 743,000 euros across the till
+&gt; altogether, and the bottom line came out to a real profit. I want
+&gt; someone who isn't me to look at my numbers properly before I decide
+&gt; whether to expand further or simply stay the course.
+&gt;
+...
+
+*(This brief is generated from this run's own settings and its own real
+results — no hidden simulation parameter appears above. Edit freely;
+this is a starting outline, not a finished case.)*</code></pre>
+<p><strong>Note</strong>: the owner’s name, story, and phrasing change with <code>random_seed</code> — this is the same method the <a href="./analyses/index.html">Exemplar analyses</a> pages and the <a href="./analyses/generated-briefs.html">generated briefs</a> page are built from.</p>
+</section>
+<section id="create_analysispath-modestudent" class="level2">
+<h2 class="anchored" data-anchor-id="create_analysispath-modestudent"><code>.create_analysis(path, mode="student")</code></h2>
+<p><strong>Signature</strong>: <code>sim.create_analysis(path: str | Path, mode: str = "student") -&gt; Path</code></p>
+<p><strong>Description</strong>: Writes a real marimo notebook (<code>.py</code>, marimo’s native format) to <code>path</code>, pre-wired to load this run’s own exported tables into a DuckDB connection named <code>con</code>, with one cell per analysis-catalog layer already stubbed with that layer’s own questions as markdown prompts.</p>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>path</code> — where to write the notebook.</li>
+<li><code>mode</code> — <code>"student"</code> leaves every cell as a prompt with a <code># your queries here</code> placeholder. <code>"instructor"</code> additionally fills in a worked first pass.</li>
+</ul>
+<p><strong>Returns</strong>: The path it wrote to.</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> sim.create_analysis(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    path <span class="op">=</span> <span class="st">"analysis.py"</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    mode <span class="op">=</span> <span class="st">"student"</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong> (1,659 characters in <code>student</code> mode for this run; <code>instructor</code> mode is 2,184 — the extra length is the worked first pass added to each cell — shown here trimmed)</p>
+<pre class="text"><code>import marimo
+
+__generated_with = "0.23.14"
+app = marimo.App(width="full", app_title='My Grocery Store')
+
+
+@app.cell
+def _():
+    from pathlib import Path
+
+    import duckdb
+    import marimo as mo
+    import pandas as pd
+
+    VISIBLE = Path('/tmp/grocery_sim_t_13ly56/visible')
+
+    con = duckdb.connect(database = ":memory:")
+    for csv in sorted(VISIBLE.glob("*.csv")):
+        con.execute(
+            f"CREATE OR REPLACE TABLE {csv.stem} AS SELECT * FROM read_csv_auto('{csv.as_posix()}')"
+        )
+
+    mo.md("# Analysis — tables loaded into `con` (duckdb)")
+    return con, mo, pd
+
+
+@app.cell
+def _layer0cleantherecords(con, mo):
+    mo.md("## Layer 0 — Clean the records\n- Do the receipts reconcile to the ledger's revenue line?\n- Does book stock reconcile against deliveries, sales, and write-offs?")
+    # your queries here
+    return
+
+@app.cell
+def _layer1describethebusiness(con, mo):
+    mo.md('## Layer 1 — Describe the business\n- Where does the money come from and go?\n- When do people shop?')
+    # your queries here
+    return</code></pre>
+</section>
+<section id="export_settingspath" class="level2">
+<h2 class="anchored" data-anchor-id="export_settingspath"><code>.export_settings(path)</code></h2>
+<p><strong>Signature</strong>: <code>sim.export_settings(path: str | Path) -&gt; None</code></p>
+<p><strong>Description</strong>: Writes <code>sim.settings</code> (already resolved and validated, not the partial dict passed to <code>.setup()</code>) to <code>path</code> as indented JSON — the natural way to save a specific run’s configuration for later reuse: <code>GroceryStoreSimulation().setup(json.load(open(path)))</code>.</p>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>path</code> — where to write the JSON file.</li>
+</ul>
+<p><strong>Returns</strong>: <code>None</code>.</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>sim.export_settings(<span class="st">"settings.json"</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">open</span>(<span class="st">"settings.json"</span>).read())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"basic"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"name"</span><span class="fu">:</span> <span class="st">"My Grocery Store"</span><span class="fu">,</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"random_seed"</span><span class="fu">:</span> <span class="dv">20260712</span><span class="fu">,</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"year"</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"budget"</span><span class="fu">:</span> <span class="dv">60000</span><span class="fu">,</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"year_start"</span><span class="fu">:</span> <span class="st">"2025"</span><span class="fu">,</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"retain_earning"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"retain_earning_from"</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"events"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"tax_cut"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"tax_raise"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"food_vat_cut"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"typhoon"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"competitor"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"operational_hazard"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"war"</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"potential_investment"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"more_staff"</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"bigger_store"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"upgrade_infrastructure"</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cleanup" class="level2">
+<h2 class="anchored" data-anchor-id="cleanup"><code>.cleanup()</code></h2>
+<p><strong>Signature</strong>: <code>sim.cleanup() -&gt; None</code></p>
+<p><strong>Description</strong>: Removes the temp export directory, if <code>.simulate()</code> was called with <code>out_dir=None</code> (its default). Safe to call unconditionally — a no-op if nothing was ever simulated, or if a real <code>out_dir</code> was given (your own directory is never deleted for you).</p>
+<p><strong>Returns</strong>: <code>None</code>.</p>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim._out_dir.exists())</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>sim.cleanup()</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim._out_dir.exists())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<pre class="text"><code>True
+False</code></pre>
+</section>
+<section id="simulationdata" class="level2">
+<h2 class="anchored" data-anchor-id="simulationdata"><code>SimulationData</code></h2>
+<p><strong>Description</strong>: The object returned by <code>.data()</code>. A thin wrapper, not a dict subclass, but it supports attribute access, item access, and iteration over table names.</p>
+<p><strong>Interface</strong>:</p>
+<ul>
+<li><code>tables.receipts</code> — attribute access</li>
+<li><code>tables["receipts"]</code> — <code>__getitem__</code></li>
+<li><code>list(tables)</code> — <code>__iter__</code> over table names</li>
+<li><code>tables.keys()</code> — same as <code>list(tables)</code>, spelled the familiar way</li>
+<li><code>repr(tables)</code> — the compact schema summary shown under <code>.data()</code> above</li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> sim.data()</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>tables.receipts</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>tables[<span class="st">"receipts"</span>]</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(tables)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>tables.keys()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">Further reading</h2>
+<p>This page covers the object model; <a href="./theory.html">Theory</a> covers <em>why</em> it’s built this way (the layer split that makes counterfactuals and grading possible), the <a href="./analysis-catalog.html">Analysis catalog</a> is 62 worked questions against these same methods, and <a href="./analyses/index.html">Exemplar analyses</a> are two full worked cases end to end.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ChinhMaiGit\.github\.io\/grocery-sim\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

@@ -2,34 +2,38 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://ChinhMaiGit.github.io/grocery-sim/index.html</loc>
-    <lastmod>2026-07-20T12:48:37.738Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/case-description.html</loc>
-    <lastmod>2026-07-20T12:48:37.727Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/generated-briefs.html</loc>
-    <lastmod>2026-07-20T12:48:37.727Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/theory.html</loc>
-    <lastmod>2026-07-20T12:48:37.738Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analysis-catalog.html</loc>
-    <lastmod>2026-07-20T12:48:37.738Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/stakeholder-report.html</loc>
-    <lastmod>2026-07-20T12:48:37.730Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/technical-report.html</loc>
-    <lastmod>2026-07-20T12:48:37.731Z</lastmod>
+    <lastmod>2026-07-21T14:18:53.201Z</lastmod>
   </url>
   <url>
     <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/index.html</loc>
-    <lastmod>2026-07-20T12:48:37.727Z</lastmod>
+    <lastmod>2026-07-21T14:18:53.189Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/technical-report.html</loc>
+    <lastmod>2026-07-21T14:18:53.193Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/stakeholder-report.html</loc>
+    <lastmod>2026-07-21T14:18:53.193Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analysis-catalog.html</loc>
+    <lastmod>2026-07-21T14:18:53.201Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/theory.html</loc>
+    <lastmod>2026-07-21T14:18:53.201Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/generated-briefs.html</loc>
+    <lastmod>2026-07-21T14:18:53.189Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/case-description.html</loc>
+    <lastmod>2026-07-21T14:18:53.189Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/api-reference.html</loc>
+    <lastmod>2026-07-21T14:18:53.201Z</lastmod>
   </url>
 </urlset>
