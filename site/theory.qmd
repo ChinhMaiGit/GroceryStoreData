@@ -93,27 +93,49 @@ $$
 with the positive mean encoding a calibrated overoptimism parameter. The
 opening decision, conditional on beliefs, costs, and a fixed markup
 $m_c$, safety-stock fraction $\eta = 0.30$, and category-share cap
-$\rho = 0.05$, is a mixed integer linear program:
+$\rho = 0.05$, is the following mixed integer linear program (MILP), with
+decision variables $y_l \in \{0,1\}$ (location choice), $x_s \in \{0,1\}$
+(whether product $s$ is listed), $q_s \geq 0$ (quantity ordered), and
+$u_s \geq 0$ (believed sales quantity):
 
 $$
-\max \;\; \sum_{c}\sum_{s \in S_c} (1+m_c)\,\text{Cost}_s \cdot u_s \;-\;
+\max_{y,\,x,\,q,\,u} \;\; \sum_{c}\sum_{s \in S_c} (1+m_c)\,\text{Cost}_s \cdot u_s \;-\;
 \text{TotalCost}_0
 $$
 
 subject to
 
 $$
-\sum_l y_l = 1, \qquad
-u_s \leq q_s, \qquad
-\sum_{s \in S_c} u_s \leq \sum_l y_l\,\hat{D}_{cl}, \qquad
-\text{TotalCost}_0 \leq \text{InitialCapital}_0 ,
+\sum_l y_l = 1
 $$
 
-with $y_l \in \{0,1\}$ the location indicator, $q_s \geq 0$ the quantity
-ordered, and $u_s \geq 0$ the believed sales quantity. The program is
-mixed-integer because location and listing decisions are binary while
-purchase quantities are continuous, with all constraints linear
-conditional on the location.
+$$
+u_s \leq q_s
+$$
+
+$$
+\sum_{s \in S_c} u_s \leq \sum_l y_l\,\hat{D}_{cl}
+$$
+
+$$
+\sum_s x_s \leq \sum_l y_l\,\text{ShelfSlots}_l
+$$
+
+$$
+\text{TotalCost}_0 \leq \text{InitialCapital}_0
+$$
+
+$$
+y_l \in \{0,1\}, \qquad x_s \in \{0,1\}, \qquad q_s \geq 0, \qquad u_s \geq 0
+$$
+
+The last line is the integrality constraint that makes this a MILP rather
+than a continuous LP: $y_l$ and $x_s$ are binary (location and listing
+are yes/no decisions), while $q_s$ and $u_s$ are continuous given a fixed
+location and listing. Every constraint above is linear conditional on
+$y$ and $x$, so the problem is a mixed integer *linear* program
+specifically, solvable with standard branch-and-bound/cut MILP solvers
+rather than requiring general mixed integer nonlinear methods.
 
 **Proposition 1.** Since $\mathbb{E}[\delta_c] > 0$, the optimal solution
 $u_s^*, q_s^*$ systematically overstocks relative to the true optimum
