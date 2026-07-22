@@ -130,6 +130,10 @@ window.Quarto = {
 <span class="menu-text">Theory</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./complete-dgp.html"> 
+<span class="menu-text">Complete DGP</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./api-reference.html"> 
 <span class="menu-text">API reference</span></a>
   </li>  
@@ -236,9 +240,11 @@ U_{is_K}, U_0)\big) .
 <p>Need <span class="math inline">\(\theta_{ict}\)</span> is a state variable, not an i.i.d. draw. It is governed by a pantry process,</p>
 <p><span class="math display">\[
 P_{ic,t+1} \overset{\leftarrow}{=} \max(0,\ P_{ict} - r_{ict}) +
-\text{units purchased}, \qquad
+\text{units purchased}
+\]</span></p>
+<p><span class="math display">\[
 \theta_{ict} = \alpha\,\frac{\max(0,\ P^{\text{tgt}}_{ic} -
-P_{ict})}{P^{\text{tgt}}_{ic}} ,
+P_{ict})}{P^{\text{tgt}}_{ic}}
 \]</span></p>
 <p>the shortfall against a target of ten days’ cover. The drain rate <span class="math inline">\(r_{ict}\)</span> scales with the seasonal demand modifier rather than entering <span class="math inline">\(\theta\)</span> directly, so a demand shock operates through consumption of existing stock rather than through an independent increment to desire. When the selected product is out of stock, the original choice is recorded as a latent outcome under cause <code>stockout</code>, and the softmax is re-evaluated over the remaining assortment.</p>
 </section>
@@ -246,8 +252,10 @@ P_{ict})}{P^{\text{tgt}}_{ic}} ,
 <h2 class="anchored" data-anchor-id="the-owners-opening-decision">3. The owner’s opening decision</h2>
 <p>The true demand potential of location <span class="math inline">\(l\)</span> for category <span class="math inline">\(c\)</span> is <span class="math inline">\(D_{cl} = \text{Households}_l \cdot \mu_c\)</span>, unobserved by the owner. The owner’s belief is a log-normal perturbation of this quantity,</p>
 <p><span class="math display">\[
-\hat{D}_{cl} = D_{cl}\,e^{\delta_c}, \qquad \delta_c \sim
-\text{Normal}(0.10,\ 0.25) ,
+\hat{D}_{cl} = D_{cl}\,e^{\delta_c}
+\]</span></p>
+<p><span class="math display">\[
+\delta_c \sim \text{Normal}(0.10,\ 0.25)
 \]</span></p>
 <p>with the positive mean encoding a calibrated overoptimism parameter. The opening decision, conditional on beliefs, costs, and a fixed markup <span class="math inline">\(m_c\)</span>, safety-stock fraction <span class="math inline">\(\eta = 0.30\)</span>, and category-share cap <span class="math inline">\(\rho = 0.05\)</span>, is the following mixed integer linear program (MILP), with decision variables <span class="math inline">\(y_l \in \{0,1\}\)</span> (location choice), <span class="math inline">\(x_s \in \{0,1\}\)</span> (whether product <span class="math inline">\(s\)</span> is listed), <span class="math inline">\(q_s \geq 0\)</span> (quantity ordered), and <span class="math inline">\(u_s \geq 0\)</span> (believed sales quantity):</p>
 <p><span class="math display">\[
@@ -281,10 +289,11 @@ y_l \in \{0,1\}, \qquad x_s \in \{0,1\}, \qquad q_s \geq 0, \qquad u_s \geq 0
 <p>Restocking after opening is sized from a trailing four-week average of recorded sales,</p>
 <p><span class="math display">\[
 \hat{D}^{\text{op}}_{cw} \overset{\leftarrow}{=} \frac{1}{4}\sum_{j=1}^{4}
-\text{Sales}_{c,w-j} ,
-\qquad
+\text{Sales}_{c,w-j}
+\]</span></p>
+<p><span class="math display">\[
 \text{Target}_{sw} = \left(\tfrac{R+L}{7} + \eta\,\tfrac{30}{7}\right)
-\hat{D}^{\text{op}}_{cw}\,\tilde{\sigma}_{sw} ,
+\hat{D}^{\text{op}}_{cw}\,\tilde{\sigma}_{sw}
 \]</span></p>
 <p>with <span class="math inline">\(R = 7\)</span> days between reviews and <span class="math inline">\(L = 2\)</span> days lead time. The rule has two structural properties, both retained deliberately rather than corrected. It is backward-looking: a trend change is detected only after it has already occurred. It is not censoring-aware: <span class="math inline">\(\text{Sales}\)</span> is itself truncated by prior stockouts, producing a feedback loop in which an under-ordered product reports depressed sales, receives a smaller subsequent order, and stocks out again.</p>
 <p>Perishable inventory spoils according to</p>
@@ -302,8 +311,10 @@ y_l \in \{0,1\}, \qquad x_s \in \{0,1\}, \qquad q_s \geq 0, \qquad u_s \geq 0
 \]</span></p>
 <p>with no draw or retention in loss months. The expansion trigger is a joint threshold condition,</p>
 <p><span class="math display">\[
-\text{RE}_m \geq K_{\text{exp}}, \qquad
-\text{cash}_m - \text{tax\_reserve}_m \geq C_{\text{exp}} ,
+\text{RE}_m \geq K_{\text{exp}}
+\]</span></p>
+<p><span class="math display">\[
+\text{cash}_m - \text{tax\_reserve}_m \geq C_{\text{exp}}
 \]</span></p>
 <p>evaluated monthly. Expansion occurs on the first day of the following month once both thresholds are met. This is a threshold decision rule conditioned on affordable loss rather than a discounted-cash-flow optimization, consistent with the effectuation framework in entrepreneurship research rather than a net-present-value calculation. Disabling this rule as a counterfactual shows the expansion’s realized cost over its first fourteen months exceeds the incremental margin generated, since a fixed wage obligation is incurred in full while incremental revenue is realized at the category’s ordinary margin.</p>
 </section>
@@ -311,9 +322,13 @@ y_l \in \{0,1\}, \qquad x_s \in \{0,1\}, \qquad q_s \geq 0, \qquad u_s \geq 0
 <h2 class="anchored" data-anchor-id="the-macro-layer-weather-demand-and-cost-processes">6. The macro layer: weather, demand, and cost processes</h2>
 <p>Temperature follows a deterministic annual cycle with a persistent stochastic anomaly,</p>
 <p><span class="math display">\[
-T_t = \mu_T(t) + \varepsilon_t, \qquad
-\mu_T(t) = 12 + 9\cos\!\left(\tfrac{2\pi(t-200)}{365}\right), \qquad
-\varepsilon_t = \phi\,\varepsilon_{t-1} + \text{Normal}(0,\sigma_\varepsilon) ,
+T_t = \mu_T(t) + \varepsilon_t
+\]</span></p>
+<p><span class="math display">\[
+\mu_T(t) = 12 + 9\cos\!\left(\tfrac{2\pi(t-200)}{365}\right)
+\]</span></p>
+<p><span class="math display">\[
+\varepsilon_t = \phi\,\varepsilon_{t-1} + \text{Normal}(0,\sigma_\varepsilon)
 \]</span></p>
 <p>with <span class="math inline">\(\phi = 0.7\)</span>. This is the maximum-entropy stationary process consistent with a fixed marginal spread and positive autocorrelation in anomalies, the two properties calibration targets.</p>
 <p>The per-category demand modifier is log-additive in three components,</p>
@@ -339,8 +354,10 @@ g_k(t) = \zeta_k \cdot \min\!\left(1,\ \tfrac{t-\tau_k}{14}\right) \cdot
 <h2 class="anchored" data-anchor-id="taxation">7. Taxation</h2>
 <p>Value-added tax applies at category-specific rate <span class="math inline">\(r_c(t)\)</span>. Profit tax applies at a flat rate to positive annual surplus,</p>
 <p><span class="math display">\[
-\text{ProfitTax} = r^{\pi}\cdot\max(0,\ \text{ProfitBeforeTax}), \qquad
-r^\pi = 0.20 .
+\text{ProfitTax} = r^{\pi}\cdot\max(0,\ \text{ProfitBeforeTax})
+\]</span></p>
+<p><span class="math display">\[
+r^\pi = 0.20
 \]</span></p>
 <p><strong>Proposition 2.</strong> Because profit tax is a flat rate on a non-negative base,</p>
 <p><span class="math display">\[
@@ -366,7 +383,8 @@ r^\pi = 0.20 .
 <p>The two differences are exact, not estimated, since both quantities are computed from fully realized runs of the same mechanism:</p>
 <p><span class="math display">\[
 \Delta_{\text{optimism}} = \pi_{\text{realized}} - \pi_{\text{believed}}
-\qquad
+\]</span></p>
+<p><span class="math display">\[
 \Delta_{\text{analytics}} = \pi_{\text{oracle}} - \pi_{\text{realized}}
 \]</span></p>
 <p><span class="math inline">\(\Delta_{\text{optimism}}\)</span> is the cost of the owner’s initial belief error. <span class="math inline">\(\Delta_{\text{analytics}}\)</span> is the value attributable to information and decision quality, the quantity this construction is designed to make computable rather than merely asserted.</p>
@@ -382,6 +400,7 @@ B_{st} = S_{st} + D_{st} - \sum_{c\le t} A_{sc} ,
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>
 <ul>
+<li><a href="./complete-dgp.html">Complete DGP</a> draws every mechanism above as one causal graph, from the macro layer through the recording layer.</li>
 <li>The <a href="./analysis-catalog.html">Analysis catalog</a> operationalizes this specification as a graded set of 62 questions.</li>
 <li>The full paper states the customer’s purchase decision, the owner’s opening MILP, the adaptive policy, the expansion decision, the customer panel as a stochastic flow, and the complete macro script (calendar, weather, cost shocks, taxation), with full derivations: <a href="https://github.com/ChinhMaiGit/grocery-sim/blob/main/paper/paper.pdf">read it here</a>.</li>
 </ul>

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Checking ground truth – grocery-sim</title>
+<title>Complete DGP – grocery-sim</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -22,41 +22,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -105,6 +70,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<meta name="mermaid-theme" content="neutral">
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 
 
 <link rel="stylesheet" href="styles.css">
@@ -136,7 +105,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text">Theory</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./complete-dgp.html"> 
+    <a class="nav-link active" href="./complete-dgp.html" aria-current="page"> 
 <span class="menu-text">Complete DGP</span></a>
   </li>  
   <li class="nav-item">
@@ -148,7 +117,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text">Analysis catalog</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./ground-truth.html" aria-current="page"> 
+    <a class="nav-link" href="./ground-truth.html"> 
 <span class="menu-text">Checking ground truth</span></a>
   </li>  
   <li class="nav-item">
@@ -183,9 +152,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#the-mechanism" id="toc-the-mechanism" class="nav-link active" data-scroll-target="#the-mechanism">The mechanism</a></li>
-  <li><a href="#a-worked-example" id="toc-a-worked-example" class="nav-link" data-scroll-target="#a-worked-example">A worked example</a></li>
-  <li><a href="#every-hidden-table" id="toc-every-hidden-table" class="nav-link" data-scroll-target="#every-hidden-table">Every hidden table</a></li>
+  <li><a href="#reading-the-graph" id="toc-reading-the-graph" class="nav-link active" data-scroll-target="#reading-the-graph">Reading the graph</a></li>
   <li><a href="#read-more" id="toc-read-more" class="nav-link" data-scroll-target="#read-more">Read more</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
@@ -195,8 +162,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Checking ground truth</h1>
-<p class="subtitle lead">How grading actually works, and every hidden table this package ships</p>
+<h1 class="title">Complete DGP</h1>
+<p class="subtitle lead">The full causal graph behind every generated run, from the scripted macro layer to the paperwork an analyst receives</p>
 </div>
 
 
@@ -213,151 +180,309 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Every page on this site claims an estimate is “gradeable” or “checkable against ground truth.” This page is what that actually means, in code, plus a full reference of every hidden table available to check against.</p>
-<section id="the-mechanism" class="level2">
-<h2 class="anchored" data-anchor-id="the-mechanism">The mechanism</h2>
-<p>Every generated arm ships two views of itself. The <code>visible/</code> folder (or <code>sim.data()</code> / <code>sim.db()</code> called with no arguments) is the only thing a real analyst would ever see: receipts, invoices, a ledger, nothing else. Passing <code>include_hidden = True</code> to either method additionally loads a second set of tables, each prefixed <code>hidden_</code>, one per generating mechanism: the true customer panel, the true demand behind every stockout, the paperwork-defect log, and so on.</p>
-<p>An analysis is done entirely against the visible tables, start to finish. The hidden tables exist purely to grade the answer afterward, never to shortcut the analysis itself. Joining them in earlier would be grading your own exam with the answer key already open.</p>
-</section>
-<section id="a-worked-example" class="level2">
-<h2 class="anchored" data-anchor-id="a-worked-example">A worked example</h2>
-<p>The <a href="./analysis-catalog.html">Analysis catalog</a>’s first question, 0.1, works entirely blind: from the receipts table alone, an all-even grouping trick flags 34 receipts as probable duplicates (a POS retry re-posting a whole transaction leaves every line of it byte-identical and doubled). <code>hidden_imperfections</code> is the actual, planted answer key for every recording-layer defect in that run, one row per defect, with a <code>kind</code> column naming which of the ten defect families it belongs to. Checking the blind estimate against it is one <code>set</code> comparison:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> grocery_sim <span class="im">import</span> GroceryStoreSimulation</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> GroceryStoreSimulation()</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>sim.setup(<span class="bu">dict</span>(basic <span class="op">=</span> <span class="bu">dict</span>(year <span class="op">=</span> <span class="dv">1</span>)))</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>sim.simulate()</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> sim.db()</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>receipts <span class="op">=</span> con.sql(<span class="st">"SELECT * FROM receipts"</span>).pl()</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># the blind estimate: works from receipts alone, no hidden table involved</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>mult <span class="op">=</span> receipts.group_by(receipts.columns).agg(pl.<span class="bu">len</span>().alias(<span class="st">"n"</span>))</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>all_even <span class="op">=</span> mult.group_by(<span class="st">"receipt_id"</span>).agg((pl.col(<span class="st">"n"</span>) <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>).<span class="bu">all</span>().alias(<span class="st">"all_even"</span>))</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>blind_flagged <span class="op">=</span> <span class="bu">set</span>(all_even.<span class="bu">filter</span>(pl.col(<span class="st">"all_even"</span>))[<span class="st">"receipt_id"</span>])</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># only now, to grade it, load the answer key</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> sim.data(include_hidden <span class="op">=</span> <span class="va">True</span>)</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>imp <span class="op">=</span> pl.from_pandas(tables.hidden_imperfections)</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>true_flagged <span class="op">=</span> <span class="bu">set</span>(imp.<span class="bu">filter</span>(pl.col(<span class="st">"kind"</span>) <span class="op">==</span> <span class="st">"dup_receipt"</span>)[<span class="st">"key"</span>])</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"blind: </span><span class="sc">{</span><span class="bu">len</span>(blind_flagged)<span class="sc">}</span><span class="ss">, true: </span><span class="sc">{</span><span class="bu">len</span>(true_flagged)<span class="sc">}</span><span class="ss">, "</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"exact match: </span><span class="sc">{</span>blind_flagged <span class="op">==</span> true_flagged<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co"># -&gt; blind: 34, true: 34, exact match: True</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The blind detector’s 34 and the answer key’s 34 are the same 34 receipts, not just the same count. That’s what “gradeable” means everywhere on this site: not that a number sounds plausible, but that it can be checked against a specific, planted row set and shown to be exactly right, exactly wrong, or wrong in a specific, explainable way.</p>
-</section>
-<section id="every-hidden-table" class="level2">
-<h2 class="anchored" data-anchor-id="every-hidden-table">Every hidden table</h2>
-<p><code>sim.data(include_hidden = True)</code> and <code>sim.db(include_hidden = True)</code> both expose all eighteen. Every one is keyed so it can be joined back onto the matching visible table (by <code>uid</code>, <code>customer_id</code>, <code>date</code>/<code>t</code>, or <code>location_id</code>).</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Table</th>
-<th>Granularity</th>
-<th>What it grades</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>hidden_imperfections</code></td>
-<td>one row per defect</td>
-<td>The paperwork-defect answer key: <code>kind</code> (one of the ten defect families, e.g.&nbsp;<code>dup_receipt</code>, <code>void_pair</code>, <code>missing_invoice</code>), <code>table</code> and <code>key</code> (which visible row it touched), <code>delta</code>. Used by the <a href="./analysis-catalog.html">Analysis catalog</a>’s Layer 0 and the worked example above.</td>
-</tr>
-<tr class="even">
-<td><code>hidden_hidden_demand</code></td>
-<td>one row per purchase attempt</td>
-<td>The full per-attempt demand log, including attempts that never became a sale (<code>cause</code>: <code>stockout</code>, <code>budget</code>, <code>outside_option</code>, <code>closed</code>). The ground truth behind every “where did the missing demand go” question.</td>
-</tr>
-<tr class="odd">
-<td><code>hidden_customers</code></td>
-<td>one row per customer</td>
-<td>The persistent panel’s true parameters: <code>weekly_budget</code>, <code>price_sens</code>, <code>brand_affinity</code>, <code>persistence</code> (rooted/transient), <code>arrival_date</code>/<code>departure_date</code>, plus a per-week presence flag (<code>w0</code>…<code>w156</code>). Grades churn and RFM-segmentation questions.</td>
-</tr>
-<tr class="even">
-<td><code>hidden_spell_flags</code></td>
-<td>one row per customer</td>
-<td>A per-week flag, same shape as <code>hidden_customers</code>, marking which weeks each customer was in a scripted tight-spell or splurge. Grades whether a detected budget shock is real or a false positive.</td>
-</tr>
-<tr class="odd">
-<td><code>hidden_guests</code></td>
-<td>one row per passing-trade visit</td>
-<td>Non-panel, one-off guest transactions (<code>token</code>, <code>payment</code>, <code>value</code>), kept separate from the persistent panel. Grades regulars-vs-passing-trade splits.</td>
-</tr>
-<tr class="even">
-<td><code>hidden_owner_forecasts</code></td>
-<td>one row per category-week</td>
-<td>The owner’s own trailing-average forecast (<code>forecast_weekly</code>) next to the true, uncensored demand (<code>oracle</code>), for every category and week. Grades forecast-accuracy and censoring-spiral questions.</td>
-</tr>
-<tr class="odd">
-<td><code>hidden_decision_t0</code></td>
-<td>one row per SKU</td>
-<td>The opening-day MILP’s own output: whether the SKU was <code>listed</code>, the quantity ordered (<code>q0</code>), and believed sales. Grades the opening-decision overstocking claim directly.</td>
-</tr>
-<tr class="even">
-<td><code>hidden_location_category</code></td>
-<td>one row per location-category</td>
-<td>True demand (<code>true_demand</code>) next to the owner’s belief (<code>believed_demand</code>) and the gap between them (<code>belief_delta</code>), per location and category. The ground truth behind the true and believed demand terms in <a href="./theory.html">Theory</a>’s opening-decision section.</td>
-</tr>
-<tr class="odd">
-<td><code>hidden_locations_full</code></td>
-<td>one row per candidate location</td>
-<td>Every site-scouting fact the owner had before opening: <code>quality</code>, <code>households</code>, and the cost structure, for every candidate location, not just the one chosen.</td>
-</tr>
-<tr class="even">
-<td><code>hidden_category_loadings</code></td>
-<td>one row per category</td>
-<td>The demand-modifier parameters <code>a</code> (seasonal amplitude), <code>kappa</code> (weather loading), <code>h</code> (holiday loading), i.e.&nbsp;the coefficients behind the demand-modifier equation in Theory. Grades “is this category’s seasonality real or budget-mediated” questions.</td>
-</tr>
-<tr class="odd">
-<td><code>hidden_demand_modifiers</code></td>
-<td>one row per day</td>
-<td>The true daily demand modifier per category (<code>M_&lt;category&gt;</code>) and the true traffic modifier (<code>traffic</code>), the exact quantities a visible-data estimate is trying to recover.</td>
-</tr>
-<tr class="even">
-<td><code>hidden_tilts</code></td>
-<td>one row per day</td>
-<td>The fine-grained seasonal tilt for the handful of products whose seasonality deliberately contradicts their category’s average (ice cream, coffee, tea).</td>
-</tr>
-<tr class="odd">
-<td><code>hidden_cost_paths</code></td>
-<td>one row per day</td>
-<td>The true wholesale cost multiplier per category (<code>cost_&lt;category&gt;</code>), plus the true wage and storage rate paths. Grades cost-shock detection and instrument-validity questions (e.g.&nbsp;the advanced methods demonstration’s difference-in-differences design).</td>
-</tr>
-<tr class="even">
-<td><code>hidden_event_log</code></td>
-<td>one row per macro event</td>
-<td>Every scripted shock’s true parameters (<code>type</code>, <code>start</code>, <code>ramp</code>, <code>decay</code>, which categories it hit), the schedule a visible-data analysis is trying to reconstruct from cost and price movements alone.</td>
-</tr>
-<tr class="odd">
-<td><code>hidden_spoil_factors</code></td>
-<td>one row per day</td>
-<td>The true spoilage factor per perishable category, behind the spoilage binomial in Theory. Grades “what actually drives spoilage” questions.</td>
-</tr>
-<tr class="even">
-<td><code>hidden_weather_full</code></td>
-<td>one row per day</td>
-<td>Weather decomposed into its seasonal component, the anomaly, and the standardized anomaly <code>z</code>, separately from the raw <code>temp_C</code> the visible <code>weather</code> table shows. This is exactly the <code>temp_anom</code> construction the advanced methods demonstration’s GLM depends on, gradeable against the true decomposition.</td>
-</tr>
-<tr class="odd">
-<td><code>hidden_budget_paths</code></td>
-<td>one row per customer</td>
-<td>Each customer’s real weekly budget realization (<code>w1</code>…<code>w156</code>), the household-budget process a visible-data estimate of spending power can only infer indirectly.</td>
-</tr>
-<tr class="even">
-<td><code>hidden_profit_triptych</code></td>
-<td>one row total</td>
-<td>The three profit figures from Theory computed directly: <code>believed_profit_month1</code>, <code>realized_profit_year</code> (and after-tax), <code>oracle_profit_year</code> (and after-tax). Grades any independent recomputation of the believed, realized, and oracle profit figures.</td>
-</tr>
-</tbody>
-</table>
+<p>Every mechanism on the <a href="./theory.html">Theory</a> page and every hidden table on <a href="./ground-truth.html">Checking ground truth</a> fits into one causal graph. This page draws it whole: the macro layer that never listens to anything (top), the micro decisions recomputed every period (middle), the always-conserved true state those decisions produce, and the recording layer’s one-way tap that turns true state into the paperwork an analyst actually receives (bottom).</p>
+<div id="dag-figure">
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">graph TD
+    subgraph MACRO[Macro layer: scripted, exogenous]
+        CAL[Calendar: day-of-week, holidays]
+        WX[Weather: temperature, rain]
+        SHOCK[Macro cost shocks: Poisson events]
+        TAX[Tax schedule: VAT, profit tax]
+        POP[Household population: arrivals and departures]
+    end
+
+    subgraph DERIVED[Derived macro processes]
+        DEMMOD[Demand modifier M_ct]
+        TRAFFIC[Traffic modifier Lambda_t]
+        COSTMULT[Wholesale CostMult_ct]
+        BUDGET[Household budget B_iw]
+    end
+
+    CAL --&gt; DEMMOD
+    WX --&gt; DEMMOD
+    CAL --&gt; TRAFFIC
+    WX --&gt; TRAFFIC
+    SHOCK --&gt; COSTMULT
+    SHOCK --&gt; BUDGET
+
+    subgraph OPENING[Owner opening decision, one-shot]
+        TRUEDEM[True demand D_cl]
+        BELIEF["Owner belief D_hat_cl = D_cl times e to the delta_c"]
+        MILP[Opening MILP: location, assortment, quantities, staffing]
+    end
+
+    POP --&gt; TRUEDEM
+    TRUEDEM --&gt; BELIEF
+    BELIEF --&gt; MILP
+
+    subgraph MICRO[Micro layer: recomputed every period]
+        PANTRY[Customer pantry P_ict]
+        NEED[Category need theta_ict]
+        UTIL[Purchase utility U_is]
+        CHOICE[Purchase choice: softmax]
+        PRICE[Shelf price: menu-cost smoothing]
+        RESTOCK[Adaptive restocking: trailing 4-week average]
+        SPOIL[Spoilage: Binomial]
+        EXPAND[Expansion decision: retained-earnings threshold]
+    end
+
+    DEMMOD --&gt; NEED
+    PANTRY --&gt; NEED
+    NEED --&gt; UTIL
+    UTIL --&gt; CHOICE
+    PRICE --&gt; UTIL
+    BUDGET --&gt; CHOICE
+    TRAFFIC --&gt; CHOICE
+    CHOICE --&gt; PANTRY
+
+    COSTMULT --&gt; PRICE
+    TAX --&gt; PRICE
+
+    CHOICE --&gt; RESTOCK
+    MILP --&gt; RESTOCK
+    RESTOCK --&gt; SPOIL
+    WX --&gt; SPOIL
+    SHOCK --&gt; SPOIL
+
+    RESTOCK --&gt; EXPAND
+    CHOICE --&gt; EXPAND
+
+    subgraph TRUTH[True simulated state, always exactly conserved]
+        TRUESTOCK[True stock S_st]
+        TRUELEDGER[True ledger pi_realized]
+    end
+
+    CHOICE --&gt; TRUESTOCK
+    RESTOCK --&gt; TRUESTOCK
+    SPOIL --&gt; TRUESTOCK
+    CHOICE --&gt; TRUELEDGER
+    RESTOCK --&gt; TRUELEDGER
+    TAX --&gt; TRUELEDGER
+    EXPAND --&gt; TRUELEDGER
+
+    subgraph RECORDING[Recording layer, applied only at export]
+        DEFECTS[Paperwork defects D_st]
+    end
+
+    subgraph VISIBLE[visible folder: what an analyst receives]
+        RECEIPTS[receipts.csv]
+        PROCURE[procurement.csv]
+        INVEOD[inventory_eod.csv]
+        WRITEOFFS[write_offs.csv]
+        LEDGER[cost_sheet.csv]
+    end
+
+    TRUESTOCK --&gt; DEFECTS
+    TRUELEDGER --&gt; DEFECTS
+    DEFECTS --&gt; RECEIPTS
+    DEFECTS --&gt; PROCURE
+    DEFECTS --&gt; INVEOD
+    SPOIL --&gt; WRITEOFFS
+    TRUELEDGER --&gt; LEDGER
+
+    subgraph HIDDEN[hidden folder: the answer key]
+        IMPERF[hidden_imperfections]
+        HIDDEMAND[hidden_hidden_demand]
+    end
+
+    DEFECTS --&gt; IMPERF
+    CHOICE --&gt; HIDDEMAND
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</div>
+<div class="dag-zoom-row">
+<button id="dag-zoom-btn" class="dag-zoom-btn" type="button">
+Zoom in
+</button>
+</div>
+<div id="dag-modal" class="dag-modal" aria-hidden="true">
+<div class="dag-modal-toolbar">
+<button id="dag-zoom-in" class="dag-modal-btn" type="button" title="Zoom in">
++
+</button>
+<button id="dag-zoom-out" class="dag-modal-btn" type="button" title="Zoom out">
+−
+</button>
+<button id="dag-zoom-fit" class="dag-modal-btn" type="button" title="Fit to screen">
+Fit
+</button>
+<button id="dag-modal-close" class="dag-modal-btn dag-modal-close" type="button" title="Close">
+Close
+</button>
+</div>
+<div id="dag-modal-viewport" class="dag-modal-viewport">
+<div id="dag-modal-stage" class="dag-modal-stage">
+
+</div>
+</div>
+</div>
+<script>
+(function () {
+  const btn = document.getElementById("dag-zoom-btn");
+  const modal = document.getElementById("dag-modal");
+  const viewport = document.getElementById("dag-modal-viewport");
+  const stage = document.getElementById("dag-modal-stage");
+  const zoomInBtn = document.getElementById("dag-zoom-in");
+  const zoomOutBtn = document.getElementById("dag-zoom-out");
+  const fitBtn = document.getElementById("dag-zoom-fit");
+  const closeBtn = document.getElementById("dag-modal-close");
+
+  const MIN_SCALE = 0.2;
+  const MAX_SCALE = 8;
+
+  let scale = 1;
+  let tx = 0;
+  let ty = 0;
+  let svgWidth = 0;
+  let svgHeight = 0;
+  let dragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let dragOrigTx = 0;
+  let dragOrigTy = 0;
+
+  function clamp(value, lo, hi) {
+    return Math.min(hi, Math.max(lo, value));
+  }
+
+  function applyTransform() {
+    stage.style.transform =
+      "translate(" + tx + "px, " + ty + "px) scale(" + scale + ")";
+  }
+
+  function fitToScreen() {
+    const rect = viewport.getBoundingClientRect();
+    if (!svgWidth || !svgHeight) return;
+    const fitScale = Math.min(
+      (rect.width - 40) / svgWidth,
+      (rect.height - 40) / svgHeight,
+      1,
+    );
+    scale = clamp(fitScale, MIN_SCALE, MAX_SCALE);
+    tx = (rect.width - svgWidth * scale) / 2;
+    ty = (rect.height - svgHeight * scale) / 2;
+    applyTransform();
+  }
+
+  function zoomBy(factor, center) {
+    const rect = viewport.getBoundingClientRect();
+    const cx = center ? center.x : rect.width / 2;
+    const cy = center ? center.y : rect.height / 2;
+    const newScale = clamp(scale * factor, MIN_SCALE, MAX_SCALE);
+    tx = cx - (cx - tx) * (newScale / scale);
+    ty = cy - (cy - ty) * (newScale / scale);
+    scale = newScale;
+    applyTransform();
+  }
+
+  function openModal() {
+    const original = document.querySelector("#dag-figure svg");
+    if (!original) return;
+    const clone = original.cloneNode(true);
+    const viewBox = clone.getAttribute("viewBox");
+    if (viewBox) {
+      const parts = viewBox.trim().split(/\s+/).map(Number);
+      if (parts.length === 4) {
+        svgWidth = parts[2];
+        svgHeight = parts[3];
+        clone.setAttribute("width", svgWidth);
+        clone.setAttribute("height", svgHeight);
+      }
+    }
+    clone.removeAttribute("style");
+    stage.innerHTML = "";
+    stage.appendChild(clone);
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    fitToScreen();
+  }
+
+  function closeModal() {
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    stage.innerHTML = "";
+  }
+
+  btn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  zoomInBtn.addEventListener("click", function () {
+    zoomBy(1.25);
+  });
+  zoomOutBtn.addEventListener("click", function () {
+    zoomBy(1 / 1.25);
+  });
+  fitBtn.addEventListener("click", fitToScreen);
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && modal.classList.contains("open")) {
+      closeModal();
+    }
+  });
+
+  viewport.addEventListener(
+    "wheel",
+    function (event) {
+      if (!modal.classList.contains("open")) return;
+      event.preventDefault();
+      const rect = viewport.getBoundingClientRect();
+      const center = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+      zoomBy(event.deltaY < 0 ? 1.1 : 1 / 1.1, center);
+    },
+    { passive: false },
+  );
+
+  viewport.addEventListener("mousedown", function (event) {
+    dragging = true;
+    dragStartX = event.clientX;
+    dragStartY = event.clientY;
+    dragOrigTx = tx;
+    dragOrigTy = ty;
+    viewport.classList.add("dragging");
+  });
+
+  window.addEventListener("mousemove", function (event) {
+    if (!dragging) return;
+    tx = dragOrigTx + (event.clientX - dragStartX);
+    ty = dragOrigTy + (event.clientY - dragStartY);
+    applyTransform();
+  });
+
+  window.addEventListener("mouseup", function () {
+    dragging = false;
+    viewport.classList.remove("dragging");
+  });
+})();
+</script>
+<section id="reading-the-graph" class="level2">
+<h2 class="anchored" data-anchor-id="reading-the-graph">Reading the graph</h2>
+<ul>
+<li><strong>Macro (top)</strong>: written down in advance, on a fixed calendar, and never a function of anything the simulated people do. This is <a href="./theory.html">Theory</a>’s Definition 1, and it is what licenses the counterfactual-replay result in Section 8: editing only this layer and replaying the rest with random draws held fixed gives an exact causal effect, not an estimate.</li>
+<li><strong>The opening decision</strong>: a one-shot mixed integer program, solved once against a noisy belief about true demand the owner never observes directly (Section 3).</li>
+<li><strong>Micro (middle)</strong>: recomputed fresh every period from the current state, never scripted. The purchase choice feeds the customer’s own pantry state one period later, the one real feedback loop inside the micro layer.</li>
+<li><strong>True state</strong>: always exactly conserved. Every unit bought, sold, or spoiled is accounted for, and every euro that moves is tracked, before any paperwork noise is applied.</li>
+<li><strong>Recording (bottom)</strong>: a one-way tap. Defects are drawn from the true state and written into <code>visible/</code>, but never fed back into the simulation. This is why <code>hidden/</code> can grade <code>visible/</code> (see <a href="./ground-truth.html">Checking ground truth</a>) without the grading process itself disturbing the thing being graded.</li>
+</ul>
 </section>
 <section id="read-more" class="level2">
 <h2 class="anchored" data-anchor-id="read-more">Read more</h2>
 <ul>
-<li><a href="./theory.html">Theory</a>: the model each of these tables is the ground truth for.</li>
-<li><a href="./complete-dgp.html">Complete DGP</a>: where each hidden table sits in the full causal graph, including the one-way tap from true state into the recording layer that makes this grading possible.</li>
-<li><a href="./analysis-catalog.html">Analysis catalog</a>: the 62 questions these tables make gradeable.</li>
-<li><a href="./api-reference.html#datainclude_hiddenfalse">API reference</a>: the full signature and parameters of <code>.data()</code> and <code>.db()</code>.</li>
+<li><a href="./theory.html">Theory</a>: the full model specification each node in this graph implements.</li>
+<li><a href="./ground-truth.html">Checking ground truth</a>: every <code>hidden_*</code> table this graph’s recording layer feeds, and a worked example of grading against one.</li>
+<li><a href="./analysis-catalog.html">Analysis catalog</a>: the 62 questions that walk this graph in the other direction, from <code>visible/</code> data back toward a cause.</li>
 </ul>
 
 
