@@ -144,6 +144,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text">Analysis catalog</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./ground-truth.html"> 
+<span class="menu-text">Checking ground truth</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./analyses/index.html"> 
 <span class="menu-text">Exemplar analyses</span></a>
   </li>  
@@ -176,7 +180,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#what-this-is" id="toc-what-this-is" class="nav-link active" data-scroll-target="#what-this-is">What this is</a></li>
-  <li><a href="#not-just-data-a-case" id="toc-not-just-data-a-case" class="nav-link" data-scroll-target="#not-just-data-a-case">Not just data — a case</a></li>
   <li><a href="#how-to-start" id="toc-how-to-start" class="nav-link" data-scroll-target="#how-to-start">How to start</a></li>
   <li><a href="#where-to-go-from-here" id="toc-where-to-go-from-here" class="nav-link" data-scroll-target="#where-to-go-from-here">Where to go from here</a></li>
   <li><a href="#links" id="toc-links" class="nav-link" data-scroll-target="#links">Links</a></li>
@@ -189,7 +192,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">grocery-sim</h1>
-<p class="subtitle lead">A structural microsimulation of a small neighborhood grocery store — with a fully known causal ground truth and a case that feels real</p>
+<p class="subtitle lead">A structural microsimulation of a small neighborhood grocery store, with a fully known causal ground truth</p>
 </div>
 
 
@@ -208,48 +211,54 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="what-this-is" class="level2">
 <h2 class="anchored" data-anchor-id="what-this-is">What this is</h2>
-<p><code>grocery-sim</code> simulates one or three years in the life of a small neighborhood grocery store — customers, an owner, a calendar of weather and macroeconomic shocks, a daily market, and a full paper trail (receipts, invoices, a ledger, a tax filing). Every number in the output is the residue of somebody choosing something: a customer choosing between two cartons of milk, an owner deciding where to open before a single customer has walked through the door, deciding later whether to hire or expand under capital he cannot afford to lose.</p>
-<p>Nothing here is sampled from a convenient distribution and called a business. Every figure has a traceable, documented cause — which is exactly what makes it possible to grade an analysis, not just admire it.</p>
-</section>
-<section id="not-just-data-a-case" class="level2">
-<h2 class="anchored" data-anchor-id="not-just-data-a-case">Not just data — a case</h2>
-<p>Ground truth is necessary, but it isn’t what makes an analysis exercise feel real to the person doing it. What makes it feel real is a client: a person with a name, a history, a stake in the answer, and their own voice explaining what they need and where their own paperwork wobbles. So every run of <code>grocery-sim</code> also generates one — a business-case brief, in the tradition of the case method, built entirely from that run’s own settings and its own real results. Nothing in it is decorative copy; every fact the owner states is something the simulation actually did.</p>
-<p>Here is one, unedited, from a real run:</p>
-<blockquote class="blockquote">
-<p>Dear analyst,</p>
-<p>I’m 46. I spent 13 years working for Kornmagasinet before I opened Vinter’s Market myself, on Granstigen in Tjornby, with about 60,000 euros of my own money behind it. That was 2025.</p>
-<p>Over one year we have taken in about 743,000 euros across the till altogether, and the bottom line came out to a real profit. I want someone who isn’t me to look at my numbers properly before I decide whether to expand further or simply stay the course.</p>
-<p>I’ve kept everything — every receipt, every invoice, every month’s books. My records aren’t perfect, and I’ll tell you honestly where they wobble, but they’re complete, and my own monthly ledger is right, because I check it myself.</p>
-<p>Tell me what the numbers actually say.</p>
-<p>— Mikael Vinter</p>
-</blockquote>
-<p>The brief that follows this letter is a full engagement package: an intake interview in the owner’s own words, a table of what records he’s handing over and what each one is, the actual questions he wants answered, and what’s at stake in the answer. The interview is where the paperwork’s real defects surface honestly, in the owner’s own voice, before an analyst opens a single file:</p>
-<blockquote class="blockquote">
-<p><strong>Q: Anything I should know about the records before you start?</strong></p>
-<p>He: Yes, be careful with 4 things. First, the till terminal mis-rings an item now and then — I void it and re-ring it, so you’ll find 103 paired correction lines in the receipts over the whole period, nothing missing, just messy. Second, my supplier’s system has posted the same invoice twice before — I caught 22 such duplicates myself, but I’ll admit I don’t check every single one. Third, some delivery paperwork never got typed in — there were weeks I was alone and exhausted, and I paid the supplier for goods you won’t find an invoice line for; my bank-account ledger is still right, I just can’t always show you the paper behind it. Fourth, the little weather log I keep goes dark for a few days now and then — the station on the roof is nothing fancy.</p>
-</blockquote>
-<p>Change the run’s settings — a different location, a competitor entering, a cost shock — and the brief changes with it: a different owner, a different letter, a different set of stakes, but the same discipline that every sentence traces back to a real, computed event in that run. This is the piece most existing synthetic data has no equivalent for at all: not a prettier spreadsheet, but a client to be briefed by.</p>
+<p><code>grocery-sim</code> generates one or three years of a small grocery store’s full paper trail (receipts, invoices, a ledger, a tax filing) from a simulated economy of customers, an owner, and scripted macro shocks, not from sampled distributions. Every number has a traceable, documented cause.</p>
+<ul>
+<li><strong>Real ground truth.</strong> Every figure is the output of a specific, documented decision or shock, gradeable against a hidden answer key. See <a href="./ground-truth.html">Checking ground truth</a> for how that actually works, and every hidden table this package ships.</li>
+<li><strong>Exact counterfactuals.</strong> Every random draw is keyed by identity, so deleting one scripted event and replaying the world gives the <em>exact</em> causal effect of that event, not an estimate of it.</li>
+<li><strong>A generated business-case brief.</strong> Every run also produces a client: an owner, a letter, an intake interview, built entirely from that run’s own settings and results. See a real one in the <a href="./api-reference.html">API reference</a> or a <a href="./analyses/case-description.html">worked case</a>.</li>
+<li><strong>Realistic, gradeable mess.</strong> Ten paperwork-defect families (duplicate invoices, missing deliveries, mis-typed counts, …) planted at low rates, each logged to a hidden answer key.</li>
+<li><strong>A 62-question analysis catalog</strong>, from data cleaning through causal inference, prediction, prescription, and policy experiments.</li>
+</ul>
 </section>
 <section id="how-to-start" class="level2">
 <h2 class="anchored" data-anchor-id="how-to-start">How to start</h2>
+<p>In a terminal:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install grocery-sim</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>In a Python script or notebook:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> grocery_sim <span class="im">import</span> GroceryStoreSimulation</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> GroceryStoreSimulation()</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>sim.setup({})       <span class="co"># the published one-year baseline, unmodified</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>sim.simulate()</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>sim.data()           <span class="co"># in-memory tables (receipts, invoices, ledger, ...)</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>sim.db()             <span class="co"># the same tables behind a DuckDB connection</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>sim.erd()            <span class="co"># a Mermaid ER diagram of this run's schema</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>sim.describe()       <span class="co"># the business-case brief above, for this run</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>sim.setup(<span class="bu">dict</span>(</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    basic <span class="op">=</span> <span class="bu">dict</span>(</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        name <span class="op">=</span> <span class="st">"My Grocery Store"</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        random_seed <span class="op">=</span> <span class="dv">42</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        year <span class="op">=</span> <span class="dv">3</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        budget <span class="op">=</span> <span class="dv">60_000</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    events <span class="op">=</span> <span class="bu">dict</span>(</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        competitor <span class="op">=</span> <span class="st">"2026-06-01"</span>,</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        typhoon <span class="op">=</span> <span class="st">"2025-07-15"</span>,</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    potential_investment <span class="op">=</span> <span class="bu">dict</span>(</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        bigger_store <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>sim.simulate()</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>sim.data()           <span class="co"># in-memory tables (receipts, invoices, ledger, ...)</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>sim.db()             <span class="co"># the same tables behind a DuckDB connection</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>sim.erd()            <span class="co"># a Mermaid ER diagram of this run's schema</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>sim.describe()       <span class="co"># a generated business-case brief for this run</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>sim.setup({})</code> (or any partial dict) works too, every key not mentioned falls back to its default. See the <a href="./api-reference.html">API reference</a> for every setting <code>sim.setup()</code> accepts, with a full example.</p>
 </section>
 <section id="where-to-go-from-here" class="level2">
 <h2 class="anchored" data-anchor-id="where-to-go-from-here">Where to go from here</h2>
 <ul>
-<li><strong><a href="./theory.html">Theory</a></strong> — the intuition behind the construction: why the world is split into decisions and scripts, and why that split is what lets a counterfactual be exactly true instead of merely estimated.</li>
-<li><strong><a href="./analysis-catalog.html">Analysis catalog</a></strong> — the layered set of questions this data is built to answer, from cleaning the paperwork through structural, causal, and predictive modeling.</li>
-<li><strong><a href="./analyses/index.html">Exemplar analyses</a></strong> — worked examples on real generated arms, added over time.</li>
+<li><strong><a href="./theory.html">Theory</a></strong>: the intuition behind the construction, why the world is split into decisions and scripts, and why that split is what lets a counterfactual be exactly true instead of merely estimated.</li>
+<li><strong><a href="./api-reference.html">API reference</a></strong>: every public method, with real signatures, parameters, and output.</li>
+<li><strong><a href="./analysis-catalog.html">Analysis catalog</a></strong>: the layered set of questions this data is built to answer, from cleaning the paperwork through structural, causal, and predictive modeling.</li>
+<li><strong><a href="./ground-truth.html">Checking ground truth</a></strong>: how grading actually works, in code, and a full reference of every hidden table this package ships.</li>
+<li><strong><a href="./analyses/index.html">Exemplar analyses</a></strong>: worked examples on real generated arms, added over time.</li>
 </ul>
 </section>
 <section id="links" class="level2">

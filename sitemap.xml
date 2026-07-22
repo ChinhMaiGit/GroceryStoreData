@@ -2,38 +2,46 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://ChinhMaiGit.github.io/grocery-sim/theory.html</loc>
-    <lastmod>2026-07-21T15:12:42.246Z</lastmod>
+    <lastmod>2026-07-22T05:29:38.985Z</lastmod>
   </url>
   <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/api-reference.html</loc>
-    <lastmod>2026-07-21T15:12:42.246Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/technical-report.html</loc>
-    <lastmod>2026-07-21T15:12:42.238Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/index.html</loc>
-    <lastmod>2026-07-21T15:12:42.234Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/case-description.html</loc>
-    <lastmod>2026-07-21T15:12:42.234Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/generated-briefs.html</loc>
-    <lastmod>2026-07-21T15:12:42.234Z</lastmod>
-  </url>
-  <url>
-    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/stakeholder-report.html</loc>
-    <lastmod>2026-07-21T15:12:42.238Z</lastmod>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/ground-truth.html</loc>
+    <lastmod>2026-07-22T05:29:38.985Z</lastmod>
   </url>
   <url>
     <loc>https://ChinhMaiGit.github.io/grocery-sim/analysis-catalog.html</loc>
-    <lastmod>2026-07-21T15:12:42.246Z</lastmod>
+    <lastmod>2026-07-22T05:29:38.985Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/stakeholder-report.html</loc>
+    <lastmod>2026-07-22T05:29:38.980Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/generated-briefs.html</loc>
+    <lastmod>2026-07-22T05:29:38.976Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/advanced-methods.html</loc>
+    <lastmod>2026-07-22T05:29:38.970Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/case-description.html</loc>
+    <lastmod>2026-07-22T05:29:38.976Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/index.html</loc>
+    <lastmod>2026-07-22T05:29:38.976Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/analyses/technical-report.html</loc>
+    <lastmod>2026-07-22T05:29:38.980Z</lastmod>
+  </url>
+  <url>
+    <loc>https://ChinhMaiGit.github.io/grocery-sim/api-reference.html</loc>
+    <lastmod>2026-07-22T05:29:38.985Z</lastmod>
   </url>
   <url>
     <loc>https://ChinhMaiGit.github.io/grocery-sim/index.html</loc>
-    <lastmod>2026-07-21T15:12:42.246Z</lastmod>
+    <lastmod>2026-07-22T05:29:38.985Z</lastmod>
   </url>
 </urlset>

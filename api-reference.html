@@ -144,6 +144,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text">Analysis catalog</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./ground-truth.html"> 
+<span class="menu-text">Checking ground truth</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./analyses/index.html"> 
 <span class="menu-text">Exemplar analyses</span></a>
   </li>  
@@ -177,6 +181,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#grocerystoresimulation" id="toc-grocerystoresimulation" class="nav-link active" data-scroll-target="#grocerystoresimulation"><code>GroceryStoreSimulation()</code></a></li>
   <li><a href="#setupsettings" id="toc-setupsettings" class="nav-link" data-scroll-target="#setupsettings"><code>.setup(settings)</code></a></li>
+  <li><a href="#the-settings-object" id="toc-the-settings-object" class="nav-link" data-scroll-target="#the-settings-object">The settings object</a>
+  <ul class="collapse">
+  <li><a href="#basic" id="toc-basic" class="nav-link" data-scroll-target="#basic"><code>basic</code></a></li>
+  <li><a href="#events" id="toc-events" class="nav-link" data-scroll-target="#events"><code>events</code></a></li>
+  <li><a href="#potential_investment" id="toc-potential_investment" class="nav-link" data-scroll-target="#potential_investment"><code>potential_investment</code></a></li>
+  </ul></li>
   <li><a href="#simulateout_dirnone" id="toc-simulateout_dirnone" class="nav-link" data-scroll-target="#simulateout_dirnone"><code>.simulate(out_dir=None)</code></a>
   <ul class="collapse">
   <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation"><code>.validation</code></a></li>
@@ -199,7 +209,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">API reference</h1>
-<p class="subtitle lead">Every public method on GroceryStoreSimulation — signature, parameters, and real output</p>
+<p class="subtitle lead">Every public method on GroceryStoreSimulation: signature, parameters, and real output</p>
 </div>
 
 
@@ -216,7 +226,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>This page walks through the whole public surface of <code>grocery_sim</code>: one class, <code>GroceryStoreSimulation</code>, plus the small <code>SimulationData</code> helper its <code>.data()</code> method returns. Every example on this page actually ran — output is real, trimmed for length in a few places (the validation report, <code>describe()</code>, <code>erd()</code>) but never invented.</p>
+<p>This page walks through the whole public surface of <code>grocery_sim</code>: one class, <code>GroceryStoreSimulation</code>, plus the small <code>SimulationData</code> helper its <code>.data()</code> method returns. Every example on this page actually ran: output is real, trimmed for length in a few places (the validation report, <code>describe()</code>, <code>erd()</code>) but never invented.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> grocery_sim <span class="im">import</span> GroceryStoreSimulation</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <section id="grocerystoresimulation" class="level2">
 <h2 class="anchored" data-anchor-id="grocerystoresimulation"><code>GroceryStoreSimulation()</code></h2>
@@ -231,12 +241,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="setupsettings" class="level2">
 <h2 class="anchored" data-anchor-id="setupsettings"><code>.setup(settings)</code></h2>
 <p><strong>Signature</strong>: <code>sim.setup(settings: dict | None = None) -&gt; GroceryStoreSimulation</code></p>
-<p><strong>Description</strong>: Validates <code>settings</code> against the schema (<code>settings.py</code>) and merges it onto the package’s own defaults. A partial dict is always enough — missing keys and sections just inherit their default. Does not run anything yet.</p>
+<p><strong>Description</strong>: Validates <code>settings</code> against the schema (<code>settings.py</code>) and merges it onto the package’s own defaults. A partial dict is always enough: missing keys and sections just inherit their default. Does not run anything yet.</p>
 <p><strong>Parameters</strong>:</p>
 <ul>
-<li><code>settings</code> — a (possibly partial) settings dict, with up to three top-level sections: <code>basic</code>, <code>events</code>, <code>potential_investment</code>. <code>None</code> resolves to the full defaults, unmodified.</li>
+<li><code>settings</code>, a (possibly partial) settings dict, with up to three top-level sections: <code>basic</code>, <code>events</code>, <code>potential_investment</code>. <code>None</code> resolves to the full defaults, unmodified.</li>
 </ul>
-<p><strong>Raises</strong>: <code>SettingsError</code> on anything invalid — an unknown key, an event date outside the horizon, a three-year-only field on a one-year run, and so on.</p>
+<p><strong>Raises</strong>: <code>SettingsError</code> on anything invalid: an unknown key, an event date outside the horizon, a three-year-only field on a one-year run, and so on.</p>
 <p><strong>Returns</strong>: <code>self</code>, so it chains into <code>.simulate()</code>.</p>
 <p><strong>Example</strong></p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim.setup(<span class="bu">dict</span>(basic <span class="op">=</span> <span class="bu">dict</span>(year <span class="op">=</span> <span class="dv">1</span>)))</span>
@@ -247,7 +257,226 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 {'name': 'My Grocery Store', 'random_seed': 20260712, 'year': 1,
  'budget': 60000, 'year_start': '2025', 'retain_earning': False,
  'retain_earning_from': None}</code></pre>
-<p>Every key not mentioned in the call above — <code>random_seed</code>, <code>budget</code>, <code>year_start</code>, and everything under <code>events</code>/<code>potential_investment</code> — is filled in from <code>DEFAULTS</code>, not left unset.</p>
+<p>Every key not mentioned in the call above (<code>random_seed</code>, <code>budget</code>, <code>year_start</code>, and everything under <code>events</code>/<code>potential_investment</code>) is filled in from <code>DEFAULTS</code>, not left unset.</p>
+</section>
+<section id="the-settings-object" class="level2">
+<h2 class="anchored" data-anchor-id="the-settings-object">The settings object</h2>
+<p>Every key <code>settings</code> accepts, across its three sections. A partial dict is always enough, any key left out inherits the default shown below, and an unknown top-level section or leaf key raises <code>SettingsError</code> immediately rather than being silently ignored (a typo like <code>"bugdet"</code> fails loudly instead of quietly falling back to the default).</p>
+<section id="basic" class="level3">
+<h3 class="anchored" data-anchor-id="basic"><code>basic</code></h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>name</code></td>
+<td><code>str</code></td>
+<td><code>"My Grocery Store"</code></td>
+<td>The shop’s name, cosmetic only, printed in <code>.describe()</code> and the exports.</td>
+</tr>
+<tr class="even">
+<td><code>random_seed</code></td>
+<td><code>int</code></td>
+<td><code>20260712</code></td>
+<td>Seeds every keyed random stream in the run. The same seed reproduces the same world bit for bit.</td>
+</tr>
+<tr class="odd">
+<td><code>year</code></td>
+<td><code>int</code>, <code>1</code> or <code>3</code></td>
+<td><code>1</code></td>
+<td>The story’s length. <code>3</code> unlocks the Phase 5 arc: panel churn, the expansion decision, retained earnings, and the <code>competitor</code>/<code>operational_hazard</code> events below. <code>1</code> is the baseline year only.</td>
+</tr>
+<tr class="even">
+<td><code>budget</code></td>
+<td><code>number &gt; 0</code></td>
+<td><code>60_000</code></td>
+<td>The owner’s initial capital, in euros, going into the opening MILP.</td>
+</tr>
+<tr class="odd">
+<td><code>year_start</code></td>
+<td><code>"YYYY"</code> or <code>"YYYY-MM"</code></td>
+<td><code>"2025"</code></td>
+<td>Where the story’s calendar begins. Every event date below is validated against this, not against the model’s fixed internal epoch (see <code>events.py</code>’s module docstring).</td>
+</tr>
+<tr class="even">
+<td><code>retain_earning</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Whether the owner retains a share of profit as declared earnings from year two onward. Requires <code>year == 3</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>retain_earning_from</code></td>
+<td><code>"YYYY-MM"</code> or <code>None</code></td>
+<td><code>None</code></td>
+<td>The month retention starts. <code>None</code> defaults to the formalization month Phase 5 already calibrates. Must not be before <code>year_start</code>.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="events" class="level3">
+<h3 class="anchored" data-anchor-id="events"><code>events</code></h3>
+<p>Every event takes a date label (<code>"YYYY-MM"</code>, or <code>"YYYY-MM-DD"</code> for the few that care about the exact day) and defaults to <code>None</code> (never fires). <code>war</code>, <code>typhoon</code>, <code>food_vat_cut</code>, <code>tax_cut</code>, <code>tax_raise</code>, and <code>operational_hazard</code> also accept a <em>list</em> of labels to fire the same event more than once in a three-year run, while <code>competitor</code> takes a single date only, since it represents a permanent regime change rather than a repeatable shock.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Key</th>
+<th>Accepts</th>
+<th>Requires</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>war</code></td>
+<td>date or list</td>
+<td>any <code>year</code></td>
+<td>A broad wholesale cost shock hitting every category, ramping over 14 days and decaying over 120.</td>
+</tr>
+<tr class="even">
+<td><code>typhoon</code></td>
+<td>date or list</td>
+<td>any <code>year</code></td>
+<td>A 3-day storm: colder, wetter weather, a 65% drop in foot traffic, and a cost spike on Fresh Produce and Seafood that ramps for 3 days and decays over 21.</td>
+</tr>
+<tr class="odd">
+<td><code>food_vat_cut</code></td>
+<td>date or list</td>
+<td>any <code>year</code></td>
+<td>Halves VAT on the reduced-rate (food) category group, from this project’s own baseline rate down to 5%.</td>
+</tr>
+<tr class="even">
+<td><code>tax_cut</code></td>
+<td>date or list</td>
+<td>any <code>year</code></td>
+<td>Cuts VAT on the standard-rate category group from 20% to 15%.</td>
+</tr>
+<tr class="odd">
+<td><code>tax_raise</code></td>
+<td>date or list</td>
+<td>any <code>year</code></td>
+<td>A direct levy on gross revenue (this package’s own addition, distinct from the two VAT levers above, see <code>params.py</code>’s <code>PHASE4["revenue_tax_rate"]</code>).</td>
+</tr>
+<tr class="even">
+<td><code>competitor</code></td>
+<td>single date</td>
+<td><code>year == 3</code></td>
+<td>A discounting competitor opens nearby, followed by a scheduled pricing response. Its pull is strongest on price-sensitive, transient customers.</td>
+</tr>
+<tr class="odd">
+<td><code>operational_hazard</code></td>
+<td>date or list</td>
+<td><code>year == 3</code></td>
+<td>An overnight freezer failure: a spoilage loss plus a capped-capacity recovery window.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="potential_investment" class="level3">
+<h3 class="anchored" data-anchor-id="potential_investment"><code>potential_investment</code></h3>
+<p>All three are plain on/off switches, never a threshold, date, or size. Turning one on only makes it <em>available</em>, whether and when it actually fires stays an emergent decision, driven by the same retained-earnings and spendable-cash trigger already used for the underlying hire/expansion mechanism. Turning one off disables it outright. All three are meaningless outside <code>basic.year == 3</code> (the model simply never reaches for them on a one-year run).</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>more_staff</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Allows the owner to hire beyond the opening headcount once the business can support it.</td>
+</tr>
+<tr class="even">
+<td><code>bigger_store</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Allows a move to a larger location once retained earnings and cash both clear their calibrated thresholds.</td>
+</tr>
+<tr class="odd">
+<td><code>upgrade_infrastructure</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Allows an infrastructure upgrade (e.g.&nbsp;better cold storage) under the same trigger pattern.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A full settings dict, every section populated:</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> GroceryStoreSimulation()</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>sim.setup(<span class="bu">dict</span>(</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    basic <span class="op">=</span> <span class="bu">dict</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        name <span class="op">=</span> <span class="st">"Vinter Market"</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        random_seed <span class="op">=</span> <span class="dv">42</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        year <span class="op">=</span> <span class="dv">3</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        budget <span class="op">=</span> <span class="dv">75_000</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        year_start <span class="op">=</span> <span class="st">"2025"</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        retain_earning <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        retain_earning_from <span class="op">=</span> <span class="st">"2026-01"</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    events <span class="op">=</span> <span class="bu">dict</span>(</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        war <span class="op">=</span> [<span class="st">"2025-03-01"</span>, <span class="st">"2026-09-01"</span>],</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        typhoon <span class="op">=</span> <span class="st">"2025-07-15"</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        food_vat_cut <span class="op">=</span> <span class="st">"2025-05-01"</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        tax_cut <span class="op">=</span> <span class="st">"2026-02-01"</span>,</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        tax_raise <span class="op">=</span> <span class="st">"2027-01"</span>,</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        competitor <span class="op">=</span> <span class="st">"2026-06-01"</span>,</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        operational_hazard <span class="op">=</span> <span class="st">"2027-04-01"</span>,</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    potential_investment <span class="op">=</span> <span class="bu">dict</span>(</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        more_staff <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        bigger_store <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        upgrade_infrastructure <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pprint</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>pprint.pprint(sim.settings)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong></p>
+<pre class="text"><code>{'basic': {'budget': 75000,
+           'name': 'Vinter Market',
+           'random_seed': 42,
+           'retain_earning': True,
+           'retain_earning_from': '2026-01',
+           'year': 3,
+           'year_start': '2025'},
+ 'events': {'competitor': '2026-06-01',
+            'food_vat_cut': '2025-05-01',
+            'operational_hazard': '2027-04-01',
+            'tax_cut': '2026-02-01',
+            'tax_raise': '2027-01',
+            'typhoon': '2025-07-15',
+            'war': ['2025-03-01', '2026-09-01']},
+ 'potential_investment': {'bigger_store': True,
+                          'more_staff': True,
+                          'upgrade_infrastructure': True}}</code></pre>
+<p><code>more_store</code> (a second physical location) is deliberately not part of the schema at all, not a disabled default, since supporting it would need a second opening MILP solved mid-run. <code>potential_investment.more_staff</code> being <code>True</code> by default (unlike the other two) mirrors the pre-existing hire-expansion mechanism it generalizes: it was always on before this settings surface existed, so the default keeps old behavior unchanged.</p>
+</section>
 </section>
 <section id="simulateout_dirnone" class="level2">
 <h2 class="anchored" data-anchor-id="simulateout_dirnone"><code>.simulate(out_dir=None)</code></h2>
@@ -255,12 +484,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><strong>Description</strong>: Runs the full phase1 → phase2 → phase3 → recording → export pipeline, then self-validates the result.</p>
 <p><strong>Parameters</strong>:</p>
 <ul>
-<li><code>out_dir</code> — where to write the exported CSVs. <code>None</code> (the default) writes to a fresh temp directory, cleaned up later by <code>.cleanup()</code>. Pass a real path to keep the export.</li>
+<li><code>out_dir</code>, where to write the exported CSVs. <code>None</code> (the default) writes to a fresh temp directory, cleaned up later by <code>.cleanup()</code>. Pass a real path to keep the export.</li>
 </ul>
-<p><strong>Raises</strong>: <code>ValidationError</code> if a <em>structural</em> invariant fails — that always means a generator bug, never an ordinary consequence of the settings (see <code>.validation</code> below for the structural/reported-only distinction).</p>
+<p><strong>Raises</strong>: <code>ValidationError</code> if a <em>structural</em> invariant fails: that always means a generator bug, never an ordinary consequence of the settings (see <code>.validation</code> below for the structural/reported-only distinction).</p>
 <p><strong>Returns</strong>: <code>self</code>.</p>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>sim.simulate()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sim.simulate()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Output</strong></p>
 <pre class="text"><code>=== simulating: My Grocery Store ===
   phase 1: location 5 (Q=0.33), 128 SKUs, 259 customers, believed profit 3,195  [1.7s]
@@ -276,12 +505,12 @@ Validation — structural invariants (must always hold):
 <section id="validation" class="level3">
 <h3 class="anchored" data-anchor-id="validation"><code>.validation</code></h3>
 <p><strong>Type</strong>: <code>dict | None</code>, set by <code>.simulate()</code>.</p>
-<p><strong>Structure</strong>: <code>{"structural_ok": bool, "checks": list[dict]}</code>. Each check dict is <code>{"name": str, "pass": bool, "detail": str, "tier": str}</code> — <code>tier</code> is <code>"structural"</code> (raises on failure, always a generator bug) or <code>"reported, not fatal"</code> (a band calibrated against the baseline, expected to drift once events are active, printed for visibility only).</p>
+<p><strong>Structure</strong>: <code>{"structural_ok": bool, "checks": list[dict]}</code>. Each check dict is <code>{"name": str, "pass": bool, "detail": str, "tier": str}</code>. <code>tier</code> is <code>"structural"</code> (raises on failure, always a generator bug) or <code>"reported, not fatal"</code> (a band calibrated against the baseline, expected to drift once events are active, printed for visibility only).</p>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">list</span>(sim.validation.keys()))</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.validation[<span class="st">"structural_ok"</span>])</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(sim.validation[<span class="st">"checks"</span>]))</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.validation[<span class="st">"checks"</span>][<span class="dv">0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">list</span>(sim.validation.keys()))</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.validation[<span class="st">"structural_ok"</span>])</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(sim.validation[<span class="st">"checks"</span>]))</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.validation[<span class="st">"checks"</span>][<span class="dv">0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Output</strong></p>
 <pre class="text"><code>['structural_ok', 'checks']
 True
@@ -293,15 +522,15 @@ True
 <section id="datainclude_hiddenfalse" class="level2">
 <h2 class="anchored" data-anchor-id="datainclude_hiddenfalse"><code>.data(include_hidden=False)</code></h2>
 <p><strong>Signature</strong>: <code>sim.data(include_hidden: bool = False) -&gt; SimulationData</code></p>
-<p><strong>Description</strong>: Reads every exported CSV back into a <code>SimulationData</code> — attribute-style access (<code>tables.receipts</code>) over pandas DataFrames, one per visible table.</p>
+<p><strong>Description</strong>: Reads every exported CSV back into a <code>SimulationData</code>: attribute-style access (<code>tables.receipts</code>) over pandas DataFrames, one per visible table.</p>
 <p><strong>Parameters</strong>:</p>
 <ul>
-<li><code>include_hidden</code> — also load the hidden answer-key tables, each prefixed <code>hidden_</code> (the generating mechanisms behind every defect, demand event, and customer lifecycle — see <a href="./theory.html">Theory</a> and the <a href="./analysis-catalog.html">Analysis catalog</a>’s many blind-vs-graded examples).</li>
+<li><code>include_hidden</code>, also load the hidden answer-key tables, each prefixed <code>hidden_</code> (the generating mechanisms behind every defect, demand event, and customer lifecycle, see <a href="./theory.html">Theory</a> and the <a href="./analysis-catalog.html">Analysis catalog</a>’s many blind-vs-graded examples).</li>
 </ul>
 <p><strong>Returns</strong>: A <code>SimulationData</code> (see below).</p>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> sim.data()</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tables)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> sim.data()</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tables)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Output</strong></p>
 <pre class="text"><code>table                     rows   columns
 calendar                   365   date, dow, month, week, season, holiday, ...
@@ -316,15 +545,15 @@ tax_statement                1   year, vat_remitted, revenue_tax_remitted, payro
 weather                    365   date, temp_C, rain_mm, wet
 write_offs                6799   uid, units, date, reason</code></pre>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tables.receipts.head(<span class="dv">3</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tables.receipts.head(<span class="dv">3</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Output</strong></p>
 <pre class="text"><code>   receipt_id  hour payment customer_id         uid  qty  unit_price  promo  ref_receipt_id        date
 0           1     8    cash         NaN  FP-HER-009   10        1.69      0             NaN  2025-01-02
 1           1     8    cash         NaN  MP-PRM-009    3        2.65      0             NaN  2025-01-02
 2           1     8    cash         NaN  BN-BTW-009    3        0.99      0             NaN  2025-01-02</code></pre>
-<p><strong>Example</strong> — <code>include_hidden=True</code></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tables_h <span class="op">=</span> sim.data(include_hidden <span class="op">=</span> <span class="va">True</span>)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>([k <span class="cf">for</span> k <span class="kw">in</span> tables_h.keys() <span class="cf">if</span> k.startswith(<span class="st">"hidden_"</span>)][:<span class="dv">5</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Example</strong>: <code>include_hidden=True</code></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>tables_h <span class="op">=</span> sim.data(include_hidden <span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>([k <span class="cf">for</span> k <span class="kw">in</span> tables_h.keys() <span class="cf">if</span> k.startswith(<span class="st">"hidden_"</span>)][:<span class="dv">5</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Output</strong></p>
 <pre class="text"><code>['hidden_budget_paths', 'hidden_category_loadings', 'hidden_cost_paths',
  'hidden_customers', 'hidden_decision_t0']</code></pre>
@@ -335,14 +564,14 @@ write_offs                6799   uid, units, date, reason</code></pre>
 <p><strong>Description</strong>: Loads every exported CSV into a real DuckDB connection, one table per CSV, typed rather than left as strings (<code>all_varchar=False</code>). This is the connection every SQL example in the <a href="./analysis-catalog.html">Analysis catalog</a> runs against.</p>
 <p><strong>Parameters</strong>:</p>
 <ul>
-<li><code>path</code> — where to persist the database. <code>None</code> (the default) gives an in-memory database.</li>
-<li><code>include_hidden</code> — also load the hidden answer-key tables under a <code>hidden_</code> prefix, same as <code>.data()</code>.</li>
+<li><code>path</code>, where to persist the database. <code>None</code> (the default) gives an in-memory database.</li>
+<li><code>include_hidden</code>, also load the hidden answer-key tables under a <code>hidden_</code> prefix, same as <code>.data()</code>.</li>
 </ul>
 <p><strong>Returns</strong>: A <code>duckdb.DuckDBPyConnection</code>.</p>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> sim.db()</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(con.sql(<span class="st">"SELECT COUNT(*) AS n FROM receipts"</span>).fetchone())</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(con.sql(<span class="st">"SHOW TABLES"</span>).fetchall())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> sim.db()</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(con.sql(<span class="st">"SELECT COUNT(*) AS n FROM receipts"</span>).fetchone())</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(con.sql(<span class="st">"SHOW TABLES"</span>).fetchall())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Output</strong></p>
 <pre class="text"><code>(80012,)
 [('calendar',), ('cost_sheet',), ('inventory_eod',), ('locations',),
@@ -352,15 +581,15 @@ write_offs                6799   uid, units, date, reason</code></pre>
 <section id="erdinclude_hiddenfalse" class="level2">
 <h2 class="anchored" data-anchor-id="erdinclude_hiddenfalse"><code>.erd(include_hidden=False)</code></h2>
 <p><strong>Signature</strong>: <code>sim.erd(include_hidden: bool = False) -&gt; str</code></p>
-<p><strong>Description</strong>: Returns a Mermaid <code>erDiagram</code> string built from the hand-declared table relationships in <code>schema.py</code> — CSV/DuckDB tables carry no foreign-key metadata of their own to introspect, so this is curated, not inferred.</p>
+<p><strong>Description</strong>: Returns a Mermaid <code>erDiagram</code> string built from the hand-declared table relationships in <code>schema.py</code>. CSV/DuckDB tables carry no foreign-key metadata of their own to introspect, so this is curated, not inferred.</p>
 <p><strong>Parameters</strong>:</p>
 <ul>
-<li><code>include_hidden</code> — include the hidden answer-key tables in the diagram.</li>
+<li><code>include_hidden</code>, include the hidden answer-key tables in the diagram.</li>
 </ul>
 <p><strong>Returns</strong>: A Mermaid diagram string. Render it with <code>mo.mermaid(sim.erd())</code> in marimo, or paste it into any Mermaid-aware renderer (this site included).</p>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.erd())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong>Output</strong> (2,130 characters in full — every visible table, plus its declared relationships to the others — shown here trimmed)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim.erd())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong> (2,130 characters in full: every visible table, plus its declared relationships to the others, shown here trimmed)</p>
 <pre class="text"><code>erDiagram
     calendar {
         string date
@@ -392,11 +621,11 @@ write_offs                6799   uid, units, date, reason</code></pre>
 <section id="describe" class="level2">
 <h2 class="anchored" data-anchor-id="describe"><code>.describe()</code></h2>
 <p><strong>Signature</strong>: <code>sim.describe() -&gt; str</code></p>
-<p><strong>Description</strong>: Builds a fictional owner (<code>persona.py</code> — name, prior career, age; cosmetic only) who narrates this run’s own real settings and results as a letter, an intake-interview Q&amp;A, a data table, a list of questions, and the stakes — grounded entirely in this run’s actual numbers, nothing templated. Reproducible per <code>random_seed</code>. Also prints the brief to stdout as a side effect, in addition to returning it.</p>
+<p><strong>Description</strong>: Builds a fictional owner (<code>persona.py</code>: name, prior career, age, cosmetic only) who narrates this run’s own real settings and results as a letter, an intake-interview Q&amp;A, a data table, a list of questions, and the stakes, grounded entirely in this run’s actual numbers, nothing templated. Reproducible per <code>random_seed</code>. Also prints the brief to stdout as a side effect, in addition to returning it.</p>
 <p><strong>Returns</strong>: The brief as a string.</p>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> sim.describe()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong>Output</strong> (4,402 characters in full: the letter, a full intake interview, the data dictionary, the client’s own questions, and the stakes — shown here trimmed)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> sim.describe()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong> (4,402 characters in full: the letter, a full intake interview, the data dictionary, the client’s own questions, and the stakes, shown here trimmed)</p>
 <pre class="text"><code># Vinter's Market — Engagement Brief
 
 *Client: Mikael Vinter, owner, Vinter's Market, Granstigen, Tjornby.*
@@ -419,7 +648,7 @@ write_offs                6799   uid, units, date, reason</code></pre>
 *(This brief is generated from this run's own settings and its own real
 results — no hidden simulation parameter appears above. Edit freely;
 this is a starting outline, not a finished case.)*</code></pre>
-<p><strong>Note</strong>: the owner’s name, story, and phrasing change with <code>random_seed</code> — this is the same method the <a href="./analyses/index.html">Exemplar analyses</a> pages and the <a href="./analyses/generated-briefs.html">generated briefs</a> page are built from.</p>
+<p><strong>Note</strong>: the owner’s name, story, and phrasing change with <code>random_seed</code>, this is the same method the <a href="./analyses/index.html">Exemplar analyses</a> pages and the <a href="./analyses/generated-briefs.html">generated briefs</a> page are built from.</p>
 </section>
 <section id="create_analysispath-modestudent" class="level2">
 <h2 class="anchored" data-anchor-id="create_analysispath-modestudent"><code>.create_analysis(path, mode="student")</code></h2>
@@ -427,16 +656,16 @@ this is a starting outline, not a finished case.)*</code></pre>
 <p><strong>Description</strong>: Writes a real marimo notebook (<code>.py</code>, marimo’s native format) to <code>path</code>, pre-wired to load this run’s own exported tables into a DuckDB connection named <code>con</code>, with one cell per analysis-catalog layer already stubbed with that layer’s own questions as markdown prompts.</p>
 <p><strong>Parameters</strong>:</p>
 <ul>
-<li><code>path</code> — where to write the notebook.</li>
-<li><code>mode</code> — <code>"student"</code> leaves every cell as a prompt with a <code># your queries here</code> placeholder. <code>"instructor"</code> additionally fills in a worked first pass.</li>
+<li><code>path</code>, where to write the notebook.</li>
+<li><code>mode</code>, <code>"student"</code> leaves every cell as a prompt with a <code># your queries here</code> placeholder. <code>"instructor"</code> additionally fills in a worked first pass.</li>
 </ul>
 <p><strong>Returns</strong>: The path it wrote to.</p>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> sim.create_analysis(</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    path <span class="op">=</span> <span class="st">"analysis.py"</span>,</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    mode <span class="op">=</span> <span class="st">"student"</span>,</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong>Output</strong> (1,659 characters in <code>student</code> mode for this run; <code>instructor</code> mode is 2,184 — the extra length is the worked first pass added to each cell — shown here trimmed)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> sim.create_analysis(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    path <span class="op">=</span> <span class="st">"analysis.py"</span>,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    mode <span class="op">=</span> <span class="st">"student"</span>,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Output</strong> (1,659 characters in <code>student</code> mode for this run, <code>instructor</code> mode is 2,184: the extra length is the worked first pass added to each cell, shown here trimmed)</p>
 <pre class="text"><code>import marimo
 
 __generated_with = "0.23.14"
@@ -478,51 +707,51 @@ def _layer1describethebusiness(con, mo):
 <section id="export_settingspath" class="level2">
 <h2 class="anchored" data-anchor-id="export_settingspath"><code>.export_settings(path)</code></h2>
 <p><strong>Signature</strong>: <code>sim.export_settings(path: str | Path) -&gt; None</code></p>
-<p><strong>Description</strong>: Writes <code>sim.settings</code> (already resolved and validated, not the partial dict passed to <code>.setup()</code>) to <code>path</code> as indented JSON — the natural way to save a specific run’s configuration for later reuse: <code>GroceryStoreSimulation().setup(json.load(open(path)))</code>.</p>
+<p><strong>Description</strong>: Writes <code>sim.settings</code> (already resolved and validated, not the partial dict passed to <code>.setup()</code>) to <code>path</code> as indented JSON, the natural way to save a specific run’s configuration for later reuse: <code>GroceryStoreSimulation().setup(json.load(open(path)))</code>.</p>
 <p><strong>Parameters</strong>:</p>
 <ul>
-<li><code>path</code> — where to write the JSON file.</li>
+<li><code>path</code>, where to write the JSON file.</li>
 </ul>
 <p><strong>Returns</strong>: <code>None</code>.</p>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>sim.export_settings(<span class="st">"settings.json"</span>)</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">open</span>(<span class="st">"settings.json"</span>).read())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>sim.export_settings(<span class="st">"settings.json"</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">open</span>(<span class="st">"settings.json"</span>).read())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Output</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"basic"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"name"</span><span class="fu">:</span> <span class="st">"My Grocery Store"</span><span class="fu">,</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"random_seed"</span><span class="fu">:</span> <span class="dv">20260712</span><span class="fu">,</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"year"</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"budget"</span><span class="fu">:</span> <span class="dv">60000</span><span class="fu">,</span></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"year_start"</span><span class="fu">:</span> <span class="st">"2025"</span><span class="fu">,</span></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"retain_earning"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"retain_earning_from"</span><span class="fu">:</span> <span class="kw">null</span></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"events"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"tax_cut"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"tax_raise"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"food_vat_cut"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"typhoon"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"competitor"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"operational_hazard"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"war"</span><span class="fu">:</span> <span class="kw">null</span></span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"potential_investment"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"more_staff"</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"bigger_store"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
-<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"upgrade_infrastructure"</span><span class="fu">:</span> <span class="kw">false</span></span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"basic"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"name"</span><span class="fu">:</span> <span class="st">"My Grocery Store"</span><span class="fu">,</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"random_seed"</span><span class="fu">:</span> <span class="dv">20260712</span><span class="fu">,</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"year"</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"budget"</span><span class="fu">:</span> <span class="dv">60000</span><span class="fu">,</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"year_start"</span><span class="fu">:</span> <span class="st">"2025"</span><span class="fu">,</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"retain_earning"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"retain_earning_from"</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"events"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"tax_cut"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"tax_raise"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"food_vat_cut"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"typhoon"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"competitor"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"operational_hazard"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"war"</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"potential_investment"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"more_staff"</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"bigger_store"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"upgrade_infrastructure"</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="cleanup" class="level2">
 <h2 class="anchored" data-anchor-id="cleanup"><code>.cleanup()</code></h2>
 <p><strong>Signature</strong>: <code>sim.cleanup() -&gt; None</code></p>
-<p><strong>Description</strong>: Removes the temp export directory, if <code>.simulate()</code> was called with <code>out_dir=None</code> (its default). Safe to call unconditionally — a no-op if nothing was ever simulated, or if a real <code>out_dir</code> was given (your own directory is never deleted for you).</p>
+<p><strong>Description</strong>: Removes the temp export directory, if <code>.simulate()</code> was called with <code>out_dir=None</code> (its default). Safe to call unconditionally: a no-op if nothing was ever simulated, or if a real <code>out_dir</code> was given (your own directory is never deleted for you).</p>
 <p><strong>Returns</strong>: <code>None</code>.</p>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim._out_dir.exists())</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>sim.cleanup()</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim._out_dir.exists())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim._out_dir.exists())</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>sim.cleanup()</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sim._out_dir.exists())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Output</strong></p>
 <pre class="text"><code>True
 False</code></pre>
@@ -532,23 +761,23 @@ False</code></pre>
 <p><strong>Description</strong>: The object returned by <code>.data()</code>. A thin wrapper, not a dict subclass, but it supports attribute access, item access, and iteration over table names.</p>
 <p><strong>Interface</strong>:</p>
 <ul>
-<li><code>tables.receipts</code> — attribute access</li>
-<li><code>tables["receipts"]</code> — <code>__getitem__</code></li>
-<li><code>list(tables)</code> — <code>__iter__</code> over table names</li>
-<li><code>tables.keys()</code> — same as <code>list(tables)</code>, spelled the familiar way</li>
-<li><code>repr(tables)</code> — the compact schema summary shown under <code>.data()</code> above</li>
+<li><code>tables.receipts</code>: attribute access</li>
+<li><code>tables["receipts"]</code>: <code>__getitem__</code></li>
+<li><code>list(tables)</code>: <code>__iter__</code> over table names</li>
+<li><code>tables.keys()</code>: same as <code>list(tables)</code>, spelled the familiar way</li>
+<li><code>repr(tables)</code>: the compact schema summary shown under <code>.data()</code> above</li>
 </ul>
 <p><strong>Example</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> sim.data()</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>tables.receipts</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>tables[<span class="st">"receipts"</span>]</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(tables)</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>tables.keys()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> sim.data()</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>tables.receipts</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>tables[<span class="st">"receipts"</span>]</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(tables)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>tables.keys()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="further-reading" class="level2">
 <h2 class="anchored" data-anchor-id="further-reading">Further reading</h2>
-<p>This page covers the object model; <a href="./theory.html">Theory</a> covers <em>why</em> it’s built this way (the layer split that makes counterfactuals and grading possible), the <a href="./analysis-catalog.html">Analysis catalog</a> is 62 worked questions against these same methods, and <a href="./analyses/index.html">Exemplar analyses</a> are two full worked cases end to end.</p>
+<p>This page covers the object model. <a href="./theory.html">Theory</a> covers <em>why</em> it’s built this way (the layer split that makes counterfactuals and grading possible), the <a href="./analysis-catalog.html">Analysis catalog</a> is 62 worked questions against these same methods, and <a href="./analyses/index.html">Exemplar analyses</a> are two full worked cases end to end.</p>
 
 
 </section>

@@ -109,6 +109,10 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Analysis catalog</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="../ground-truth.html"> 
+<span class="menu-text">Checking ground truth</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="../analyses/index.html"> 
 <span class="menu-text">Exemplar analyses</span></a>
   </li>  
@@ -165,7 +169,7 @@ ul.task-list li input[type="checkbox"] {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Auto-generated briefs</h1>
-<p class="subtitle lead">Two more engagement types, straight out of describe() — unedited</p>
+<p class="subtitle lead">Two more engagement types, straight out of describe(), unedited</p>
 </div>
 
 
@@ -182,12 +186,12 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>The <a href="../analyses/case-description.html">case description</a> is a hand-curated case: a real <code>grocery-sim</code> run, but with a full <a href="../analyses/stakeholder-report.html">stakeholder report</a> written on top of it, worked and checked line by line. The two briefs below are different on purpose — they are the <strong>raw, unedited output of <code>sim.describe()</code></strong>, shown to demonstrate that the brief generator itself produces genuinely different kinds of engagements depending on what actually happened in the run, not just different flavor text on the same story.</p>
-<p><code>grocery-sim</code> classifies every run along two axes: how the business is actually doing (<code>struggling</code> / <code>thriving</code> / <code>uncertain</code>, from the real profit trajectory) and what kind of engagement that performance calls for (<code>diagnose</code> a specific cause, <code>optimize</code> day-to-day operations, or <code>invest</code> retained earnings — see <a href="../theory.html">Theory</a> for the reasoning behind the split). Malm’s Market is a <code>diagnose</code> case. The two below are <code>optimize</code> and <code>invest</code>, generated from <code>grocery_sim.recipes</code> — named, empirically verified settings recipes that reliably land on a given engagement type (shipped in the package specifically so a case-writer doesn’t have to hope a random seed produces the exercise they want).</p>
-<p>Neither brief below has an accompanying analysis report — per <code>describe()</code>’s own closing line, each is “a starting outline, not a finished case.”</p>
+<p>The <a href="../analyses/case-description.html">case description</a> is a hand-curated case: a real <code>grocery-sim</code> run, but with a full <a href="../analyses/stakeholder-report.html">stakeholder report</a> written on top of it, worked and checked line by line. The two briefs below are different on purpose: they are the <strong>raw, unedited output of <code>sim.describe()</code></strong>, shown to demonstrate that the brief generator itself produces genuinely different kinds of engagements depending on what actually happened in the run, not just different flavor text on the same story.</p>
+<p><code>grocery-sim</code> classifies every run along two axes: how the business is actually doing (<code>struggling</code> / <code>thriving</code> / <code>uncertain</code>, from the real profit trajectory) and what kind of engagement that performance calls for (<code>diagnose</code> a specific cause, <code>optimize</code> day-to-day operations, or <code>invest</code> retained earnings, see <a href="../theory.html">Theory</a> for the reasoning behind the split). Malm’s Market is a <code>diagnose</code> case. The two below are <code>optimize</code> and <code>invest</code>, generated from <code>grocery_sim.recipes</code> (named, empirically verified settings recipes that reliably land on a given engagement type, shipped in the package specifically so a case-writer doesn’t have to hope a random seed produces the exercise they want).</p>
+<p>Neither brief below has an accompanying analysis report: per <code>describe()</code>’s own closing line, each is “a starting outline, not a finished case.”</p>
 <section id="optimize-an-operationally-sloppy-year" class="level2">
 <h2 class="anchored" data-anchor-id="optimize-an-operationally-sloppy-year">Optimize: an operationally sloppy year</h2>
-<p>Generated from <code>grocery_sim.recipes.RECIPES["optimize"]</code> — a struggling one-year run with elevated, cost-priced shrinkage. The engagement reads as “find where I’m bleeding money,” not “find the one thing that went wrong.”</p>
+<p>Generated from <code>grocery_sim.recipes.RECIPES["optimize"]</code>, a struggling one-year run with elevated, cost-priced shrinkage. The engagement reads as “find where I’m bleeding money,” not “find the one thing that went wrong.”</p>
 <p><em>Client: Erik Malm, owner, Malm’s Market, Bjorkvagen, Solby.</em></p>
 <section id="the-letter" class="level3">
 <h3 class="anchored" data-anchor-id="the-letter">The letter</h3>
@@ -295,7 +299,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="invest-real-unspent-retained-earnings" class="level2">
 <h2 class="anchored" data-anchor-id="invest-real-unspent-retained-earnings">Invest: real, unspent retained earnings</h2>
-<p>Generated from <code>grocery_sim.recipes.RECIPES["invest"]</code> — a thriving three-year run where retained earnings have cleared the smallest investment’s own calibrated capex. The engagement reads as a capital question, not a diagnosis: what should the owner do with the money.</p>
+<p>Generated from <code>grocery_sim.recipes.RECIPES["invest"]</code>, a thriving three-year run where retained earnings have cleared the smallest investment’s own calibrated capex. The engagement reads as a capital question, not a diagnosis: what should the owner do with the money.</p>
 <p><em>Client: Mikael Lindqvist, owner, Lindqvist’s Market, Granstigen, Vidnes.</em></p>
 <section id="the-letter-1" class="level3">
 <h3 class="anchored" data-anchor-id="the-letter-1">The letter</h3>

@@ -138,6 +138,10 @@ window.Quarto = {
 <span class="menu-text">Analysis catalog</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./ground-truth.html"> 
+<span class="menu-text">Checking ground truth</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./analyses/index.html"> 
 <span class="menu-text">Exemplar analyses</span></a>
   </li>  
@@ -169,18 +173,17 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#the-problem-with-the-usual-two-options" id="toc-the-problem-with-the-usual-two-options" class="nav-link active" data-scroll-target="#the-problem-with-the-usual-two-options">The problem with the usual two options</a></li>
-  <li><a href="#two-layers-and-the-rule-that-never-gets-broken" id="toc-two-layers-and-the-rule-that-never-gets-broken" class="nav-link" data-scroll-target="#two-layers-and-the-rule-that-never-gets-broken">Two layers, and the rule that never gets broken</a></li>
-  <li><a href="#the-customers-purchase-decision" id="toc-the-customers-purchase-decision" class="nav-link" data-scroll-target="#the-customers-purchase-decision">The customer’s purchase decision</a></li>
-  <li><a href="#the-owners-opening-decision" id="toc-the-owners-opening-decision" class="nav-link" data-scroll-target="#the-owners-opening-decision">The owner’s opening decision</a></li>
-  <li><a href="#day-to-day-adaptive-policy" id="toc-day-to-day-adaptive-policy" class="nav-link" data-scroll-target="#day-to-day-adaptive-policy">Day-to-day adaptive policy</a></li>
-  <li><a href="#the-expansion-decision" id="toc-the-expansion-decision" class="nav-link" data-scroll-target="#the-expansion-decision">The expansion decision</a></li>
-  <li><a href="#the-macro-layer-weather-demand-and-cost-shocks" id="toc-the-macro-layer-weather-demand-and-cost-shocks" class="nav-link" data-scroll-target="#the-macro-layer-weather-demand-and-cost-shocks">The macro layer: weather, demand, and cost shocks</a></li>
-  <li><a href="#taxation" id="toc-taxation" class="nav-link" data-scroll-target="#taxation">Taxation</a></li>
-  <li><a href="#why-the-split-makes-counterfactuals-free" id="toc-why-the-split-makes-counterfactuals-free" class="nav-link" data-scroll-target="#why-the-split-makes-counterfactuals-free">Why the split makes counterfactuals free</a></li>
-  <li><a href="#the-three-profit-figures" id="toc-the-three-profit-figures" class="nav-link" data-scroll-target="#the-three-profit-figures">The three profit figures</a></li>
-  <li><a href="#the-recording-layers-own-algebra" id="toc-the-recording-layers-own-algebra" class="nav-link" data-scroll-target="#the-recording-layers-own-algebra">The recording layer’s own algebra</a></li>
-  <li><a href="#read-more" id="toc-read-more" class="nav-link" data-scroll-target="#read-more">Read more</a></li>
+  <li><a href="#model-structure" id="toc-model-structure" class="nav-link active" data-scroll-target="#model-structure">1. Model structure</a></li>
+  <li><a href="#the-customers-purchase-decision" id="toc-the-customers-purchase-decision" class="nav-link" data-scroll-target="#the-customers-purchase-decision">2. The customer’s purchase decision</a></li>
+  <li><a href="#the-owners-opening-decision" id="toc-the-owners-opening-decision" class="nav-link" data-scroll-target="#the-owners-opening-decision">3. The owner’s opening decision</a></li>
+  <li><a href="#day-to-day-adaptive-policy" id="toc-day-to-day-adaptive-policy" class="nav-link" data-scroll-target="#day-to-day-adaptive-policy">4. Day-to-day adaptive policy</a></li>
+  <li><a href="#the-expansion-decision" id="toc-the-expansion-decision" class="nav-link" data-scroll-target="#the-expansion-decision">5. The expansion decision</a></li>
+  <li><a href="#the-macro-layer-weather-demand-and-cost-processes" id="toc-the-macro-layer-weather-demand-and-cost-processes" class="nav-link" data-scroll-target="#the-macro-layer-weather-demand-and-cost-processes">6. The macro layer: weather, demand, and cost processes</a></li>
+  <li><a href="#taxation" id="toc-taxation" class="nav-link" data-scroll-target="#taxation">7. Taxation</a></li>
+  <li><a href="#identification-counterfactual-replay" id="toc-identification-counterfactual-replay" class="nav-link" data-scroll-target="#identification-counterfactual-replay">8. Identification: counterfactual replay</a></li>
+  <li><a href="#the-three-profit-figures" id="toc-the-three-profit-figures" class="nav-link" data-scroll-target="#the-three-profit-figures">9. The three profit figures</a></li>
+  <li><a href="#the-recording-layer" id="toc-the-recording-layer" class="nav-link" data-scroll-target="#the-recording-layer">10. The recording layer</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -190,7 +193,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Theory</h1>
-<p class="subtitle lead">The intuition behind the construction — condensed from the full paper</p>
+<p class="subtitle lead">Model specification, condensed from the full paper</p>
 </div>
 
 
@@ -207,68 +210,63 @@ window.Quarto = {
 </header>
 
 
-<p>This page is a web-friendly walkthrough of the ideas behind <code>grocery-sim</code>, condensed but not watered down — every equation below is copied from the same model that generates the data, not a simplified stand-in for it. For the complete derivations, every calibrated parameter, and the causal-graph figures, see <a href="https://github.com/ChinhMaiGit/grocery-sim/blob/main/paper/paper.pdf">the full paper (PDF)</a>.</p>
-<section id="the-problem-with-the-usual-two-options" class="level2">
-<h2 class="anchored" data-anchor-id="the-problem-with-the-usual-two-options">The problem with the usual two options</h2>
-<p>Hand an analyst a real business’s spreadsheet, and she can check whether her conclusions sound reasonable — but not whether they are <em>true</em>, because nobody, not her, not the business itself, actually knows the mechanism that produced the numbers. Hand her a spreadsheet generated by drawing every column from a convenient distribution, and she can check her work against the generating code, but there’s nothing underneath worth discovering: no owner who misread a signal, no competitor who mattered less than everyone assumed, no honest mess in the paperwork to clean up before the real question can even be asked.</p>
-<p><code>grocery-sim</code> is a third option: build the business first, as a world with people, budgets, and a street, and only afterward let the paperwork fall out of what that world actually did. The result is a dataset messy enough to feel real, where every number still has a traceable cause — a conclusion can be checked not just for plausibility but for truth.</p>
-</section>
-<section id="two-layers-and-the-rule-that-never-gets-broken" class="level2">
-<h2 class="anchored" data-anchor-id="two-layers-and-the-rule-that-never-gets-broken">Two layers, and the rule that never gets broken</h2>
-<p>The world is built from two layers that are never allowed to blend into one another:</p>
+<p>This page states the model <code>grocery-sim</code> implements: the decision problems solved by each agent, the exogenous processes governing the macro environment, and the identity results that follow from their separation. Every equation is reproduced unchanged from the generating code, not a simplified stand-in for it. Complete derivations, every calibrated parameter, and the causal-graph figures are in <a href="https://github.com/ChinhMaiGit/grocery-sim/blob/main/paper/paper.pdf">the full paper (PDF)</a>.</p>
+<section id="model-structure" class="level2">
+<h2 class="anchored" data-anchor-id="model-structure">1. Model structure</h2>
+<p><strong>Definition 1 (Two-layer decomposition).</strong> The economy is partitioned into a <em>micro layer</em> and a <em>macro layer</em>, and no variable is a member of both.</p>
 <ul>
-<li><strong>The micro layer — decisions.</strong> A customer choosing between two cartons of milk. An owner choosing where to open a store before a single customer has walked through the door. The same owner choosing, later, whether to hire, and whether to expand, under capital he does not have room to lose. Every one of these is a real decision, built from plain human intuition first and only then written as a precise mathematical object.</li>
-<li><strong>The macro layer — the script.</strong> The weather, the calendar, and the macroeconomic shocks are scripted in advance and never listen to anything the simulated people do. A supply shock happens on a fixed date whether or not the owner reacts well to it.</li>
+<li>The <strong>micro layer</strong> consists of every decision solved by an agent given the information available at the time of the decision: a customer’s purchase, an owner’s opening allocation, an owner’s restocking and pricing policy, an owner’s expansion decision, and a household’s tenure in the customer panel.</li>
+<li>The <strong>macro layer</strong> consists of every process fixed in advance of the simulation and independent of realized micro-layer outcomes: the calendar, weather, macroeconomic cost shocks, and the tax schedule.</li>
 </ul>
-<p>The distinction is not a modeling convenience — it’s the whole point. It’s what lets a later reader ask <em>what would have happened without the storm, or without the competitor</em>, and get an answer that is <strong>exactly true rather than merely estimated.</strong></p>
+<p>This partition is an identifying assumption, not a modeling convenience. Section 8 states the counterfactual-identification result that follows from it.</p>
 </section>
 <section id="the-customers-purchase-decision" class="level2">
-<h2 class="anchored" data-anchor-id="the-customers-purchase-decision">The customer’s purchase decision</h2>
-<p>Every product <span class="math inline">\(s\)</span> offers customer <span class="math inline">\(i\)</span> a utility</p>
+<h2 class="anchored" data-anchor-id="the-customers-purchase-decision">2. The customer’s purchase decision</h2>
+<p>Customer <span class="math inline">\(i\)</span>’s utility for product <span class="math inline">\(s\)</span> is</p>
 <p><span class="math display">\[
 U_{is} = \theta_{ic} + a_s + \gamma\left(1 - \left|b_i -
 \text{BrandLevel}_s\right|\right) - \beta_i\,\text{Price}_s ,
 \]</span></p>
-<p>where <span class="math inline">\(\theta_{ic}\)</span> is her current need for the category, <span class="math inline">\(b_i\)</span> is her brand affinity, <span class="math inline">\(\text{BrandLevel}_s\)</span> is the product’s position on that same spectrum, <span class="math inline">\(\gamma\)</span> sets how much a good brand match is worth, <span class="math inline">\(\beta_i\)</span> is her own price sensitivity, and <span class="math inline">\(a_s \sim \text{Normal}(0, 0.8)\)</span> is an unmodeled per-product appeal — packaging, familiarity, the thousand reasons one product outsells its shelf neighbor for no principled reason at all. Alongside every stocked product sits an outside option (buy nothing here, or buy elsewhere), and the actual choice is drawn as</p>
+<p>where <span class="math inline">\(\theta_{ic}\)</span> is the customer’s current need for category <span class="math inline">\(c\)</span>, <span class="math inline">\(b_i\)</span> is brand affinity, <span class="math inline">\(\text{BrandLevel}_s\)</span> is the product’s position on the same scale, <span class="math inline">\(\gamma\)</span> weights the brand-match term, <span class="math inline">\(\beta_i\)</span> is price sensitivity, and <span class="math inline">\(a_s \sim \text{Normal}(0, 0.8)\)</span> is an unmodeled per-product intercept standing in for idiosyncratic appeal not otherwise represented in the model. An outside option <span class="math inline">\(U_0\)</span> is available alongside every stocked product, and the realized choice is</p>
 <p><span class="math display">\[
 \text{choice} \sim \text{Categorical}\big(\text{softmax}(U_{is_1}, \ldots,
 U_{is_K}, U_0)\big) .
 \]</span></p>
-<p>The softmax form isn’t a convenient approximation. If each product’s utility is disturbed by an independent Gumbel shock and the customer simply picks the option with the highest noisy utility, the resulting choice probabilities are <em>exactly</em> the softmax of the mean utilities — McFadden’s random utility result. It’s also exactly the model a real discrete-choice analyst would fit to purchase histories, so grading a later exercise against the true parameters is a fair comparison of like against like.</p>
-<p>Need itself, <span class="math inline">\(\theta_{ict}\)</span>, is not a free-floating random draw — it comes from a pantry that drains and refills:</p>
+<p><strong>Remark 1.</strong> The softmax form is not an approximation device. If each product’s utility is perturbed by an independent, identically distributed Gumbel shock and the customer selects the maximum, the induced choice probabilities are exactly the softmax of the mean utilities (McFadden’s random utility result). This is also the model a discrete-choice estimator would fit to purchase histories, so a later exercise’s recovered parameters are directly comparable to the true generating values.</p>
+<p>Need <span class="math inline">\(\theta_{ict}\)</span> is a state variable, not an i.i.d. draw. It is governed by a pantry process,</p>
 <p><span class="math display">\[
 P_{ic,t+1} \overset{\leftarrow}{=} \max(0,\ P_{ict} - r_{ict}) +
 \text{units purchased}, \qquad
 \theta_{ict} = \alpha\,\frac{\max(0,\ P^{\text{tgt}}_{ic} -
 P_{ict})}{P^{\text{tgt}}_{ic}} ,
 \]</span></p>
-<p>the shortfall against a target of ten days’ comfortable cover. The drain rate <span class="math inline">\(r_{ict}\)</span> scales with the season’s demand modifier rather than adding to desire directly, so a hot week doesn’t make a household want ice cream in the abstract — it makes the household eat the ice cream in the freezer faster. When the chosen product is out of stock, the original intent is logged as a latent truth under cause <code>stockout</code> before the softmax is re-evaluated with that product removed — an honest ledger of demand that never appears in the sales data at all.</p>
+<p>the shortfall against a target of ten days’ cover. The drain rate <span class="math inline">\(r_{ict}\)</span> scales with the seasonal demand modifier rather than entering <span class="math inline">\(\theta\)</span> directly, so a demand shock operates through consumption of existing stock rather than through an independent increment to desire. When the selected product is out of stock, the original choice is recorded as a latent outcome under cause <code>stockout</code>, and the softmax is re-evaluated over the remaining assortment.</p>
 </section>
 <section id="the-owners-opening-decision" class="level2">
-<h2 class="anchored" data-anchor-id="the-owners-opening-decision">The owner’s opening decision</h2>
-<p>The true demand potential of a location for a category is <span class="math inline">\(D_{cl} = \text{Households}_l \cdot \mu_c\)</span> — ground truth nobody in the model observes directly. The owner’s belief is that truth seen through a noisy, mildly optimistic lens,</p>
+<h2 class="anchored" data-anchor-id="the-owners-opening-decision">3. The owner’s opening decision</h2>
+<p>The true demand potential of location <span class="math inline">\(l\)</span> for category <span class="math inline">\(c\)</span> is <span class="math inline">\(D_{cl} = \text{Households}_l \cdot \mu_c\)</span>, unobserved by the owner. The owner’s belief is a log-normal perturbation of this quantity,</p>
 <p><span class="math display">\[
 \hat{D}_{cl} = D_{cl}\,e^{\delta_c}, \qquad \delta_c \sim
 \text{Normal}(0.10,\ 0.25) ,
 \]</span></p>
-<p>on the log scale because people misjudge quantities in ratios, not absolute units, and the positive mean encodes a documented behavioral regularity: new owners tend to be mildly overoptimistic. That single choice is what causes the store to systematically overstock in its early months — the size of the overstocking is computable exactly from the belief error, not asserted as an unexplained fact about the data.</p>
-<p>With beliefs, costs, and a handful of standing policies fixed — a markup <span class="math inline">\(m_c\)</span>, a safety-stock fraction <span class="math inline">\(\eta = 0.30\)</span> of believed monthly demand, a cap <span class="math inline">\(\rho = 0.05\)</span> on any one product’s share of its category — the opening decision is a mixed integer linear program:</p>
+<p>with the positive mean encoding a calibrated overoptimism parameter. The opening decision, conditional on beliefs, costs, and a fixed markup <span class="math inline">\(m_c\)</span>, safety-stock fraction <span class="math inline">\(\eta = 0.30\)</span>, and category-share cap <span class="math inline">\(\rho = 0.05\)</span>, is a mixed integer linear program:</p>
 <p><span class="math display">\[
 \max \;\; \sum_{c}\sum_{s \in S_c} (1+m_c)\,\text{Cost}_s \cdot u_s \;-\;
 \text{TotalCost}_0
 \]</span></p>
-<p>subject to, among others,</p>
+<p>subject to</p>
 <p><span class="math display">\[
 \sum_l y_l = 1, \qquad
 u_s \leq q_s, \qquad
 \sum_{s \in S_c} u_s \leq \sum_l y_l\,\hat{D}_{cl}, \qquad
 \text{TotalCost}_0 \leq \text{InitialCapital}_0 ,
 \]</span></p>
-<p>with <span class="math inline">\(y_l \in \{0,1\}\)</span> the chosen location, <span class="math inline">\(q_s \geq 0\)</span> the quantity purchased, and <span class="math inline">\(u_s \geq 0\)</span> the quantity the owner believes he’ll sell. A mixed integer program is the right tool because the decision is genuinely joint: location and listing choices are binary, purchase quantities are continuous, and every constraint linking them is linear once the location is fixed. Because the belief error carries a positive mean, the optimum systematically overstocks relative to the truth — so when an analyst later finds bloated inventory in the cost sheets, there’s a real mechanism behind it, not an injected anomaly.</p>
+<p>with <span class="math inline">\(y_l \in \{0,1\}\)</span> the location indicator, <span class="math inline">\(q_s \geq 0\)</span> the quantity ordered, and <span class="math inline">\(u_s \geq 0\)</span> the believed sales quantity. The program is mixed-integer because location and listing decisions are binary while purchase quantities are continuous, with all constraints linear conditional on the location.</p>
+<p><strong>Proposition 1.</strong> Since <span class="math inline">\(\mathbb{E}[\delta_c] &gt; 0\)</span>, the optimal solution <span class="math inline">\(u_s^*, q_s^*\)</span> systematically overstocks relative to the true optimum under <span class="math inline">\(D_{cl}\)</span>. The magnitude of overstocking is a deterministic function of <span class="math inline">\(\delta_c\)</span> and is therefore computable exactly from the model parameters, not merely observable as an empirical regularity.</p>
 </section>
 <section id="day-to-day-adaptive-policy" class="level2">
-<h2 class="anchored" data-anchor-id="day-to-day-adaptive-policy">Day-to-day adaptive policy</h2>
-<p>Once the shop is open, restocking is sized off a trailing four-week average of the owner’s own recorded sales,</p>
+<h2 class="anchored" data-anchor-id="day-to-day-adaptive-policy">4. Day-to-day adaptive policy</h2>
+<p>Restocking after opening is sized from a trailing four-week average of recorded sales,</p>
 <p><span class="math display">\[
 \hat{D}^{\text{op}}_{cw} \overset{\leftarrow}{=} \frac{1}{4}\sum_{j=1}^{4}
 \text{Sales}_{c,w-j} ,
@@ -276,104 +274,104 @@ u_s \leq q_s, \qquad
 \text{Target}_{sw} = \left(\tfrac{R+L}{7} + \eta\,\tfrac{30}{7}\right)
 \hat{D}^{\text{op}}_{cw}\,\tilde{\sigma}_{sw} ,
 \]</span></p>
-<p>with <span class="math inline">\(R = 7\)</span> days between reviews and <span class="math inline">\(L = 2\)</span> days of lead time. The rule carries two realistic flaws by construction: it’s backward-looking, so a rising trend is always underestimated by the average of the weeks before it rose, and it’s blind to censoring, since the sales it averages are themselves truncated by the store’s own past stockouts — a product that stocks out repeatedly reports weak sales, earns a smaller share of the next order, and stocks out again.</p>
-<p>Perishable stock spoils overnight,</p>
+<p>with <span class="math inline">\(R = 7\)</span> days between reviews and <span class="math inline">\(L = 2\)</span> days lead time. The rule has two structural properties, both retained deliberately rather than corrected. It is backward-looking: a trend change is detected only after it has already occurred. It is not censoring-aware: <span class="math inline">\(\text{Sales}\)</span> is itself truncated by prior stockouts, producing a feedback loop in which an under-ordered product reports depressed sales, receives a smaller subsequent order, and stocks out again.</p>
+<p>Perishable inventory spoils according to</p>
 <p><span class="math display">\[
 \text{Spoiled}_{st} \sim \text{Binomial}\big(\text{OnHand}_{st},\
 \min(0.35,\ \lambda^d_{c(s)}\,f_{c(s),t})\big) ,
 \]</span></p>
-<p>with the spoilage factor <span class="math inline">\(f_{ct}\)</span> built log-additively from a heat term (strongest for ambient perishables), a cold-chain strain term tied to the macro shocks below, and an idiosyncratic batch-luck term.</p>
+<p>with the spoilage factor <span class="math inline">\(f_{ct}\)</span> a log-additive function of a temperature term, a cold-chain strain term linked to the macro cost shocks of Section 6, and an idiosyncratic batch-level term.</p>
 </section>
 <section id="the-expansion-decision" class="level2">
-<h2 class="anchored" data-anchor-id="the-expansion-decision">The expansion decision</h2>
-<p>From the start of year two, the owner retains a share <span class="math inline">\(\rho_{RE} = 0.5\)</span> of every profitable month’s after-tax result, drawing the rest as income and neither drawing nor retaining anything in a loss month:</p>
+<h2 class="anchored" data-anchor-id="the-expansion-decision">5. The expansion decision</h2>
+<p>From the start of year two, the owner retains a share <span class="math inline">\(\rho_{RE} = 0.5\)</span> of after-tax profit in profitable months,</p>
 <p><span class="math display">\[
-\text{draw}_m = (1-\rho_{RE})\,\max(0, \pi_m) .
+\text{draw}_m = (1-\rho_{RE})\,\max(0, \pi_m) ,
 \]</span></p>
-<p>Once retained earnings <em>and</em> available cash both cross fixed thresholds,</p>
+<p>with no draw or retention in loss months. The expansion trigger is a joint threshold condition,</p>
 <p><span class="math display">\[
 \text{RE}_m \geq K_{\text{exp}}, \qquad
 \text{cash}_m - \text{tax\_reserve}_m \geq C_{\text{exp}} ,
 \]</span></p>
-<p>the owner expands on the first day of the following month. This is a threshold decision framed around what he can afford to lose, not a discounted-cash-flow forecast — closer to what entrepreneurship research calls <em>effectuation</em> than to a textbook net-present-value calculation. A counterfactual twin that disables the threshold entirely shows the expansion’s true cost across its first fourteen months substantially exceeds the margin the extra capacity generates: the fixed cost of an extra wage is paid in full while the extra revenue is diluted by the ordinary grocery margin.</p>
+<p>evaluated monthly. Expansion occurs on the first day of the following month once both thresholds are met. This is a threshold decision rule conditioned on affordable loss rather than a discounted-cash-flow optimization, consistent with the effectuation framework in entrepreneurship research rather than a net-present-value calculation. Disabling this rule as a counterfactual shows the expansion’s realized cost over its first fourteen months exceeds the incremental margin generated, since a fixed wage obligation is incurred in full while incremental revenue is realized at the category’s ordinary margin.</p>
 </section>
-<section id="the-macro-layer-weather-demand-and-cost-shocks" class="level2">
-<h2 class="anchored" data-anchor-id="the-macro-layer-weather-demand-and-cost-shocks">The macro layer: weather, demand, and cost shocks</h2>
-<p>Temperature follows a deterministic annual cycle plus a persistent stochastic anomaly,</p>
+<section id="the-macro-layer-weather-demand-and-cost-processes" class="level2">
+<h2 class="anchored" data-anchor-id="the-macro-layer-weather-demand-and-cost-processes">6. The macro layer: weather, demand, and cost processes</h2>
+<p>Temperature follows a deterministic annual cycle with a persistent stochastic anomaly,</p>
 <p><span class="math display">\[
 T_t = \mu_T(t) + \varepsilon_t, \qquad
 \mu_T(t) = 12 + 9\cos\!\left(\tfrac{2\pi(t-200)}{365}\right), \qquad
 \varepsilon_t = \phi\,\varepsilon_{t-1} + \text{Normal}(0,\sigma_\varepsilon) ,
 \]</span></p>
-<p>with <span class="math inline">\(\phi = 0.7\)</span> — an autoregressive form chosen because it’s the maximum entropy stationary process consistent with the two facts about weather worth encoding: a stable typical spread, and warm or cold spells that persist for days rather than resetting each morning.</p>
-<p>A daily, per-category demand modifier is built log-additively from three genuinely distinct causal channels,</p>
+<p>with <span class="math inline">\(\phi = 0.7\)</span>. This is the maximum-entropy stationary process consistent with a fixed marginal spread and positive autocorrelation in anomalies, the two properties calibration targets.</p>
+<p>The per-category demand modifier is log-additive in three components,</p>
 <p><span class="math display">\[
 \log M_{ct} = a_c \cos\!\left(\tfrac{2\pi(t-200)}{365}\right) +
 \kappa_c\, z_t + h_c\, H_t ,
 \]</span></p>
-<p>where <span class="math inline">\(z_t\)</span> is the standardized temperature anomaly and <span class="math inline">\(H_t\)</span> flags days before a major holiday: <span class="math inline">\(a_c\)</span> is the predictable seasonal amplitude, <span class="math inline">\(\kappa_c\)</span> the pure weather effect, <span class="math inline">\(h_c\)</span> the holiday stock-up surge. One category is deliberately given all-zero loadings, so nothing in preferences makes it more or less wanted at any time of year — yet its observed sales still aren’t flat, because every category draws from the same household budget, and other categories’ seasonal surges crowd it out. An analyst who stops at an apparent seasonal pattern here has mistaken a budget-mediation effect for a genuine preference effect.</p>
-<p>Wholesale cost shocks arrive as a marked point process, <span class="math inline">\(K \sim
-\text{Poisson}(1.5)\)</span> events at <span class="math inline">\(\tau_k \sim \text{Uniform}(1,365)\)</span>, each with peak magnitude <span class="math inline">\(\zeta_k \sim \text{LogNormal}(\log\zeta_0,\ 0.3)\)</span> and a ramp-up/decay trajectory</p>
+<p>with <span class="math inline">\(z_t\)</span> the standardized temperature anomaly, <span class="math inline">\(H_t\)</span> a pre-holiday indicator, <span class="math inline">\(a_c\)</span> the seasonal amplitude, <span class="math inline">\(\kappa_c\)</span> the weather loading, and <span class="math inline">\(h_c\)</span> the holiday loading. One category is parameterized with <span class="math inline">\(a_c = \kappa_c = h_c = 0\)</span>, and its observed sales nonetheless retain seasonal variation via the shared household budget constraint, since other categories’ seasonal surges displace it. This is a designed identification check for distinguishing a direct preference effect from a budget-mediated one.</p>
+<p>Wholesale cost shocks follow a marked point process, <span class="math inline">\(K \sim
+\text{Poisson}(1.5)\)</span> events at <span class="math inline">\(\tau_k \sim \text{Uniform}(1,365)\)</span>, each with magnitude <span class="math inline">\(\zeta_k \sim \text{LogNormal}(\log\zeta_0,\ 0.3)\)</span> and trajectory</p>
 <p><span class="math display">\[
 g_k(t) = \zeta_k \cdot \min\!\left(1,\ \tfrac{t-\tau_k}{14}\right) \cdot
 \exp\!\left(-\tfrac{(t-\tau_k-14)_+}{\rho_k}\right) ,
 \]</span></p>
-<p>ramping over two weeks and decaying exponentially after — neither a permanent level change nor a transient blip, but a slow wave a forecaster genuinely has to track. Every affected category’s cost multiplier then assembles the inflation drift and every live shock,</p>
+<p>a two-week ramp followed by exponential decay. Category cost multipliers aggregate the inflation drift and every active shock,</p>
 <p><span class="math display">\[
 \log \text{CostMult}_{ct} = \frac{\pi t}{365} +
 \sum_k g_k(t)\,\mathbb{1}[c \in A_k] .
 \]</span></p>
-<p>The owner never observes this directly — he sees only supplier invoices, tracked as an exponentially smoothed trend, and moves the shelf tag only once that trend has drifted more than three percent from the current price (menu-cost pricing). The scripted energy crisis also squeezes household budgets through a separate mechanism, making it a subtly <em>invalid</em> instrument whose bias is, in principle, computable exactly — a trap left in on purpose.</p>
+<p>The owner observes only supplier invoices, tracked as an exponentially smoothed trend, and adjusts the shelf price only once the smoothed trend deviates from the current price by more than three percent (menu-cost pricing). One scripted shock (the energy crisis) additionally shifts household budgets through a separate channel, making it a biased instrument for cost pass-through with a bias term that is, in principle, computable exactly from the model.</p>
 </section>
 <section id="taxation" class="level2">
-<h2 class="anchored" data-anchor-id="taxation">Taxation</h2>
-<p>Value-added tax applies at a category-specific rate <span class="math inline">\(r_c(t)\)</span>; a flat <span class="math inline">\(20\%\)</span> profit tax applies only to a positive annual surplus,</p>
+<h2 class="anchored" data-anchor-id="taxation">7. Taxation</h2>
+<p>Value-added tax applies at category-specific rate <span class="math inline">\(r_c(t)\)</span>. Profit tax applies at a flat rate to positive annual surplus,</p>
 <p><span class="math display">\[
 \text{ProfitTax} = r^{\pi}\cdot\max(0,\ \text{ProfitBeforeTax}), \qquad
 r^\pi = 0.20 .
 \]</span></p>
-<p>One piece of this is provably harmless rather than merely assumed away: because profit tax is a flat rate on a positive base,</p>
+<p><strong>Proposition 2.</strong> Because profit tax is a flat rate on a non-negative base,</p>
 <p><span class="math display">\[
 \arg\max_{\text{decisions}} (1-r^\pi)\,\pi(\text{decisions}) =
 \arg\max_{\text{decisions}} \pi(\text{decisions}) ,
 \]</span></p>
-<p>so an owner who ignores profit tax when making ordinary operating decisions loses nothing relative to one who optimizes around it. No such guarantee holds for value-added tax, whose category-specific rate changes relative prices across categories — a gap the owner never exploits, deliberately left open for a later prescriptive analysis to find.</p>
+<p>so an owner who disregards profit tax when making operating decisions loses nothing relative to one who optimizes around it. This invariance does not extend to value-added tax, whose category-specific rate structure changes relative prices across categories, a margin the owner does not exploit and which is left open as a prescriptive question.</p>
 </section>
-<section id="why-the-split-makes-counterfactuals-free" class="level2">
-<h2 class="anchored" data-anchor-id="why-the-split-makes-counterfactuals-free">Why the split makes counterfactuals free</h2>
-<p>Because the macro layer never listens to the micro layer, a counterfactual world costs almost nothing to produce: edit the script — delete the scripted shock, disable the expansion threshold, remove the competitor entirely — and replay the identical daily market mechanism with every other random draw held fixed. The difference between the original run and the edited run <em>is</em> the causal effect of the edit, not merely an estimate of it.</p>
-<p>This only works because every random draw is <strong>keyed by the stable identity of the entity it concerns</strong> — a specific customer on a specific day, a specific product on a specific night — using independently spawned child streams, rather than one long sequential stream. If draws were sequential, deleting a single event partway through the year would shift every subsequent draw, contaminating the comparison with reshuffled randomness that has nothing to do with the edit. Keying every draw by identity means a customer untouched by the edit reproduces the identical decision, bit for bit, in both runs — the <strong>common random numbers</strong> (CRN) technique from the simulation literature, load-bearing rather than retrofitted.</p>
-<p>Two concrete twins in the three-year story cash this out into real numbers: one twin disables the expansion decision entirely; comparing it to the real run shows the expansion’s true cost over its first fourteen months substantially exceeds the margin it generates. A second twin removes the competitor entirely; comparing it to the real run prices exactly what the competitor cost the owner, as opposed to what he <em>believes</em> it cost him. The capital decision, it turns out, very often costs the business more than the competitive entry — even though the competitor is the more visible, more emotionally salient event to an owner living through it. That’s exactly why an instructor can hand a learner the owner’s own conviction that the competitor is to blame, and let the twins settle the question instead.</p>
+<section id="identification-counterfactual-replay" class="level2">
+<h2 class="anchored" data-anchor-id="identification-counterfactual-replay">8. Identification: counterfactual replay</h2>
+<p><strong>Proposition 3.</strong> Because the macro layer is independent of micro-layer outcomes by Definition 1, a counterfactual world is constructed by editing the macro script alone (removing a scripted shock, disabling the expansion threshold, removing the competitor) and replaying the identical mechanism with all other random draws held fixed. The difference between the original and edited runs is the exact causal effect of the edit, not an estimate of it.</p>
+<p>This result depends on one further condition: every random draw must be keyed to the stable identity of the entity it concerns (a specific customer on a specific day, a specific product on a specific night), drawn from independently spawned child streams rather than one sequential stream. Under sequential draws, deleting a single event would shift every subsequent draw, confounding the comparison with reshuffled randomness unrelated to the edit. Under identity-keyed draws, an entity unaffected by the edit reproduces an identical realization in both runs, the common random numbers (CRN) variance-reduction technique, applied here as an identification device rather than a variance-reduction one.</p>
+<p>Two counterfactual comparisons in the three-year arm illustrate the result. Disabling the expansion decision and comparing to the realized run isolates the expansion’s exact cost, which exceeds the margin it generates over its first fourteen months. Removing the competitor and comparing to the realized run isolates the competitor’s exact cost to the owner, which is smaller than the expansion’s cost despite being the more salient event in the owner’s own account.</p>
 </section>
 <section id="the-three-profit-figures" class="level2">
-<h2 class="anchored" data-anchor-id="the-three-profit-figures">The three profit figures</h2>
-<p>With a full year performed, three profit figures become computable side by side:</p>
+<h2 class="anchored" data-anchor-id="the-three-profit-figures">9. The three profit figures</h2>
+<p>Given a completed run, three profit quantities are simultaneously computable:</p>
 <ul>
-<li><span class="math inline">\(\pi_{\text{believed}}\)</span> — the opening MILP’s own objective value.</li>
-<li><span class="math inline">\(\pi_{\text{realized}}\)</span> — what the ledger actually shows, after a full year of realistic behavior.</li>
-<li><span class="math inline">\(\pi_{\text{oracle}}\)</span> — what a perfectly informed operator could have earned: same world, same script, true demand in place of a censored, backward-looking forecast.</li>
+<li><span class="math inline">\(\pi_{\text{believed}}\)</span>: the opening MILP’s objective value.</li>
+<li><span class="math inline">\(\pi_{\text{realized}}\)</span>: the realized ledger result under the owner’s actual policies.</li>
+<li><span class="math inline">\(\pi_{\text{oracle}}\)</span>: the result obtainable under the same world and script with uncensored demand in place of the owner’s forecast.</li>
 </ul>
-<p>The two gaps between them are exact differences between fully computed runs of the same mechanism, not estimates:</p>
+<p>The two differences are exact, not estimated, since both quantities are computed from fully realized runs of the same mechanism:</p>
 <p><span class="math display">\[
 \Delta_{\text{optimism}} = \pi_{\text{realized}} - \pi_{\text{believed}}
 \qquad
 \Delta_{\text{analytics}} = \pi_{\text{oracle}} - \pi_{\text{realized}}
 \]</span></p>
-<p>The first measures the cost of the owner’s initial overoptimism; the second measures the value of better information and better decisions — the single number this entire construction exists to make credible by actually computing it, rather than asserting a plausible size for it.</p>
+<p><span class="math inline">\(\Delta_{\text{optimism}}\)</span> is the cost of the owner’s initial belief error. <span class="math inline">\(\Delta_{\text{analytics}}\)</span> is the value attributable to information and decision quality, the quantity this construction is designed to make computable rather than merely asserted.</p>
 </section>
-<section id="the-recording-layers-own-algebra" class="level2">
-<h2 class="anchored" data-anchor-id="the-recording-layers-own-algebra">The recording layer’s own algebra</h2>
-<p>The paperwork sits in a third layer, neither decision nor script: low-rate, independently keyed defects injected only at export, never touching the simulation’s internal state. Let <span class="math inline">\(D_{st}\)</span> be a product’s cumulative book-minus-true discrepancy on day <span class="math inline">\(t\)</span> — pushed up by duplicate invoices and unrecorded spoilage, down by missing invoices and duplicate receipts. The inventory figure an analyst actually sees is book stock, not true stock,</p>
+<section id="the-recording-layer" class="level2">
+<h2 class="anchored" data-anchor-id="the-recording-layer">10. The recording layer</h2>
+<p>The recording layer is a third component, distinct from both the micro and macro layers: low-rate, independently keyed defects applied only at export, which do not affect the underlying simulated state. Let <span class="math inline">\(D_{st}\)</span> denote a product’s cumulative book-minus-true discrepancy on day <span class="math inline">\(t\)</span>. The inventory quantity available to an analyst is book stock, not true stock,</p>
 <p><span class="math display">\[
 B_{st} = S_{st} + D_{st} - \sum_{c\le t} A_{sc} ,
 \]</span></p>
-<p>where <span class="math inline">\(A_{sc}\)</span> is the cumulative correction posted at each monthly physical count, snapping book stock back to physical truth before it begins drifting anew. Every defect is written simultaneously to a separate answer key, so reconciling the messy records back to the truth is itself gradable against a known answer — the underlying simulated reality this section’s own machinery depends on is never disturbed by paperwork noise that exists only in the documents an analyst receives.</p>
+<p>with <span class="math inline">\(A_{sc}\)</span> the cumulative correction posted at each monthly physical count. Every defect is logged simultaneously to a separate answer key, so reconciliation of the recorded data against ground truth is itself a gradable task, independent of the underlying simulated state that Section 8’s identification result depends on.</p>
 </section>
-<section id="read-more" class="level2">
-<h2 class="anchored" data-anchor-id="read-more">Read more</h2>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
 <ul>
-<li>The <a href="./analysis-catalog.html">Analysis catalog</a> turns this theory into a concrete, gradeable set of questions.</li>
-<li>The full paper covers the customer’s purchase decision, the owner’s opening MILP, adaptive day-to-day policy, the expansion decision, the customer panel as a stochastic flow, and the entire macro script (calendar, weather, cost shocks, taxation) in complete derivations — <a href="https://github.com/ChinhMaiGit/grocery-sim/blob/main/paper/paper.pdf">read it here</a>.</li>
+<li>The <a href="./analysis-catalog.html">Analysis catalog</a> operationalizes this specification as a graded set of 62 questions.</li>
+<li>The full paper states the customer’s purchase decision, the owner’s opening MILP, the adaptive policy, the expansion decision, the customer panel as a stochastic flow, and the complete macro script (calendar, weather, cost shocks, taxation), with full derivations: <a href="https://github.com/ChinhMaiGit/grocery-sim/blob/main/paper/paper.pdf">read it here</a>.</li>
 </ul>
 
 

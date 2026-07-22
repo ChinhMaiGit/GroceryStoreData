@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Exemplar analyses – grocery-sim</title>
+<title>Checking ground truth – grocery-sim</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,26 +23,61 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-69db8130462c98e8223ba8c76f5b5d2c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-69db8130462c98e8223ba8c76f5b5d2c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -72,7 +107,7 @@ ul.task-list li input[type="checkbox"] {
 }</script>
 
 
-<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="styles.css">
 </head>
 
 <body class="nav-fixed quarto-light">
@@ -82,7 +117,7 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="../index.html">
+    <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">grocery-sim</span>
     </a>
   </div>
@@ -93,27 +128,27 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../index.html"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../theory.html"> 
+    <a class="nav-link" href="./theory.html"> 
 <span class="menu-text">Theory</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../api-reference.html"> 
+    <a class="nav-link" href="./api-reference.html"> 
 <span class="menu-text">API reference</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../analysis-catalog.html"> 
+    <a class="nav-link" href="./analysis-catalog.html"> 
 <span class="menu-text">Analysis catalog</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../ground-truth.html"> 
+    <a class="nav-link active" href="./ground-truth.html" aria-current="page"> 
 <span class="menu-text">Checking ground truth</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="../analyses/index.html" aria-current="page"> 
+    <a class="nav-link" href="./analyses/index.html"> 
 <span class="menu-text">Exemplar analyses</span></a>
   </li>  
 </ul>
@@ -139,16 +174,25 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#the-mechanism" id="toc-the-mechanism" class="nav-link active" data-scroll-target="#the-mechanism">The mechanism</a></li>
+  <li><a href="#a-worked-example" id="toc-a-worked-example" class="nav-link" data-scroll-target="#a-worked-example">A worked example</a></li>
+  <li><a href="#every-hidden-table" id="toc-every-hidden-table" class="nav-link" data-scroll-target="#every-hidden-table">Every hidden table</a></li>
+  <li><a href="#read-more" id="toc-read-more" class="nav-link" data-scroll-target="#read-more">Read more</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Exemplar analyses</h1>
-<p class="subtitle lead">Worked examples on real generated arms</p>
+<h1 class="title">Checking ground truth</h1>
+<p class="subtitle lead">How grading actually works, and every hidden table this package ships</p>
 </div>
 
 
@@ -165,20 +209,154 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>One full <code>grocery-sim</code> engagement, split across three pages, following the <a href="../analysis-catalog.html">Analysis catalog</a>:</p>
+<p>Every page on this site claims an estimate is “gradeable” or “checkable against ground truth.” This page is what that actually means, in code, plus a full reference of every hidden table available to check against.</p>
+<section id="the-mechanism" class="level2">
+<h2 class="anchored" data-anchor-id="the-mechanism">The mechanism</h2>
+<p>Every generated arm ships two views of itself. The <code>visible/</code> folder (or <code>sim.data()</code> / <code>sim.db()</code> called with no arguments) is the only thing a real analyst would ever see: receipts, invoices, a ledger, nothing else. Passing <code>include_hidden = True</code> to either method additionally loads a second set of tables, each prefixed <code>hidden_</code>, one per generating mechanism: the true customer panel, the true demand behind every stockout, the paperwork-defect log, and so on.</p>
+<p>An analysis is done entirely against the visible tables, start to finish. The hidden tables exist purely to grade the answer afterward, never to shortcut the analysis itself. Joining them in earlier would be grading your own exam with the answer key already open.</p>
+</section>
+<section id="a-worked-example" class="level2">
+<h2 class="anchored" data-anchor-id="a-worked-example">A worked example</h2>
+<p>The <a href="./analysis-catalog.html">Analysis catalog</a>’s first question, 0.1, works entirely blind: from the receipts table alone, an all-even grouping trick flags 34 receipts as probable duplicates (a POS retry re-posting a whole transaction leaves every line of it byte-identical and doubled). <code>hidden_imperfections</code> is the actual, planted answer key for every recording-layer defect in that run, one row per defect, with a <code>kind</code> column naming which of the ten defect families it belongs to. Checking the blind estimate against it is one <code>set</code> comparison:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> grocery_sim <span class="im">import</span> GroceryStoreSimulation</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> GroceryStoreSimulation()</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>sim.setup(<span class="bu">dict</span>(basic <span class="op">=</span> <span class="bu">dict</span>(year <span class="op">=</span> <span class="dv">1</span>)))</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>sim.simulate()</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> sim.db()</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>receipts <span class="op">=</span> con.sql(<span class="st">"SELECT * FROM receipts"</span>).pl()</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># the blind estimate: works from receipts alone, no hidden table involved</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>mult <span class="op">=</span> receipts.group_by(receipts.columns).agg(pl.<span class="bu">len</span>().alias(<span class="st">"n"</span>))</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>all_even <span class="op">=</span> mult.group_by(<span class="st">"receipt_id"</span>).agg((pl.col(<span class="st">"n"</span>) <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>).<span class="bu">all</span>().alias(<span class="st">"all_even"</span>))</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>blind_flagged <span class="op">=</span> <span class="bu">set</span>(all_even.<span class="bu">filter</span>(pl.col(<span class="st">"all_even"</span>))[<span class="st">"receipt_id"</span>])</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># only now, to grade it, load the answer key</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> sim.data(include_hidden <span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>imp <span class="op">=</span> pl.from_pandas(tables.hidden_imperfections)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>true_flagged <span class="op">=</span> <span class="bu">set</span>(imp.<span class="bu">filter</span>(pl.col(<span class="st">"kind"</span>) <span class="op">==</span> <span class="st">"dup_receipt"</span>)[<span class="st">"key"</span>])</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"blind: </span><span class="sc">{</span><span class="bu">len</span>(blind_flagged)<span class="sc">}</span><span class="ss">, true: </span><span class="sc">{</span><span class="bu">len</span>(true_flagged)<span class="sc">}</span><span class="ss">, "</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"exact match: </span><span class="sc">{</span>blind_flagged <span class="op">==</span> true_flagged<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co"># -&gt; blind: 34, true: 34, exact match: True</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The blind detector’s 34 and the answer key’s 34 are the same 34 receipts, not just the same count. That’s what “gradeable” means everywhere on this site: not that a number sounds plausible, but that it can be checked against a specific, planted row set and shown to be exactly right, exactly wrong, or wrong in a specific, explainable way.</p>
+</section>
+<section id="every-hidden-table" class="level2">
+<h2 class="anchored" data-anchor-id="every-hidden-table">Every hidden table</h2>
+<p><code>sim.data(include_hidden = True)</code> and <code>sim.db(include_hidden = True)</code> both expose all eighteen. Every one is keyed so it can be joined back onto the matching visible table (by <code>uid</code>, <code>customer_id</code>, <code>date</code>/<code>t</code>, or <code>location_id</code>).</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Table</th>
+<th>Granularity</th>
+<th>What it grades</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>hidden_imperfections</code></td>
+<td>one row per defect</td>
+<td>The paperwork-defect answer key: <code>kind</code> (one of the ten defect families, e.g.&nbsp;<code>dup_receipt</code>, <code>void_pair</code>, <code>missing_invoice</code>), <code>table</code> and <code>key</code> (which visible row it touched), <code>delta</code>. Used by the <a href="./analysis-catalog.html">Analysis catalog</a>’s Layer 0 and the worked example above.</td>
+</tr>
+<tr class="even">
+<td><code>hidden_hidden_demand</code></td>
+<td>one row per purchase attempt</td>
+<td>The full per-attempt demand log, including attempts that never became a sale (<code>cause</code>: <code>stockout</code>, <code>budget</code>, <code>outside_option</code>, <code>closed</code>). The ground truth behind every “where did the missing demand go” question.</td>
+</tr>
+<tr class="odd">
+<td><code>hidden_customers</code></td>
+<td>one row per customer</td>
+<td>The persistent panel’s true parameters: <code>weekly_budget</code>, <code>price_sens</code>, <code>brand_affinity</code>, <code>persistence</code> (rooted/transient), <code>arrival_date</code>/<code>departure_date</code>, plus a per-week presence flag (<code>w0</code>…<code>w156</code>). Grades churn and RFM-segmentation questions.</td>
+</tr>
+<tr class="even">
+<td><code>hidden_spell_flags</code></td>
+<td>one row per customer</td>
+<td>A per-week flag, same shape as <code>hidden_customers</code>, marking which weeks each customer was in a scripted tight-spell or splurge. Grades whether a detected budget shock is real or a false positive.</td>
+</tr>
+<tr class="odd">
+<td><code>hidden_guests</code></td>
+<td>one row per passing-trade visit</td>
+<td>Non-panel, one-off guest transactions (<code>token</code>, <code>payment</code>, <code>value</code>), kept separate from the persistent panel. Grades regulars-vs-passing-trade splits.</td>
+</tr>
+<tr class="even">
+<td><code>hidden_owner_forecasts</code></td>
+<td>one row per category-week</td>
+<td>The owner’s own trailing-average forecast (<code>forecast_weekly</code>) next to the true, uncensored demand (<code>oracle</code>), for every category and week. Grades forecast-accuracy and censoring-spiral questions.</td>
+</tr>
+<tr class="odd">
+<td><code>hidden_decision_t0</code></td>
+<td>one row per SKU</td>
+<td>The opening-day MILP’s own output: whether the SKU was <code>listed</code>, the quantity ordered (<code>q0</code>), and believed sales. Grades the opening-decision overstocking claim directly.</td>
+</tr>
+<tr class="even">
+<td><code>hidden_location_category</code></td>
+<td>one row per location-category</td>
+<td>True demand (<code>true_demand</code>) next to the owner’s belief (<code>believed_demand</code>) and the gap between them (<code>belief_delta</code>), per location and category. The ground truth behind the true and believed demand terms in <a href="./theory.html">Theory</a>’s opening-decision section.</td>
+</tr>
+<tr class="odd">
+<td><code>hidden_locations_full</code></td>
+<td>one row per candidate location</td>
+<td>Every site-scouting fact the owner had before opening: <code>quality</code>, <code>households</code>, and the cost structure, for every candidate location, not just the one chosen.</td>
+</tr>
+<tr class="even">
+<td><code>hidden_category_loadings</code></td>
+<td>one row per category</td>
+<td>The demand-modifier parameters <code>a</code> (seasonal amplitude), <code>kappa</code> (weather loading), <code>h</code> (holiday loading), i.e.&nbsp;the coefficients behind the demand-modifier equation in Theory. Grades “is this category’s seasonality real or budget-mediated” questions.</td>
+</tr>
+<tr class="odd">
+<td><code>hidden_demand_modifiers</code></td>
+<td>one row per day</td>
+<td>The true daily demand modifier per category (<code>M_&lt;category&gt;</code>) and the true traffic modifier (<code>traffic</code>), the exact quantities a visible-data estimate is trying to recover.</td>
+</tr>
+<tr class="even">
+<td><code>hidden_tilts</code></td>
+<td>one row per day</td>
+<td>The fine-grained seasonal tilt for the handful of products whose seasonality deliberately contradicts their category’s average (ice cream, coffee, tea).</td>
+</tr>
+<tr class="odd">
+<td><code>hidden_cost_paths</code></td>
+<td>one row per day</td>
+<td>The true wholesale cost multiplier per category (<code>cost_&lt;category&gt;</code>), plus the true wage and storage rate paths. Grades cost-shock detection and instrument-validity questions (e.g.&nbsp;the advanced methods demonstration’s difference-in-differences design).</td>
+</tr>
+<tr class="even">
+<td><code>hidden_event_log</code></td>
+<td>one row per macro event</td>
+<td>Every scripted shock’s true parameters (<code>type</code>, <code>start</code>, <code>ramp</code>, <code>decay</code>, which categories it hit), the schedule a visible-data analysis is trying to reconstruct from cost and price movements alone.</td>
+</tr>
+<tr class="odd">
+<td><code>hidden_spoil_factors</code></td>
+<td>one row per day</td>
+<td>The true spoilage factor per perishable category, behind the spoilage binomial in Theory. Grades “what actually drives spoilage” questions.</td>
+</tr>
+<tr class="even">
+<td><code>hidden_weather_full</code></td>
+<td>one row per day</td>
+<td>Weather decomposed into its seasonal component, the anomaly, and the standardized anomaly <code>z</code>, separately from the raw <code>temp_C</code> the visible <code>weather</code> table shows. This is exactly the <code>temp_anom</code> construction the advanced methods demonstration’s GLM depends on, gradeable against the true decomposition.</td>
+</tr>
+<tr class="odd">
+<td><code>hidden_budget_paths</code></td>
+<td>one row per customer</td>
+<td>Each customer’s real weekly budget realization (<code>w1</code>…<code>w156</code>), the household-budget process a visible-data estimate of spending power can only infer indirectly.</td>
+</tr>
+<tr class="even">
+<td><code>hidden_profit_triptych</code></td>
+<td>one row total</td>
+<td>The three profit figures from Theory computed directly: <code>believed_profit_month1</code>, <code>realized_profit_year</code> (and after-tax), <code>oracle_profit_year</code> (and after-tax). Grades any independent recomputation of the believed, realized, and oracle profit figures.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="read-more" class="level2">
+<h2 class="anchored" data-anchor-id="read-more">Read more</h2>
 <ul>
-<li><strong><a href="../analyses/case-description.html">Case description</a></strong>, the client-facing brief exactly as an analyst would receive it: a neighborhood grocer three years in, deciding whether to renew a lease after a record-revenue year that somehow netted him nothing.</li>
-<li><strong><a href="../analyses/stakeholder-report.html">Stakeholder report</a></strong>, the plain-language answer, in the client’s own question order. Descriptive P&amp;L, trend/seasonality decomposition, shrinkage forensics, an observational competitor-impact estimate, a full-cost staffing counterfactual, customer-panel churn, and a 2028 forecast (Layers 0, 1, 3, 4, 5, and 7 of the catalog) in one pass.</li>
-<li><strong><a href="../analyses/technical-report.html">Technical report</a></strong>, the review copy, on the <strong>same</strong> <code>3y_baseline</code> run and the <strong>same</strong> eight questions as the stakeholder report, restated as an analyst review would expect: model specifications, coefficient tables with robust standard errors, confidence intervals, and diagnostics behind every plain-language claim above (Layers 1, 3, 4, 5, and 7 of the catalog).</li>
+<li><a href="./theory.html">Theory</a>: the model each of these tables is the ground truth for.</li>
+<li><a href="./analysis-catalog.html">Analysis catalog</a>: the 62 questions these tables make gradeable.</li>
+<li><a href="./api-reference.html#datainclude_hiddenfalse">API reference</a>: the full signature and parameters of <code>.data()</code> and <code>.db()</code>.</li>
 </ul>
-<p>And separately:</p>
-<ul>
-<li><strong><a href="../analyses/advanced-methods.html">Advanced methods demonstration</a></strong>, a standalone stress test on its own, separately generated run: a negative-binomial GLM with HAC-robust errors, a difference-in-differences cost pass-through design (and an honest account of where it fails to identify a clean number), gradient-boosting demand forecasting and stock-out classification judged on precision/recall, and a hierarchical Bayesian partial-pooling model with full posterior diagnostics (Layers 2, 3, and 6 of the catalog), not part of the Malm’s Market engagement, shown to demonstrate what the package’s output can support beyond what one ordinary engagement calls for.</li>
-<li><strong><a href="../analyses/generated-briefs.html">Auto-generated briefs</a></strong>, the raw, unedited output of <code>sim.describe()</code> for the two other engagement types it produces (<code>optimize</code> and <code>invest</code>, alongside the case description’s <code>diagnose</code>), with no accompanying analysis, shown to demonstrate that the brief generator itself varies the kind of engagement, not just the story.</li>
-</ul>
-<p>More pages will be added here over time. In the meantime, <code>archive/analyses/</code> in the <a href="https://github.com/ChinhMaiGit/grocery-sim/tree/main/archive/analyses">main repository</a> already has a full-depth, graded notebook for every layer of the catalog, and the package’s own <code>sim.create_analysis(path)</code> scaffolds a starting <a href="https://marimo.io/">marimo</a> notebook against any run you generate yourself.</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -586,4 +764,4 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/ChinhMaiGit/grocery-sim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
