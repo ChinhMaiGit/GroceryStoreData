@@ -1,12 +1,12 @@
 ---
 title: "Auto-generated briefs"
-subtitle: "Two more engagement types, straight out of describe() — unedited"
+subtitle: "Two more engagement types, straight out of describe(), unedited"
 ---
 
 The [case description](case-description.qmd) is a hand-curated case: a
 real `grocery-sim` run, but with a full [stakeholder report](stakeholder-report.qmd)
 written on top of it, worked and checked line by line. The two briefs below
-are different on purpose — they are the **raw, unedited output of
+are different on purpose: they are the **raw, unedited output of
 `sim.describe()`**, shown to demonstrate that the brief generator itself
 produces genuinely different kinds of engagements depending on what
 actually happened in the run, not just different flavor text on the same
@@ -16,19 +16,19 @@ story.
 actually doing (`struggling` / `thriving` / `uncertain`, from the real
 profit trajectory) and what kind of engagement that performance calls for
 (`diagnose` a specific cause, `optimize` day-to-day operations, or `invest`
-retained earnings — see [Theory](../theory.qmd) for the reasoning behind the
+retained earnings, see [Theory](../theory.qmd) for the reasoning behind the
 split). Malm's Market is a `diagnose` case. The two below are `optimize` and
-`invest`, generated from `grocery_sim.recipes` — named, empirically
-verified settings recipes that reliably land on a given engagement type
-(shipped in the package specifically so a case-writer doesn't have to hope a
+`invest`, generated from `grocery_sim.recipes` (named, empirically
+verified settings recipes that reliably land on a given engagement type,
+shipped in the package specifically so a case-writer doesn't have to hope a
 random seed produces the exercise they want).
 
-Neither brief below has an accompanying analysis report — per `describe()`'s
+Neither brief below has an accompanying analysis report: per `describe()`'s
 own closing line, each is "a starting outline, not a finished case."
 
 ## Optimize: an operationally sloppy year
 
-Generated from `grocery_sim.recipes.RECIPES["optimize"]` — a struggling
+Generated from `grocery_sim.recipes.RECIPES["optimize"]`, a struggling
 one-year run with elevated, cost-priced shrinkage. The engagement reads as
 "find where I'm bleeding money," not "find the one thing that went wrong."
 
@@ -36,7 +36,7 @@ one-year run with elevated, cost-priced shrinkage. The engagement reads as
 
 ## Invest: real, unspent retained earnings
 
-Generated from `grocery_sim.recipes.RECIPES["invest"]` — a thriving
+Generated from `grocery_sim.recipes.RECIPES["invest"]`, a thriving
 three-year run where retained earnings have cleared the smallest
 investment's own calibrated capex. The engagement reads as a capital
 question, not a diagnosis: what should the owner do with the money.

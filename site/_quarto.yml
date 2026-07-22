@@ -22,6 +22,8 @@ website:
         text: API reference
       - href: analysis-catalog.qmd
         text: Analysis catalog
+      - href: ground-truth.qmd
+        text: Checking ground truth
       - href: analyses/index.qmd
         text: Exemplar analyses
     right:

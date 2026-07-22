@@ -5,8 +5,15 @@
    glass cards, and animated backdrop are not — see stylesheet/README.md) */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
+/* a soft off-white instead of pure #fff — easier on the eyes over a long
+   read, still light-mode, still very high contrast against body text */
 body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background-color: #f6f5f1;
+}
+
+pre, .sourceCode {
+  background-color: #edece7 !important;
 }
 
 main.content p {

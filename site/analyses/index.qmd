@@ -6,30 +6,39 @@ subtitle: "Worked examples on real generated arms"
 One full `grocery-sim` engagement, split across three pages, following the
 [Analysis catalog](../analysis-catalog.qmd):
 
-- **[Case description](case-description.qmd)** — the client-facing brief
+- **[Case description](case-description.qmd)**, the client-facing brief
   exactly as an analyst would receive it: a neighborhood grocer three years
   in, deciding whether to renew a lease after a record-revenue year that
   somehow netted him nothing.
-- **[Stakeholder report](stakeholder-report.qmd)** — the plain-language
+- **[Stakeholder report](stakeholder-report.qmd)**, the plain-language
   answer, in the client's own question order. Descriptive P&L,
   trend/seasonality decomposition, shrinkage forensics, an observational
   competitor-impact estimate, a full-cost staffing counterfactual,
-  customer-panel churn, and a 2028 forecast — Layers 0, 1, 3, 4, 5, and 7 of
-  the catalog in one pass.
-- **[Technical report](technical-report.qmd)** — the review copy, on a
-  separate real `grocery-sim` run: a negative-binomial GLM with HAC-robust
-  errors, a difference-in-differences cost pass-through design (and an
-  honest account of where it fails to identify a clean number),
-  gradient-boosting demand forecasting and stock-out classification judged
-  on precision/recall, and a hierarchical Bayesian partial-pooling model
-  with full posterior diagnostics — Layers 2, 3, and 6 of the catalog.
+  customer-panel churn, and a 2028 forecast (Layers 0, 1, 3, 4, 5, and 7 of
+  the catalog) in one pass.
+- **[Technical report](technical-report.qmd)**, the review copy, on the
+  **same** `3y_baseline` run and the **same** eight questions as the
+  stakeholder report, restated as an analyst review would expect: model
+  specifications, coefficient tables with robust standard errors,
+  confidence intervals, and diagnostics behind every plain-language claim
+  above (Layers 1, 3, 4, 5, and 7 of the catalog).
 
 And separately:
 
-- **[Auto-generated briefs](generated-briefs.qmd)** — the raw, unedited
+- **[Advanced methods demonstration](advanced-methods.qmd)**, a standalone
+  stress test on its own, separately generated run: a negative-binomial
+  GLM with HAC-robust errors, a difference-in-differences cost pass-through
+  design (and an honest account of where it fails to identify a clean
+  number), gradient-boosting demand forecasting and stock-out
+  classification judged on precision/recall, and a hierarchical Bayesian
+  partial-pooling model with full posterior diagnostics (Layers 2, 3, and 6
+  of the catalog), not part of the Malm's Market engagement, shown to
+  demonstrate what the package's output can support beyond what one
+  ordinary engagement calls for.
+- **[Auto-generated briefs](generated-briefs.qmd)**, the raw, unedited
   output of `sim.describe()` for the two other engagement types it
   produces (`optimize` and `invest`, alongside the case description's
-  `diagnose`) — no accompanying analysis, shown to demonstrate that the
+  `diagnose`), with no accompanying analysis, shown to demonstrate that the
   brief generator itself varies the kind of engagement, not just the story.
 
 More pages will be added here over time. In the meantime, `archive/analyses/`

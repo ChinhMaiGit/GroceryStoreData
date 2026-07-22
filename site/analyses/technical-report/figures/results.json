@@ -1,218 +1,183 @@
 {
-  "glm_demand": {
-    "n_obs": 1072,
-    "pseudo_r2": 0.7165514188007207,
-    "table": {
-      "Intercept": {
-        "coef": 6.0406,
-        "IRR": 420.1624,
-        "se_HAC": 0.0184,
-        "p_value": 0.0,
-        "ci_low": 405.2487,
-        "ci_high": 435.6249
-      },
-      "temp_anom": {
-        "coef": 0.0044,
-        "IRR": 1.0044,
-        "se_HAC": 0.0036,
-        "p_value": 0.2203,
-        "ci_low": 0.9973,
-        "ci_high": 1.0116
-      },
-      "rain_mm": {
-        "coef": 0.0042,
-        "IRR": 1.0042,
-        "se_HAC": 0.0049,
-        "p_value": 0.3895,
-        "ci_low": 0.9946,
-        "ci_high": 1.0139
-      },
-      "wet": {
-        "coef": -0.1883,
-        "IRR": 0.8283,
-        "se_HAC": 0.0321,
-        "p_value": 0.0,
-        "ci_low": 0.7778,
-        "ci_high": 0.8821
-      },
-      "is_weekend": {
-        "coef": 1.0262,
-        "IRR": 2.7904,
-        "se_HAC": 0.0133,
-        "p_value": 0.0,
-        "ci_low": 2.7184,
-        "ci_high": 2.8644
-      },
-      "is_pre_holiday": {
-        "coef": 0.1761,
-        "IRR": 1.1925,
-        "se_HAC": 0.0437,
-        "p_value": 0.0001,
-        "ci_low": 1.0946,
-        "ci_high": 1.2991
-      },
-      "t": {
-        "coef": 0.0001,
-        "IRR": 1.0001,
-        "se_HAC": 0.0,
-        "p_value": 0.0027,
-        "ci_low": 1.0,
-        "ci_high": 1.0001
-      }
-    }
+  "dedup": {
+    "n_flagged_receipts": 105,
+    "true_dup_receipts": 103,
+    "blind_minus_true": [
+      "10091",
+      "32061"
+    ],
+    "blind_minus_true_is_the_traced_double_scans": true
   },
-  "pass_through": {
-    "treated_category": "Pantry Staples and Packaged Goods",
-    "control_category": "Household and Cleaning Supplies",
-    "theoretical_cost_drop": -0.0455,
-    "naive_treated_cost_drop": -0.087,
-    "control_cost_move": -0.0933,
-    "did_cost_drop": 0.0069,
-    "did_price_drop": -0.0343,
-    "did_pass_through": -5.056
-  },
-  "ml_forecast": {
-    "category": "Dairy and Eggs",
-    "n_train": 52,
-    "n_test": 52,
-    "mae_gbm": 130.9,
-    "mae_naive": 154.9,
-    "rmse_gbm": 161.2,
-    "rmse_naive": 195.5,
-    "mae_improvement_pct": 15.5,
-    "feature_importance": {
-      "temp_C": -0.051,
-      "lag_2": -0.032,
-      "week_of_year": -0.018,
-      "rain_mm": -0.014,
-      "lag_52": -0.006,
-      "lag_1": -0.0,
-      "holiday_week": 0.0,
-      "month": 0.0,
-      "roll4": 0.059
-    }
-  },
-  "ml_stockout": {
-    "n_train": 11298,
-    "n_test": 5659,
-    "base_rate_test": 0.085,
-    "pr_auc": 0.41
-  },
-  "bayes_hierarchical": {
-    "n_days_used": 90,
-    "n_categories": 12,
-    "global_weekend_effect_log": 0.849,
-    "global_weekend_effect_pct": 133.8,
-    "max_rhat": 1.0,
+  "reconciliation": {
     "table": [
       {
-        "category": "Beverages (Non-Alcoholic)",
-        "n_days": 90,
-        "beta": 0.915,
-        "se": 0.074,
-        "pooled_mean": 0.901,
-        "pooled_lo": 0.776,
-        "pooled_hi": 1.032
+        "yy": 2025,
+        "till_revenue": 742972.23,
+        "ledger_revenue": 742977.12,
+        "gap": -4.89
       },
       {
-        "category": "Frozen Foods",
-        "n_days": 88,
-        "beta": 0.773,
-        "se": 0.075,
-        "pooled_mean": 0.791,
-        "pooled_lo": 0.656,
-        "pooled_hi": 0.923
+        "yy": 2026,
+        "till_revenue": 771304.01,
+        "ledger_revenue": 771317.41,
+        "gap": -13.4
       },
       {
-        "category": "Pantry Staples and Packaged Goods",
-        "n_days": 90,
-        "beta": 0.927,
-        "se": 0.079,
-        "pooled_mean": 0.907,
-        "pooled_lo": 0.774,
-        "pooled_hi": 1.046
+        "yy": 2027,
+        "till_revenue": 814278.03,
+        "ledger_revenue": 814278.03,
+        "gap": 0.0
+      }
+    ],
+    "max_abs_gap": 13.4,
+    "traced_receipts": [
+      {
+        "receipt_id": 10091,
+        "date": "2025-07-31",
+        "uid": "SF-SHL-009",
+        "qty": 1,
+        "unit_price": 4.89,
+        "true_value": 4.89
       },
       {
-        "category": "Fresh Produce",
-        "n_days": 90,
-        "beta": 0.993,
-        "se": 0.081,
-        "pooled_mean": 0.957,
-        "pooled_lo": 0.819,
-        "pooled_hi": 1.103
-      },
-      {
-        "category": "Meat and Poultry",
-        "n_days": 90,
-        "beta": 1.013,
-        "se": 0.082,
-        "pooled_mean": 0.97,
-        "pooled_lo": 0.83,
-        "pooled_hi": 1.119
-      },
-      {
-        "category": "Snacks and Confectionery",
-        "n_days": 90,
-        "beta": 0.892,
-        "se": 0.089,
-        "pooled_mean": 0.88,
-        "pooled_lo": 0.733,
-        "pooled_hi": 1.032
-      },
-      {
-        "category": "Bakery and Bread",
-        "n_days": 90,
-        "beta": 1.028,
-        "se": 0.089,
-        "pooled_mean": 0.975,
-        "pooled_lo": 0.821,
-        "pooled_hi": 1.136
-      },
-      {
-        "category": "Alcoholic Beverages",
-        "n_days": 90,
-        "beta": 0.644,
-        "se": 0.103,
-        "pooled_mean": 0.716,
-        "pooled_lo": 0.527,
-        "pooled_hi": 0.887
-      },
-      {
-        "category": "Personal Care and Health",
-        "n_days": 90,
-        "beta": 0.518,
-        "se": 0.105,
-        "pooled_mean": 0.64,
-        "pooled_lo": 0.433,
-        "pooled_hi": 0.829
-      },
-      {
-        "category": "Dairy and Eggs",
-        "n_days": 89,
-        "beta": 0.973,
-        "se": 0.117,
-        "pooled_mean": 0.923,
-        "pooled_lo": 0.748,
-        "pooled_hi": 1.109
-      },
-      {
-        "category": "Seafood",
-        "n_days": 88,
-        "beta": 0.82,
-        "se": 0.123,
-        "pooled_mean": 0.832,
-        "pooled_lo": 0.647,
-        "pooled_hi": 1.014
-      },
-      {
-        "category": "Household and Cleaning Supplies",
-        "n_days": 88,
-        "beta": 0.593,
-        "se": 0.128,
-        "pooled_mean": 0.709,
-        "pooled_lo": 0.482,
-        "pooled_hi": 0.908
+        "receipt_id": 32061,
+        "date": "2026-11-21",
+        "uid": "HC-CAG-003",
+        "qty": 1,
+        "unit_price": 13.4,
+        "true_value": 13.4
       }
     ]
+  },
+  "trend": {
+    "n_obs": 35,
+    "r2": 0.7244,
+    "trend_coef_monthly_log": 0.00369,
+    "trend_se_hac": 0.00058,
+    "trend_pvalue": 2.589482487311977e-10,
+    "trend_pct_per_year": 4.53,
+    "trend_pct_per_year_ci": [
+      3.1,
+      5.97
+    ],
+    "decomposition": {
+      "unit_growth_pct": 6.3,
+      "price_growth_pct": 3.1,
+      "basket_growth_pct": 7.1,
+      "trips_growth_pct": 2.3
+    }
+  },
+  "writeoffs": {
+    "table": [
+      {
+        "reason": "spoilage",
+        "units": 73144,
+        "eur": 118830.63
+      },
+      {
+        "reason": "stock_count",
+        "units": 2270,
+        "eur": 4984.55
+      },
+      {
+        "reason": "damage",
+        "units": 960,
+        "eur": 1230.21
+      }
+    ],
+    "total_eur": 125045.39,
+    "pct_of_revenue": 5.37,
+    "worst_month": "2027-08",
+    "worst_month_correction_units": 462,
+    "worst_month_duplicate_units": 538,
+    "ground_truth_defect_families": {
+      "payment_variant": 618,
+      "unrecorded_spoilage": 527,
+      "void_pair": 309,
+      "hour_glitch": 206,
+      "dup_receipt": 103,
+      "snapshot_typo": 72,
+      "dup_invoice": 70,
+      "missing_invoice": 18,
+      "weather_outage": 9,
+      "category_typo": 2
+    },
+    "ground_truth_has_theft_family": false
+  },
+  "competitor": {
+    "pred_rev": 683751.0,
+    "act_rev": 683786.0,
+    "gap_rev": 35.0,
+    "gap_units_pct": 0.47,
+    "gap_trips_pct": 2.25,
+    "resid_sigma_log": 0.0539,
+    "pre_period_r2": 0.737,
+    "pre_period_n": 25,
+    "did": {
+      "coef_log": -0.0213,
+      "pct": -2.11,
+      "ci_pct": [
+        -5.79,
+        1.71
+      ],
+      "pvalue": 0.27433866892114767,
+      "n_obs": 72
+    }
+  },
+  "expansion": {
+    "months": 14,
+    "wages": 52720.0,
+    "payroll_tax": 13180.0,
+    "extra_utilities": 2245.0,
+    "capex": 14000.0,
+    "total_cost": 82145.0,
+    "extra_revenue": 20248.0,
+    "gross_margin": 0.1627,
+    "extra_gross_profit": 3295.0,
+    "net": -78850.0,
+    "revenue_needed_for_wage_bill": 404961.0,
+    "pre_period_r2": 0.7332
+  },
+  "churn": {
+    "total_regulars": 289,
+    "table": [
+      {
+        "year": 2025,
+        "regulars_established_by_year_end": 264,
+        "gone_quiet_90d_plus": 9,
+        "newly_established_that_year": 264
+      },
+      {
+        "year": 2026,
+        "regulars_established_by_year_end": 281,
+        "gone_quiet_90d_plus": 20,
+        "newly_established_that_year": 17
+      },
+      {
+        "year": 2027,
+        "regulars_established_by_year_end": 289,
+        "gone_quiet_90d_plus": 48,
+        "newly_established_that_year": 8
+      }
+    ]
+  },
+  "forecast": {
+    "point": 835912.0,
+    "lo": 783474.0,
+    "hi": 891859.0,
+    "naive_wmape_pct": 7.8,
+    "model_wmape_pct": 3.08,
+    "profit_point": 2426.0,
+    "profit_lo": -4621.0,
+    "profit_hi": 9945.0,
+    "r2": 0.737,
+    "n_obs": 35
+  },
+  "synthesis": {
+    "rent_2026_monthly": 1160.66,
+    "rent_2027_monthly": 1299.94,
+    "rent_pct_increase": 12.0,
+    "rent_review_annual_cost": 1671.35,
+    "expansion_annualized_cost": 70410.0
   }
 }

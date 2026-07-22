@@ -1,11 +1,11 @@
 ---
 title: "API reference"
-subtitle: "Every public method on GroceryStoreSimulation — signature, parameters, and real output"
+subtitle: "Every public method on GroceryStoreSimulation: signature, parameters, and real output"
 ---
 
 This page walks through the whole public surface of `grocery_sim`: one
 class, `GroceryStoreSimulation`, plus the small `SimulationData` helper its
-`.data()` method returns. Every example on this page actually ran — output
+`.data()` method returns. Every example on this page actually ran: output
 is real, trimmed for length in a few places (the validation report,
 `describe()`, `erd()`) but never invented.
 
@@ -37,16 +37,16 @@ print(sim.validation)    # -> None
 
 **Description**: Validates `settings` against the schema (`settings.py`)
 and merges it onto the package's own defaults. A partial dict is always
-enough — missing keys and sections just inherit their default. Does not
+enough: missing keys and sections just inherit their default. Does not
 run anything yet.
 
 **Parameters**:
 
-- `settings` — a (possibly partial) settings dict, with up to three top-level
+- `settings`, a (possibly partial) settings dict, with up to three top-level
   sections: `basic`, `events`, `potential_investment`. `None` resolves to
   the full defaults, unmodified.
 
-**Raises**: `SettingsError` on anything invalid — an unknown key, an event
+**Raises**: `SettingsError` on anything invalid: an unknown key, an event
 date outside the horizon, a three-year-only field on a one-year run, and
 so on.
 
@@ -69,9 +69,127 @@ print(sim.settings["basic"])
  'retain_earning_from': None}
 ```
 
-Every key not mentioned in the call above — `random_seed`, `budget`,
-`year_start`, and everything under `events`/`potential_investment` — is
+Every key not mentioned in the call above (`random_seed`, `budget`,
+`year_start`, and everything under `events`/`potential_investment`) is
 filled in from `DEFAULTS`, not left unset.
+
+## The settings object
+
+Every key `settings` accepts, across its three sections. A partial dict is
+always enough, any key left out inherits the default shown below, and an
+unknown top-level section or leaf key raises `SettingsError` immediately
+rather than being silently ignored (a typo like `"bugdet"` fails loudly
+instead of quietly falling back to the default).
+
+### `basic`
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `name` | `str` | `"My Grocery Store"` | The shop's name, cosmetic only, printed in `.describe()` and the exports. |
+| `random_seed` | `int` | `20260712` | Seeds every keyed random stream in the run. The same seed reproduces the same world bit for bit. |
+| `year` | `int`, `1` or `3` | `1` | The story's length. `3` unlocks the Phase 5 arc: panel churn, the expansion decision, retained earnings, and the `competitor`/`operational_hazard` events below. `1` is the baseline year only. |
+| `budget` | `number > 0` | `60_000` | The owner's initial capital, in euros, going into the opening MILP. |
+| `year_start` | `"YYYY"` or `"YYYY-MM"` | `"2025"` | Where the story's calendar begins. Every event date below is validated against this, not against the model's fixed internal epoch (see `events.py`'s module docstring). |
+| `retain_earning` | `bool` | `False` | Whether the owner retains a share of profit as declared earnings from year two onward. Requires `year == 3`. |
+| `retain_earning_from` | `"YYYY-MM"` or `None` | `None` | The month retention starts. `None` defaults to the formalization month Phase 5 already calibrates. Must not be before `year_start`. |
+
+### `events`
+
+Every event takes a date label (`"YYYY-MM"`, or `"YYYY-MM-DD"` for the
+few that care about the exact day) and defaults to `None` (never fires).
+`war`, `typhoon`, `food_vat_cut`, `tax_cut`, `tax_raise`, and
+`operational_hazard` also accept a *list* of labels to fire the same event
+more than once in a three-year run, while `competitor` takes a single date only,
+since it represents a permanent regime change rather than a repeatable
+shock.
+
+| Key | Accepts | Requires | Meaning |
+|---|---|---|---|
+| `war` | date or list | any `year` | A broad wholesale cost shock hitting every category, ramping over 14 days and decaying over 120. |
+| `typhoon` | date or list | any `year` | A 3-day storm: colder, wetter weather, a 65% drop in foot traffic, and a cost spike on Fresh Produce and Seafood that ramps for 3 days and decays over 21. |
+| `food_vat_cut` | date or list | any `year` | Halves VAT on the reduced-rate (food) category group, from this project's own baseline rate down to 5%. |
+| `tax_cut` | date or list | any `year` | Cuts VAT on the standard-rate category group from 20% to 15%. |
+| `tax_raise` | date or list | any `year` | A direct levy on gross revenue (this package's own addition, distinct from the two VAT levers above, see `params.py`'s `PHASE4["revenue_tax_rate"]`). |
+| `competitor` | single date | `year == 3` | A discounting competitor opens nearby, followed by a scheduled pricing response. Its pull is strongest on price-sensitive, transient customers. |
+| `operational_hazard` | date or list | `year == 3` | An overnight freezer failure: a spoilage loss plus a capped-capacity recovery window. |
+
+### `potential_investment`
+
+All three are plain on/off switches, never a threshold, date, or size.
+Turning one on only makes it *available*, whether and when it actually
+fires stays an emergent decision, driven by the same retained-earnings and
+spendable-cash trigger already used for the underlying hire/expansion
+mechanism. Turning one off disables it outright. All three are meaningless
+outside `basic.year == 3` (the model simply never reaches for them on a
+one-year run).
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `more_staff` | `bool` | `True` | Allows the owner to hire beyond the opening headcount once the business can support it. |
+| `bigger_store` | `bool` | `False` | Allows a move to a larger location once retained earnings and cash both clear their calibrated thresholds. |
+| `upgrade_infrastructure` | `bool` | `False` | Allows an infrastructure upgrade (e.g. better cold storage) under the same trigger pattern. |
+
+**A full settings dict, every section populated:**
+
+```python
+sim = GroceryStoreSimulation()
+sim.setup(dict(
+    basic = dict(
+        name = "Vinter Market",
+        random_seed = 42,
+        year = 3,
+        budget = 75_000,
+        year_start = "2025",
+        retain_earning = True,
+        retain_earning_from = "2026-01",
+    ),
+    events = dict(
+        war = ["2025-03-01", "2026-09-01"],
+        typhoon = "2025-07-15",
+        food_vat_cut = "2025-05-01",
+        tax_cut = "2026-02-01",
+        tax_raise = "2027-01",
+        competitor = "2026-06-01",
+        operational_hazard = "2027-04-01",
+    ),
+    potential_investment = dict(
+        more_staff = True,
+        bigger_store = True,
+        upgrade_infrastructure = True,
+    ),
+))
+import pprint
+pprint.pprint(sim.settings)
+```
+
+**Output**
+
+```text
+{'basic': {'budget': 75000,
+           'name': 'Vinter Market',
+           'random_seed': 42,
+           'retain_earning': True,
+           'retain_earning_from': '2026-01',
+           'year': 3,
+           'year_start': '2025'},
+ 'events': {'competitor': '2026-06-01',
+            'food_vat_cut': '2025-05-01',
+            'operational_hazard': '2027-04-01',
+            'tax_cut': '2026-02-01',
+            'tax_raise': '2027-01',
+            'typhoon': '2025-07-15',
+            'war': ['2025-03-01', '2026-09-01']},
+ 'potential_investment': {'bigger_store': True,
+                          'more_staff': True,
+                          'upgrade_infrastructure': True}}
+```
+
+`more_store` (a second physical location) is deliberately not part of the
+schema at all, not a disabled default, since supporting it would need a
+second opening MILP solved mid-run. `potential_investment.more_staff`
+being `True` by default (unlike the other two) mirrors the pre-existing
+hire-expansion mechanism it generalizes: it was always on before this
+settings surface existed, so the default keeps old behavior unchanged.
 
 ## `.simulate(out_dir=None)`
 
@@ -82,11 +200,11 @@ export pipeline, then self-validates the result.
 
 **Parameters**:
 
-- `out_dir` — where to write the exported CSVs. `None` (the default)
+- `out_dir`, where to write the exported CSVs. `None` (the default)
   writes to a fresh temp directory, cleaned up later by `.cleanup()`.
   Pass a real path to keep the export.
 
-**Raises**: `ValidationError` if a *structural* invariant fails — that
+**Raises**: `ValidationError` if a *structural* invariant fails: that
 always means a generator bug, never an ordinary consequence of the
 settings (see `.validation` below for the structural/reported-only
 distinction).
@@ -120,7 +238,7 @@ Validation — structural invariants (must always hold):
 **Type**: `dict | None`, set by `.simulate()`.
 
 **Structure**: `{"structural_ok": bool, "checks": list[dict]}`. Each check
-dict is `{"name": str, "pass": bool, "detail": str, "tier": str}` —
+dict is `{"name": str, "pass": bool, "detail": str, "tier": str}`.
 `tier` is `"structural"` (raises on failure, always a generator bug) or
 `"reported, not fatal"` (a band calibrated against the baseline, expected
 to drift once events are active, printed for visibility only).
@@ -148,15 +266,15 @@ True
 
 **Signature**: `sim.data(include_hidden: bool = False) -> SimulationData`
 
-**Description**: Reads every exported CSV back into a `SimulationData` —
+**Description**: Reads every exported CSV back into a `SimulationData`:
 attribute-style access (`tables.receipts`) over pandas DataFrames, one per
 visible table.
 
 **Parameters**:
 
-- `include_hidden` — also load the hidden answer-key tables, each
+- `include_hidden`, also load the hidden answer-key tables, each
   prefixed `hidden_` (the generating mechanisms behind every defect,
-  demand event, and customer lifecycle — see [Theory](theory.qmd) and the
+  demand event, and customer lifecycle, see [Theory](theory.qmd) and the
   [Analysis catalog](analysis-catalog.qmd)'s many blind-vs-graded
   examples).
 
@@ -201,7 +319,7 @@ print(tables.receipts.head(3))
 2           1     8    cash         NaN  BN-BTW-009    3        0.99      0             NaN  2025-01-02
 ```
 
-**Example** — `include_hidden=True`
+**Example**: `include_hidden=True`
 
 ```python
 tables_h = sim.data(include_hidden = True)
@@ -226,9 +344,9 @@ one table per CSV, typed rather than left as strings
 
 **Parameters**:
 
-- `path` — where to persist the database. `None` (the default) gives an
+- `path`, where to persist the database. `None` (the default) gives an
   in-memory database.
-- `include_hidden` — also load the hidden answer-key tables under a
+- `include_hidden`, also load the hidden answer-key tables under a
   `hidden_` prefix, same as `.data()`.
 
 **Returns**: A `duckdb.DuckDBPyConnection`.
@@ -255,13 +373,13 @@ print(con.sql("SHOW TABLES").fetchall())
 **Signature**: `sim.erd(include_hidden: bool = False) -> str`
 
 **Description**: Returns a Mermaid `erDiagram` string built from the
-hand-declared table relationships in `schema.py` — CSV/DuckDB tables carry
+hand-declared table relationships in `schema.py`. CSV/DuckDB tables carry
 no foreign-key metadata of their own to introspect, so this is curated,
 not inferred.
 
 **Parameters**:
 
-- `include_hidden` — include the hidden answer-key tables in the diagram.
+- `include_hidden`, include the hidden answer-key tables in the diagram.
 
 **Returns**: A Mermaid diagram string. Render it with `mo.mermaid(sim.erd())`
 in marimo, or paste it into any Mermaid-aware renderer (this site
@@ -273,8 +391,8 @@ included).
 print(sim.erd())
 ```
 
-**Output** (2,130 characters in full — every visible table, plus its
-declared relationships to the others — shown here trimmed)
+**Output** (2,130 characters in full: every visible table, plus its
+declared relationships to the others, shown here trimmed)
 
 ```text
 erDiagram
@@ -310,10 +428,10 @@ erDiagram
 
 **Signature**: `sim.describe() -> str`
 
-**Description**: Builds a fictional owner (`persona.py` — name, prior
-career, age; cosmetic only) who narrates this run's own real settings and
+**Description**: Builds a fictional owner (`persona.py`: name, prior
+career, age, cosmetic only) who narrates this run's own real settings and
 results as a letter, an intake-interview Q&A, a data table, a list of
-questions, and the stakes — grounded entirely in this run's actual
+questions, and the stakes, grounded entirely in this run's actual
 numbers, nothing templated. Reproducible per `random_seed`. Also prints
 the brief to stdout as a side effect, in addition to returning it.
 
@@ -327,7 +445,7 @@ text = sim.describe()
 
 **Output** (4,402 characters in full: the letter, a full intake
 interview, the data dictionary, the client's own questions, and the
-stakes — shown here trimmed)
+stakes, shown here trimmed)
 
 ```text
 # Vinter's Market — Engagement Brief
@@ -355,7 +473,7 @@ this is a starting outline, not a finished case.)*
 ```
 
 **Note**: the owner's name, story, and phrasing change with
-`random_seed` — this is the same method the [Exemplar
+`random_seed`, this is the same method the [Exemplar
 analyses](analyses/index.qmd) pages and the [generated
 briefs](analyses/generated-briefs.qmd) page are built from.
 
@@ -370,8 +488,8 @@ already stubbed with that layer's own questions as markdown prompts.
 
 **Parameters**:
 
-- `path` — where to write the notebook.
-- `mode` — `"student"` leaves every cell as a prompt with a
+- `path`, where to write the notebook.
+- `mode`, `"student"` leaves every cell as a prompt with a
   `# your queries here` placeholder. `"instructor"` additionally fills in
   a worked first pass.
 
@@ -386,9 +504,9 @@ path = sim.create_analysis(
 )
 ```
 
-**Output** (1,659 characters in `student` mode for this run;
-`instructor` mode is 2,184 — the extra length is the worked first pass
-added to each cell — shown here trimmed)
+**Output** (1,659 characters in `student` mode for this run,
+`instructor` mode is 2,184: the extra length is the worked first pass
+added to each cell, shown here trimmed)
 
 ```text
 import marimo
@@ -435,13 +553,13 @@ def _layer1describethebusiness(con, mo):
 **Signature**: `sim.export_settings(path: str | Path) -> None`
 
 **Description**: Writes `sim.settings` (already resolved and validated,
-not the partial dict passed to `.setup()`) to `path` as indented JSON —
+not the partial dict passed to `.setup()`) to `path` as indented JSON,
 the natural way to save a specific run's configuration for later reuse:
 `GroceryStoreSimulation().setup(json.load(open(path)))`.
 
 **Parameters**:
 
-- `path` — where to write the JSON file.
+- `path`, where to write the JSON file.
 
 **Returns**: `None`.
 
@@ -487,7 +605,7 @@ print(open("settings.json").read())
 **Signature**: `sim.cleanup() -> None`
 
 **Description**: Removes the temp export directory, if `.simulate()` was
-called with `out_dir=None` (its default). Safe to call unconditionally —
+called with `out_dir=None` (its default). Safe to call unconditionally:
 a no-op if nothing was ever simulated, or if a real `out_dir` was given
 (your own directory is never deleted for you).
 
@@ -516,11 +634,11 @@ iteration over table names.
 
 **Interface**:
 
-- `tables.receipts` — attribute access
-- `tables["receipts"]` — `__getitem__`
-- `list(tables)` — `__iter__` over table names
-- `tables.keys()` — same as `list(tables)`, spelled the familiar way
-- `repr(tables)` — the compact schema summary shown under `.data()` above
+- `tables.receipts`: attribute access
+- `tables["receipts"]`: `__getitem__`
+- `list(tables)`: `__iter__` over table names
+- `tables.keys()`: same as `list(tables)`, spelled the familiar way
+- `repr(tables)`: the compact schema summary shown under `.data()` above
 
 **Example**
 
@@ -535,7 +653,7 @@ tables.keys()
 
 ## Further reading
 
-This page covers the object model; [Theory](theory.qmd) covers *why* it's
+This page covers the object model. [Theory](theory.qmd) covers *why* it's
 built this way (the layer split that makes counterfactuals and grading
 possible), the [Analysis catalog](analysis-catalog.qmd) is 62 worked
 questions against these same methods, and [Exemplar

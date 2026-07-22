@@ -1,573 +1,821 @@
-"""Technical report analysis for grocery-sim's project site.
+"""Technical report analysis for grocery-sim's project site: the Malm's
+Market engagement.
 
-Reproducing this:
+Reproducing this: point DATA below at
+`cases/3y_baseline/visible/` (this project's layout; the same `visible/`
+folder [`analysis_notebook.py`](https://github.com/ChinhMaiGit/grocery-sim/blob/main/cases/3y_baseline/analysis_notebook.py)
+uses to build the stakeholder report), and HIDDEN at the matching
+`hidden/` folder (only used once, in Section 3, to grade the "no theft"
+claim against ground truth, never to build an estimate). Then run this
+script. It writes every table into `results.json`, and every figure as
+both a static PNG and an interactive HTML (the one embedded on the site).
 
-1. Generate the data with `grocery_sim`:
-
-    from grocery_sim import GroceryStoreSimulation
-    sim = GroceryStoreSimulation()
-    sim.setup({
-        "basic": {
-            "name": "Technical Report Shop", "random_seed": 5501, "year": 3,
-            "retain_earning": True, "retain_earning_from": "2026-01",
-        },
-        "events": {
-            "war": ["2025-03-01", "2026-09-01"],
-            "typhoon": "2025-07-15",
-            "food_vat_cut": "2025-05-01",
-            "tax_cut": "2026-02-01",
-            "competitor": "2026-06-01",
-            "operational_hazard": "2027-04-01",
-        },
-        "potential_investment": {
-            "more_staff": True, "bigger_store": True, "upgrade_infrastructure": True,
-        },
-    })
-    sim.simulate()
-    data = sim.data()
-    for name in data.keys():
-        data[name].to_parquet(f"<DATA>/{name}.parquet")
-
-2. Point DATA below at that folder, FIGDIR at wherever figures should land,
-   and run this script. It writes every figure plus results.json — the
-   single source every number in technical-report.qmd is transcribed from.
-
-3. Dependencies beyond the package itself: statsmodels, scikit-learn,
-   pymc, arviz, plotly, kaleido, openpyxl. On Windows, pm.sample() needs
-   cores=1 (already set below) — the multiprocessing spawn backend
-   otherwise re-imports this module in each worker and crashes without a
-   `if __name__ == "__main__":` guard.
-
-Runs GLM (NB regression + a difference-in-differences pass-through
-design), ML (gradient-boosting demand forecast + a stock-out classifier),
-and a hierarchical Bayesian partial-pooling model, against a real
-three-year grocery_sim run. Every number quoted in the report prose is in
-this script's own printed output / results.json -- nothing is hand-typed
-from a notebook that could have drifted.
+This restates `analysis_notebook.py`'s eight sections as a technical
+review would expect them: model specifications, coefficient tables with
+robust standard errors, confidence intervals, and diagnostics, in place of
+the notebook's narrated conclusions. Every regression uses the identical
+window, cleaning rule, and covariate set as the notebook it reviews.
+Nothing is re-litigated, only restated with the statistics shown in full
+(`statsmodels` with HAC-robust errors in place of the notebook's raw
+`np.linalg.lstsq`) and, once, checked directly against this run's own
+hidden ground truth.
 """
 
 import json
 import os
-import warnings
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import statsmodels.api as sm
 
-warnings.filterwarnings("ignore")
+DATA = "./visible"          # <- the 3y_baseline visible/ folder
+HIDDEN = "./hidden"         # <- the matching hidden/ folder (Section 3 only)
+FIGDIR = "./figures"
+os.makedirs(FIGDIR, exist_ok = True)
 
-DATA = "./tech_report_data"       # <- point at the exported parquet folder (step 1 above)
-FIGDIR = "./figures"              # <- where figures + results.json are written
-os.makedirs(FIGDIR, exist_ok=True)
-
-# --------------------------------------------------- palette (dataviz skill)
-# validated: node scripts/validate_palette.js "#2a78d6,#e34948" --mode light
-# -> ALL CHECKS PASS (lightness band, chroma floor, CVD sep 21.6, normal-
-# vision floor 32.3, contrast). Fixed roles held across every chart in this
-# report: blue = the model/processed estimate, red = the raw/unpooled/cost
-# comparison, ink = actual observed data, muted = a de-emphasized baseline.
 INK = "#0b0b0b"
 SECONDARY = "#52514e"
 MUTED = "#8c8c8c"
 GRID = "#e5e5e3"
 SURFACE = "#fcfcfb"
-BLUE = "#2a78d6"       # slot 1 -- model / processed / pooled estimate
-BLUE_WASH = "rgba(42,120,214,0.12)"
-RED = "#e34948"        # slot 8 -- raw / unpooled / cost comparison
+BLUE = "#2a78d6"
+RED = "#e34948"
 
 PLOT = dict(
-    plot_bgcolor=SURFACE,
-    paper_bgcolor=SURFACE,
-    font=dict(color=INK, size=13, family="Helvetica, Arial, sans-serif"),
-    margin=dict(l=64, r=28, t=56, b=52),
+    plot_bgcolor = SURFACE,
+    paper_bgcolor = SURFACE,
+    font = dict(
+        color = INK,
+        size = 13,
+        family = "Helvetica, Arial, sans-serif",
+    ),
+    margin = dict(
+        l = 64,
+        r = 28,
+        t = 56,
+        b = 52,
+    ),
 )
+# no gridlines, a recessive line + a few ticks only -- declutter per the
+# Storytelling-with-Data rules, gridlines and heavy axis chrome are chart
+# junk that competes with the data for attention
 AXIS = dict(
-    showgrid=True, gridcolor=GRID, gridwidth=1, zeroline=False,
-    showline=True, linecolor=GRID, ticks="outside", tickcolor=GRID,
-    tickfont=dict(color=SECONDARY),
+    showgrid = False,
+    zeroline = False,
+    showline = True,
+    linecolor = GRID,
+    ticks = "outside",
+    tickcolor = GRID,
+    tickfont = dict(color = SECONDARY),
+    nticks = 6,
+)
+BAR_AXIS = dict(
+    showgrid = False,
+    zeroline = False,
+    showline = False,
+    showticklabels = False,
+    ticks = "",
 )
 
 
-def style(fig, title=None, height=420, width=920, showlegend=True):
+def savefig(
+    fig,
+    name,
+    title = None,
+    height = 420,
+    width = 900,
+    showlegend = True,
+    hide_value_axis = False,
+):
     fig.update_layout(
-        **PLOT, height=height, width=width, showlegend=showlegend,
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color=SECONDARY, size=12)),
-        title=dict(text=title, x=0, xanchor="left", font=dict(color=INK, size=15)) if title else None,
+        **PLOT,
+        height = height,
+        width = width,
+        showlegend = showlegend,
+        legend = dict(
+            bgcolor = "rgba(0,0,0,0)",
+            font = dict(color = SECONDARY, size = 12),
+        ),
+        title = dict(
+            text = title,
+            x = 0,
+            xanchor = "left",
+            font = dict(color = INK, size = 15),
+        ) if title else None,
     )
-    fig.update_xaxes(**AXIS, title_font=dict(color=SECONDARY))
-    fig.update_yaxes(**AXIS, title_font=dict(color=SECONDARY))
+    fig.update_xaxes(**AXIS)
+    # column/bar charts hide the value axis and print the value on each bar
+    # instead (each figure below already adds those labels directly)
+    fig.update_yaxes(**(BAR_AXIS if hide_value_axis else AXIS))
+    fig.write_image(
+        f"{FIGDIR}/{name}.png",
+        scale = 2,
+    )
+    fig.write_html(
+        f"{FIGDIR}/{name}.html",
+        include_plotlyjs = "cdn",
+        full_html = False,
+    )
+
+
+def takeaway(
+    fig,
+    text,
+    x = 0.02,
+    y = 0.98,
+    color = BLUE,
+    anchor = "left",
+):
+    """A compact, single-line in-plot annotation carrying the one headline
+    reading of the chart -- the caption in the qmd prose below it carries
+    the rest (mechanism, caveats), per the annotation/caption split in the
+    dataviz style guide."""
+    fig.add_annotation(
+        text = text,
+        x = x,
+        y = y,
+        xref = "paper",
+        yref = "paper",
+        xanchor = anchor,
+        yanchor = "top",
+        showarrow = False,
+        font = dict(color = color, size = 12.5),
+    )
     return fig
 
 
-def savefig(fig, name, height=420, width=920, showlegend=True, title=None):
-    style(fig, title=title, height=height, width=width, showlegend=showlegend)
-    fig.write_image(f"{FIGDIR}/{name}.png", scale=2)
+def month_dummies(mm, reference = 1):
+    """Fixed-category month dummies (January is the reference by default),
+    built the same way whether this frame will later be used to fit or to
+    predict out of sample. `pd.get_dummies` drops whichever category
+    happens to be *first in this particular frame*, which silently drops
+    the wrong reference column (and zeroes out a real coefficient) once a
+    held-out period doesn't happen to start in January -- so every month
+    dummy in this script goes through this function instead, never
+    `pd.get_dummies` directly."""
+    months = [k for k in range(1, 13) if k != reference]
+    return pd.DataFrame(
+        {f"m_{k}": (mm.to_numpy() == k).astype(float) for k in months},
+        index = mm.index,
+    )
 
 
 results = {}
 
-# ==================================================================== load
-receipts = pd.read_parquet(f"{DATA}/receipts.parquet")
-weather = pd.read_parquet(f"{DATA}/weather.parquet")
-calendar = pd.read_parquet(f"{DATA}/calendar.parquet")
-cost_sheet = pd.read_parquet(f"{DATA}/cost_sheet.parquet")
-procurement = pd.read_parquet(f"{DATA}/procurement.parquet")
-price_history = pd.read_parquet(f"{DATA}/price_history.parquet")
-inventory_eod = pd.read_parquet(f"{DATA}/inventory_eod.parquet")
-skus = pd.read_excel("SKUs.xlsx")  # ships inside package/grocery_sim/SKUs.xlsx
-
-uid_cat = skus.set_index("uid")["category"]
-receipts["category"] = receipts["uid"].map(uid_cat)
-procurement["category"] = procurement["uid"].map(uid_cat)
-price_history["category"] = price_history["uid"].map(uid_cat)
-inventory_eod["category"] = inventory_eod["uid"].map(uid_cat) if "uid" in inventory_eod.columns else None
-
-for df in (receipts, weather, calendar, procurement, price_history, inventory_eod):
-    if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"])
-
-print("loaded:", receipts.shape, weather.shape, calendar.shape, cost_sheet.shape)
-
-# ============================================================ GLM section
-import statsmodels.api as sm
-import statsmodels.formula.api as smf
-
-sales = receipts[receipts["qty"] > 0].copy()
-daily_units = sales.groupby("date")["qty"].sum().rename("units").to_frame()
-daily = daily_units.join(weather.set_index("date")).join(calendar.set_index("date"))
-daily = daily[daily["closed"] == 0].copy()
-daily["t"] = (daily.index - daily.index.min()).days
-daily["dow"] = daily.index.dayofweek
-daily["is_weekend"] = (daily["dow"] >= 5).astype(int)
-daily["is_pre_holiday"] = daily["pre_holiday"].astype(int)
-temp_seasonal = daily.groupby(daily.index.dayofyear)["temp_C"].transform("mean")
-daily["temp_anom"] = daily["temp_C"] - temp_seasonal
-
-glm_df = daily.dropna(subset=["units", "temp_anom", "rain_mm", "wet"]).copy()
-
-nb_model = smf.glm(
-    formula="units ~ temp_anom + rain_mm + wet + is_weekend + is_pre_holiday + t",
-    data=glm_df,
-    family=sm.families.NegativeBinomial(),
-).fit(cov_type="HAC", cov_kwds={"maxlags": 7})
-
-glm_table = pd.DataFrame({
-    "coef": nb_model.params,
-    "IRR": np.exp(nb_model.params),
-    "se_HAC": nb_model.bse,
-    "p_value": nb_model.pvalues,
-    "ci_low": np.exp(nb_model.conf_int()[0]),
-    "ci_high": np.exp(nb_model.conf_int()[1]),
-})
-print(glm_table.round(4))
-results["glm_demand"] = {
-    "n_obs": int(nb_model.nobs),
-    "pseudo_r2": float(1 - nb_model.deviance / nb_model.null_deviance),
-    "table": glm_table.round(4).to_dict(orient="index"),
-}
-
-# fitted vs actual plot (7-day rolling mean, so weekly cycle doesn't dominate)
-glm_df["fitted"] = nb_model.fittedvalues
-roll = glm_df[["units", "fitted"]].rolling(7, min_periods=1).mean()
-fig = go.Figure()
-fig.add_trace(go.Scatter(
-    x=roll.index, y=roll["units"], name="actual (7-day mean)",
-    mode="lines", line=dict(color=INK, width=2),
-))
-fig.add_trace(go.Scatter(
-    x=roll.index, y=roll["fitted"], name="GLM fitted",
-    mode="lines", line=dict(color=BLUE, width=2),
-))
-fig.update_yaxes(title="units/day")
-savefig(fig, "01_glm_fitted_vs_actual", title="Negative-binomial demand GLM: fitted vs. actual")
-
-# temperature partial-effect plot
-temp_grid = np.linspace(glm_df["temp_anom"].min(), glm_df["temp_anom"].max(), 60)
-base = glm_df[["rain_mm", "wet", "is_weekend", "is_pre_holiday", "t"]].mean()
-pred_df = pd.DataFrame({"temp_anom": temp_grid, **{k: base[k] for k in base.index}})
-pred = nb_model.get_prediction(pred_df).summary_frame()
-fig = go.Figure()
-fig.add_trace(go.Scatter(
-    x=np.concatenate([temp_grid, temp_grid[::-1]]),
-    y=np.concatenate([pred["mean_ci_upper"], pred["mean_ci_lower"][::-1]]),
-    fill="toself", fillcolor=BLUE_WASH, line=dict(width=0),
-    showlegend=False, hoverinfo="skip",
-))
-fig.add_trace(go.Scatter(
-    x=temp_grid, y=pred["mean"], mode="lines", line=dict(color=BLUE, width=2),
-    showlegend=False,
-))
-fig.update_xaxes(title="temperature anomaly vs. day-of-year normal (°C)")
-fig.update_yaxes(title="predicted units/day")
-savefig(fig, "02_glm_temp_partial_effect",
-        title="Partial effect of temperature anomaly on demand (other covariates at their mean)",
-        showlegend=False)
-
-# ---------------------------------------------- pass-through: DiD design
-# events.food_vat_cut halves VAT on the reduced-rate (food) group on one
-# exact date -- but a naive before/after event study on a food category
-# alone is confounded here by the concurrent events.war cost shock
-# (started 2025-03-01, ~120-day decay, hits every category), which by
-# itself pushes the realized cost step to ~-8% against a theoretical
-# -4.55%. A standard-VAT category (unaffected by the VAT cut, but equally
-# exposed to the war shock) lets that common trend be differenced out --
-# a difference-in-differences design, not just a cleaner window.
-treated_cat = "Pantry Staples and Packaged Goods"   # reduced VAT -> cut
-control_cat = "Household and Cleaning Supplies"      # standard VAT -> unaffected
-vat_cut_date = pd.Timestamp("2025-05-01")
-
-
-all_weeks = pd.period_range(price_history["date"].min(), price_history["date"].max(), freq="W").start_time
-
-
-def weekly_price_level(cat):
-    """A proper held-price index: price_history only logs a row when a
-    price *changes* (menu-cost hysteresis means most SKUs reprice only a
-    few times a year), so naively averaging whatever rows exist in a
-    given week means some weeks are an average of 1-2 SKUs that happened
-    to reprice, not the category's actual shelf level that week. Forward-
-    fill each SKU's last known price onto every week instead, so the
-    weekly average is always across the category's full SKU set."""
-    ph_cat = price_history[price_history["category"] == cat].copy()
-    ph_cat["week"] = ph_cat["date"].dt.to_period("W").dt.start_time
-    panel = ph_cat.pivot_table(index="week", columns="uid", values="price", aggfunc="last")
-    panel = panel.reindex(all_weeks).ffill()
-    return panel.mean(axis=1).rename("price")
-
-
-def weekly_cost_index(cat):
-    proc_cat = procurement[procurement["category"] == cat].copy()
-    proc_cat["week"] = pd.to_datetime(proc_cat["delivery_date"]).dt.to_period("W").dt.start_time
-    return proc_cat.groupby("week")["unit_cost"].mean().reindex(all_weeks).ffill().rename("cost")
-
-
-def weekly_index(cat):
-    df = pd.concat([weekly_price_level(cat), weekly_cost_index(cat)], axis=1).dropna()
-    df["weeks_since"] = ((df.index - vat_cut_date).days // 7)
-    return df[(df["weeks_since"] >= -8) & (df["weeks_since"] <= 8)].copy()
-
-
-treated = weekly_index(treated_cat)
-control = weekly_index(control_cat)
-
-
-def pre_post_means(df):
-    pre = df[df["weeks_since"] < 0][["price", "cost"]].mean()
-    post = df[(df["weeks_since"] >= 0) & (df["weeks_since"] <= 7)][["price", "cost"]].mean()
-    return pre, post
-
-
-t_pre, t_post = pre_post_means(treated)
-c_pre, c_post = pre_post_means(control)
-
-d_cost_treated = np.log(t_post["cost"]) - np.log(t_pre["cost"])
-d_cost_control = np.log(c_post["cost"]) - np.log(c_pre["cost"])
-did_cost = d_cost_treated - d_cost_control  # the VAT-cut-specific cost move
-
-d_price_treated = np.log(t_post["price"]) - np.log(t_pre["price"])
-d_price_control = np.log(c_post["price"]) - np.log(c_pre["price"])
-did_price = d_price_treated - d_price_control  # the VAT-cut-specific price move
-
-did_pass_through = did_price / did_cost
-
-print("naive treated-only cost drop:", np.exp(d_cost_treated) - 1, "(confounded by the war shock)")
-print("control-category cost move (the common trend):", np.exp(d_cost_control) - 1)
-print("DiD cost move (VAT-cut-specific):", np.exp(did_cost) - 1, "vs theoretical", 1.05 / 1.10 - 1)
-print("DiD price move (VAT-cut-specific):", np.exp(did_price) - 1)
-print("DiD pass-through (uninformative -- see report):", did_pass_through)
-
-results["pass_through"] = {
-    "treated_category": treated_cat,
-    "control_category": control_cat,
-    "theoretical_cost_drop": round(1.05 / 1.10 - 1, 4),
-    "naive_treated_cost_drop": round(float(np.exp(d_cost_treated) - 1), 4),
-    "control_cost_move": round(float(np.exp(d_cost_control) - 1), 4),
-    "did_cost_drop": round(float(np.exp(did_cost) - 1), 4),
-    "did_price_drop": round(float(np.exp(did_price) - 1), 4),
-    "did_pass_through": round(float(did_pass_through), 3),
-}
-
-for df in (treated, control):
-    df["cost_idx100"] = 100 * np.exp(np.log(df["cost"]) - np.log(df.loc[df["weeks_since"] < 0, "cost"]).mean())
-    df["price_idx100"] = 100 * np.exp(np.log(df["price"]) - np.log(df.loc[df["weeks_since"] < 0, "price"]).mean())
-
-from plotly.subplots import make_subplots
-
-fig = make_subplots(
-    rows=1, cols=2, shared_yaxes=True,
-    subplot_titles=(f"{treated_cat} (treated: VAT cut)", f"{control_cat} (control: no VAT change)"),
-    horizontal_spacing=0.06,
+# ================================================================ load
+receipts_raw = pd.read_csv(
+    f"{DATA}/receipts.csv",
+    dtype = dict(
+        customer_id = str,
+        ref_receipt_id = str,
+    ),
 )
-for col, df in enumerate((treated, control), start=1):
-    show = col == 1
-    fig.add_trace(go.Scatter(
-        x=df["weeks_since"], y=df["cost_idx100"], name="invoice cost",
-        mode="lines+markers", line=dict(color=RED, width=2), marker=dict(size=8, line=dict(color=SURFACE, width=2)),
-        legendgroup="cost", showlegend=show,
-    ), row=1, col=col)
-    fig.add_trace(go.Scatter(
-        x=df["weeks_since"], y=df["price_idx100"], name="shelf price",
-        mode="lines+markers", line=dict(color=BLUE, width=2), marker=dict(size=8, line=dict(color=SURFACE, width=2)),
-        legendgroup="price", showlegend=show,
-    ), row=1, col=col)
-    fig.add_vline(x=0, line=dict(color=MUTED, width=1, dash="dash"), row=1, col=col)
-    fig.update_xaxes(title="weeks since the food-VAT cut", row=1, col=col, **AXIS)
-fig.update_yaxes(title="index (pre-event mean = 100)", row=1, col=1, **AXIS)
-fig.update_yaxes(row=1, col=2, **AXIS)
-for ann in fig.layout.annotations:
-    ann.font = dict(color=INK, size=13)
-fig.update_layout(**PLOT, height=440, width=980,
-                   legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color=SECONDARY, size=12), x=0.01, y=0.02),
-                   title=dict(text="Cost pass-through, difference-in-differences design", x=0, xanchor="left", font=dict(color=INK, size=15)))
-fig.write_image(f"{FIGDIR}/03_pass_through_did.png", scale=2)
+cost_sheet = pd.read_csv(f"{DATA}/cost_sheet.csv")
+tax_statement = pd.read_csv(f"{DATA}/tax_statement.csv")
+write_offs = pd.read_csv(f"{DATA}/write_offs.csv")
+procurement = pd.read_csv(f"{DATA}/procurement.csv")
+skus = pd.read_excel("SKUs.xlsx")[["uid", "category"]]
 
-print("GLM section done")
+# ==================================================== 1. dedup receipts
+# identical to analysis_notebook.py's own rule: a POS retry re-posts every
+# line of a receipt byte-identical, so group by the FULL row (qty
+# included) and check whether every one of a receipt's distinct rows
+# repeats an even number of times -- that receipt's quantities get halved
+full_key = [
+    "receipt_id",
+    "hour",
+    "payment",
+    "customer_id",
+    "uid",
+    "qty",
+    "unit_price",
+    "promo",
+    "date",
+    "ref_receipt_id",
+]
+counts = receipts_raw.groupby(full_key, dropna = False).size().reset_index(name = "n")
+is_retry = counts.groupby("receipt_id")["n"].apply(lambda s: (s % 2 == 0).all())
+counts["is_retry"] = counts["receipt_id"].map(is_retry)
+counts["qty_clean"] = np.where(
+    counts["is_retry"],
+    counts["qty"] * (counts["n"] // 2),
+    counts["qty"] * counts["n"],
+)
+group_cols = [
+    "receipt_id",
+    "hour",
+    "payment",
+    "customer_id",
+    "uid",
+    "unit_price",
+    "date",
+    "ref_receipt_id",
+]
+receipts = counts.groupby(group_cols, dropna = False)["qty_clean"].sum().reset_index(name = "qty")
+receipts = receipts[receipts["qty"] != 0].copy()
+n_flagged = int(counts.loc[counts["is_retry"], "receipt_id"].nunique())
 
-# ===================================================================== ML
-from sklearn.ensemble import HistGradientBoostingRegressor, HistGradientBoostingClassifier
-from sklearn.metrics import mean_absolute_error, mean_squared_error, average_precision_score, precision_recall_curve
+results["dedup"] = dict(n_flagged_receipts = n_flagged)
+print(f"1. dedup: {n_flagged} receipts carry the re-upload signature")
 
-forecast_cat = "Dairy and Eggs"
-cat_sales = sales[sales["category"] == forecast_cat].copy()
-weekly = cat_sales.groupby(pd.Grouper(key="date", freq="W"))["qty"].sum().rename("units").to_frame()
-weekly = weekly.join(weather.set_index("date").resample("W").mean()[["temp_C", "rain_mm"]])
-cal_w = calendar.set_index("date")
-weekly["holiday_week"] = cal_w["holiday"].notna().resample("W").sum().reindex(weekly.index, fill_value=0)
-weekly["week_of_year"] = weekly.index.isocalendar().week.astype(int)
-weekly["month"] = weekly.index.month
-for lag in (1, 2, 52):
-    weekly[f"lag_{lag}"] = weekly["units"].shift(lag)
-weekly["roll4"] = weekly["units"].shift(1).rolling(4).mean()
-weekly = weekly.dropna()
+# grading the blind flag against this arm's own hidden answer key, loaded
+# once, here, never used to build the estimate above -- only to check it
+hidden_imp = pd.read_csv(f"{HIDDEN}/imperfections.csv")
+true_dup_receipts = set(hidden_imp.loc[hidden_imp["kind"] == "dup_receipt", "key"].astype(int))
+blind_flagged_receipts = set(counts.loc[counts["is_retry"], "receipt_id"].unique())
+false_positives = blind_flagged_receipts - true_dup_receipts
+results["dedup"]["true_dup_receipts"] = len(true_dup_receipts)
+results["dedup"]["blind_minus_true"] = sorted(false_positives)
+results["dedup"]["blind_minus_true_is_the_traced_double_scans"] = None  # filled in after Section 1's own trace, below
+print(
+    f"true dup_receipt count: {len(true_dup_receipts)}, "
+    f"blind flagged: {len(blind_flagged_receipts)}, "
+    f"false positives: {sorted(false_positives)}"
+)
 
-train = weekly[weekly.index.year < 2027]
-test = weekly[weekly.index.year == 2027]
-features = ["temp_C", "rain_mm", "holiday_week", "week_of_year", "month", "lag_1", "lag_2", "lag_52", "roll4"]
+# --------------------------------------- till-to-ledger reconciliation
+receipts["yy"] = receipts["date"].str.slice(0, 4).astype(int)
+till_by_year = receipts.groupby("yy").apply(
+    lambda d: (d["qty"] * d["unit_price"]).sum(),
+    include_groups = False,
+).rename("till_revenue")
+ledger_by_year = cost_sheet.groupby("year")["revenue"].sum().rename("ledger_revenue")
+tie = pd.concat(
+    [till_by_year, ledger_by_year.rename_axis("yy")],
+    axis = 1,
+)
+tie["gap"] = tie["till_revenue"] - tie["ledger_revenue"]
 
-gbm = HistGradientBoostingRegressor(max_depth=3, learning_rate=0.08, max_iter=200, random_state=0)
-gbm.fit(train[features], train["units"])
-pred_gbm = gbm.predict(test[features])
+print(tie.round(2))
+results["reconciliation"] = dict(
+    table = tie.round(2).reset_index().to_dict(orient = "records"),
+    max_abs_gap = round(float(tie["gap"].abs().max()), 2),
+)
 
-naive_pred = test["lag_52"].values  # seasonal-naive: same week last year
+# trace the residual gap to a specific, named cause: a single item scanned
+# in two identical lines on one receipt (not a re-upload, since a re-upload
+# duplicates every distinct line, not just one)
+lines = receipts_raw.groupby(
+    ["receipt_id", "date", "uid", "qty", "unit_price"],
+).size().reset_index(name = "n_dup")
+distinct = lines.groupby("receipt_id").size().rename("n_distinct")
+lines = lines.join(distinct, on = "receipt_id")
+suspects = lines[(lines["n_distinct"] == 1) & (lines["n_dup"] == 2)].copy()
+suspects["true_value"] = (suspects["qty"] * suspects["unit_price"]).round(2)
+gaps = [round(g, 2) for g in tie["gap"].abs().tolist() if abs(g) > 0.5]
+found = suspects[suspects["true_value"].isin(gaps)]
+print(found[["receipt_id", "date", "uid", "qty", "unit_price", "true_value"]])
+results["reconciliation"]["traced_receipts"] = found[
+    ["receipt_id", "date", "uid", "qty", "unit_price", "true_value"]
+].to_dict(orient = "records")
 
-mae_gbm = mean_absolute_error(test["units"], pred_gbm)
-mae_naive = mean_absolute_error(test["units"], naive_pred)
-rmse_gbm = mean_squared_error(test["units"], pred_gbm) ** 0.5
-rmse_naive = mean_squared_error(test["units"], naive_pred) ** 0.5
+# confirm the false positives above are exactly these two traced receipts,
+# not a coincidence of counts
+traced_ids = set(found["receipt_id"])
+results["dedup"]["blind_minus_true_is_the_traced_double_scans"] = (false_positives == traced_ids)
+print(f"blind false positives equal the traced double-scan receipts: {false_positives == traced_ids}")
 
-print(f"GBM  MAE={mae_gbm:.1f} RMSE={rmse_gbm:.1f}")
-print(f"naive MAE={mae_naive:.1f} RMSE={rmse_naive:.1f}")
-print("MAE improvement over naive:", 1 - mae_gbm / mae_naive)
+# ========================================= 2. trend + seasonal decomposition
+sales = receipts[(receipts["qty"] > 0) & receipts["ref_receipt_id"].isna()].copy()
+sales["mm"] = sales["date"].str.slice(5, 7).astype(int)
+monthly = sales.groupby(["yy", "mm"]).apply(
+    lambda d: (d["qty"] * d["unit_price"]).sum(),
+    include_groups = False,
+).rename("rev").reset_index()
+monthly["t"] = (monthly["yy"] - 2025) * 12 + monthly["mm"]
+monthly = monthly.sort_values("t")
 
-results["ml_forecast"] = {
-    "category": forecast_cat,
-    "n_train": int(len(train)),
-    "n_test": int(len(test)),
-    "mae_gbm": round(float(mae_gbm), 1),
-    "mae_naive": round(float(mae_naive), 1),
-    "rmse_gbm": round(float(rmse_gbm), 1),
-    "rmse_naive": round(float(rmse_naive), 1),
-    "mae_improvement_pct": round(float(1 - mae_gbm / mae_naive) * 100, 1),
-    "feature_importance": {},
-}
+# January 2025 excluded (t=1): the owner's own account says it was
+# pantry-filling, not ordinary trade, exactly as the notebook excludes it
+train = monthly[monthly["t"] != 1].copy()
+X = sm.add_constant(pd.concat(
+    [train[["t"]], month_dummies(train["mm"])],
+    axis = 1,
+))
+y = np.log(train["rev"])
+trend_model = sm.OLS(y, X).fit(
+    cov_type = "HAC",
+    cov_kwds = dict(maxlags = 3),
+)
+
+trend_pct_yr = (np.exp(trend_model.params["t"] * 12) - 1) * 100
+trend_ci = trend_model.conf_int().loc["t"]
+trend_ci_pct = (np.exp(trend_ci * 12) - 1) * 100
+
+print(trend_model.summary().tables[1])
+results["trend"] = dict(
+    n_obs = int(trend_model.nobs),
+    r2 = round(float(trend_model.rsquared), 4),
+    trend_coef_monthly_log = round(float(trend_model.params["t"]), 5),
+    trend_se_hac = round(float(trend_model.bse["t"]), 5),
+    trend_pvalue = float(trend_model.pvalues["t"]),
+    trend_pct_per_year = round(float(trend_pct_yr), 2),
+    trend_pct_per_year_ci = [
+        round(float(trend_ci_pct.iloc[0]), 2),
+        round(float(trend_ci_pct.iloc[1]), 2),
+    ],
+)
+
+# volume / price / basket decomposition, 2025 vs 2027
+sales["yy"] = sales["date"].str.slice(0, 4).astype(int)
+yearly = sales.groupby("yy").apply(
+    lambda d: pd.Series(dict(
+        rev = (d["qty"] * d["unit_price"]).sum(),
+        units = d["qty"].sum(),
+        cards = d.loc[d["customer_id"].notna(), "customer_id"].nunique(),
+        trips = d["receipt_id"].nunique(),
+    )),
+    include_groups = False,
+)
+yearly["avg_price"] = yearly["rev"] / yearly["units"]
+yearly["basket"] = yearly["rev"] / yearly["trips"]
+growth = dict(
+    unit_growth_pct = round(float(yearly["units"].iloc[-1] / yearly["units"].iloc[0] - 1) * 100, 1),
+    price_growth_pct = round(float(yearly["avg_price"].iloc[-1] / yearly["avg_price"].iloc[0] - 1) * 100, 1),
+    basket_growth_pct = round(float(yearly["basket"].iloc[-1] / yearly["basket"].iloc[0] - 1) * 100, 1),
+    trips_growth_pct = round(float(yearly["trips"].iloc[-1] / yearly["trips"].iloc[0] - 1) * 100, 1),
+)
+results["trend"]["decomposition"] = growth
+print(growth)
 
 fig = go.Figure()
-fig.add_trace(go.Scatter(
-    x=test.index, y=test["units"], name="actual", mode="lines+markers",
-    line=dict(color=INK, width=2), marker=dict(size=7, line=dict(color=SURFACE, width=1.5)),
+fig.add_trace(go.Bar(
+    x = train["t"],
+    y = train["rev"],
+    marker = dict(color = MUTED),
+    name = "actual monthly revenue",
 ))
 fig.add_trace(go.Scatter(
-    x=test.index, y=pred_gbm, name="gradient boosting", mode="lines+markers",
-    line=dict(color=BLUE, width=2), marker=dict(size=7, line=dict(color=SURFACE, width=1.5)),
+    x = train["t"],
+    y = np.exp(trend_model.fittedvalues),
+    mode = "lines",
+    line = dict(color = BLUE, width = 2),
+    name = "trend + season (fitted)",
 ))
-fig.add_trace(go.Scatter(
-    x=test.index, y=naive_pred, name="seasonal-naive (52-wk lag)", mode="lines",
-    line=dict(color=MUTED, width=2, dash="dash"),
-))
-fig.update_yaxes(title="units/week")
-savefig(fig, "04_ml_forecast_holdout", title=f"2027 holdout forecast — {forecast_cat}")
+fig.update_yaxes(title = "revenue (EUR/month)")
+fig.update_xaxes(title = "month (Feb 2025 = 2)")
+takeaway(fig, f"net of season, growth ≈{trend_pct_yr:+.1f}%/year")
+savefig(fig, "02_trend_season", title = "Monthly revenue: fitted trend + seasonal OLS (HAC SEs)")
 
-# permutation-free importance from the trained HGB via built-in feature contribution proxy:
-# HistGradientBoostingRegressor has no feature_importances_, so use permutation importance
-from sklearn.inspection import permutation_importance
-perm = permutation_importance(gbm, test[features], test["units"], n_repeats=30, random_state=0)
-imp = pd.Series(perm.importances_mean, index=features).sort_values()
-results["ml_forecast"]["feature_importance"] = imp.round(3).to_dict()
-print(imp)
+# ============================================== 3. write-off decomposition
+proc_dedup = procurement.drop_duplicates(
+    subset = ["uid", "qty", "unit_cost", "order_date", "delivery_date"],
+)
+median_cost = proc_dedup.groupby("uid")["unit_cost"].median().rename("mc")
+woc = write_offs.join(median_cost, on = "uid")
+woc["eur"] = woc["units"] * woc["mc"]
+by_reason = woc.groupby("reason").agg(
+    units = ("units", "sum"),
+    eur = ("eur", "sum"),
+).sort_values("eur", ascending = False)
+total_eur = float(by_reason["eur"].sum())
+rev_3y = float(yearly["rev"].sum())
 
+print(by_reason)
+results["writeoffs"] = dict(
+    table = by_reason.reset_index().round(2).to_dict(orient = "records"),
+    total_eur = round(total_eur, 2),
+    pct_of_revenue = round(total_eur / rev_3y * 100, 2),
+)
+
+# trace the largest stock_count correction month to a specific duplicated
+# delivery, exactly as the notebook does
+woc["ym"] = woc["date"].str.slice(0, 7)
+sc_monthly = woc[woc["reason"] == "stock_count"].groupby("ym")["units"].sum().sort_values(ascending = False)
+worst_month = sc_monthly.index[0]
+dupe = procurement.groupby(
+    ["uid", "qty", "unit_cost", "order_date", "delivery_date"],
+).size().reset_index(name = "n")
+dupe = dupe[dupe["n"] > 1].copy()
+dupe["delivery_month"] = dupe["delivery_date"].str.slice(0, 7)
+dupe["extra_units"] = (dupe["n"] - 1) * dupe["qty"]
+dupe_that_month = dupe[dupe["delivery_month"] == worst_month]
+extra = int(dupe_that_month["extra_units"].sum())
+correction = int(sc_monthly.iloc[0])
+
+results["writeoffs"]["worst_month"] = worst_month
+results["writeoffs"]["worst_month_correction_units"] = correction
+results["writeoffs"]["worst_month_duplicate_units"] = extra
+print(f"worst stock_count month {worst_month}: {correction} units, {extra} traced to duplicate deliveries")
+
+# grading the "no theft" claim against the same hidden answer key loaded
+# in Section 1, reused here, never used to build the estimate above
+results["writeoffs"]["ground_truth_defect_families"] = hidden_imp["kind"].value_counts().to_dict()
+results["writeoffs"]["ground_truth_has_theft_family"] = bool(
+    hidden_imp["kind"].isin(["theft", "shrinkage_theft"]).any(),
+)
+print("hidden defect families this run:", hidden_imp["kind"].value_counts().to_dict())
+print("a theft-labeled defect family exists in ground truth:", results["writeoffs"]["ground_truth_has_theft_family"])
+
+reason_labels = dict(
+    spoilage = "spoiled on the shelf",
+    stock_count = "month-end count correction",
+    damage = "the freezer accident",
+)
 fig = go.Figure(go.Bar(
-    x=imp.values, y=imp.index, orientation="h",
-    marker=dict(color=BLUE),
+    x = [reason_labels[r] for r in by_reason.index],
+    y = by_reason["eur"].tolist(),
+    marker = dict(color = [RED if r == "damage" else BLUE for r in by_reason.index]),
+    text = [f"€{v:,.0f}" for v in by_reason["eur"]],
+    textposition = "outside",
+    textfont = dict(color = INK, size = 12.5),
 ))
-fig.update_xaxes(title="permutation importance (MAE increase when shuffled)")
-savefig(fig, "05_ml_feature_importance", title="What the forecaster actually relies on",
-        height=440, showlegend=False)
-
-print("ML forecast section done")
-
-# ---------------------------------------------------- stockout classifier
-stockout_days = inventory_eod[inventory_eod["on_hand"] == 0][["uid", "date"]].copy()
-stockout_days["week"] = stockout_days["date"].dt.to_period("W").dt.start_time
-stockout_weeks = stockout_days.groupby(["uid", "week"]).size().reset_index(name="n")
-stockout_weeks["stockout"] = 1
-
-inv = inventory_eod.copy()
-inv["week"] = inv["date"].dt.to_period("W").dt.start_time
-weekly_inv = inv.groupby(["uid", "week"])["on_hand"].mean().rename("avg_on_hand").reset_index()
-
-sales_by_sku_week = sales.copy()
-sales_by_sku_week["week"] = sales_by_sku_week["date"].dt.to_period("W").dt.start_time
-weekly_demand = sales_by_sku_week.groupby(["uid", "week"])["qty"].sum().rename("weekly_units").reset_index()
-
-panel = weekly_inv.merge(weekly_demand, on=["uid", "week"], how="left").fillna({"weekly_units": 0})
-panel["category"] = panel["uid"].map(uid_cat)
-panel = panel.sort_values(["uid", "week"])
-panel["avg_daily_demand_lag"] = panel.groupby("uid")["weekly_units"].shift(1) / 7.0
-panel["cover_days"] = panel["avg_on_hand"] / panel["avg_daily_demand_lag"].replace(0, np.nan)
-panel["next_week"] = panel.groupby("uid")["week"].shift(-1)
-panel = panel.merge(
-    stockout_weeks[["uid", "week", "stockout"]].rename(columns={"week": "next_week"}),
-    on=["uid", "next_week"], how="left",
+fig.update_yaxes(
+    title = "EUR over 3 years",
+    range = [0, float(by_reason["eur"].max()) * 1.2],
 )
-panel["stockout"] = panel["stockout"].fillna(0).astype(int)
-panel["month"] = panel["week"].dt.month
-panel = panel.dropna(subset=["cover_days"])
-panel = panel[np.isfinite(panel["cover_days"])]
-panel["cat_code"] = panel["category"].astype("category").cat.codes
+takeaway(fig, f"{total_eur / rev_3y * 100:.1f}% of revenue, almost all spoilage")
+savefig(
+    fig,
+    "03_writeoffs",
+    title = "Write-offs by reason, at invoice cost",
+    showlegend = False,
+    height = 420,
+    hide_value_axis = True,
+)
 
-cls_features = ["cover_days", "avg_daily_demand_lag", "month", "cat_code"]
-panel_train = panel[panel["week"].dt.year < 2027]
-panel_test = panel[panel["week"].dt.year == 2027]
+print("Sections 1-3 done")
 
-clf = HistGradientBoostingClassifier(max_depth=4, learning_rate=0.08, max_iter=150, random_state=0)
-clf.fit(panel_train[cls_features], panel_train["stockout"])
-proba = clf.predict_proba(panel_test[cls_features])[:, 1]
+# =============================================== 4. competitor counterfactual
+def fit_and_project(df_train, df_post, col):
+    X_ = sm.add_constant(pd.concat(
+        [df_train[["t"]], month_dummies(df_train["mm"])],
+        axis = 1,
+    ))
+    y_ = np.log(df_train[col])
+    m = sm.OLS(y_, X_).fit(
+        cov_type = "HAC",
+        cov_kwds = dict(maxlags = 3),
+    )
+    Xp = sm.add_constant(
+        pd.concat([df_post[["t"]], month_dummies(df_post["mm"])], axis = 1),
+        has_constant = "add",
+    )
+    pred = np.exp(m.predict(Xp))
+    resid_sigma = float(np.sqrt(m.mse_resid))
+    return pred, m, resid_sigma
 
-pr_auc = average_precision_score(panel_test["stockout"], proba)
-base_rate = panel_test["stockout"].mean()
-precision, recall, thresh = precision_recall_curve(panel_test["stockout"], proba)
 
-print("stockout base rate (test):", base_rate, "PR-AUC:", pr_auc)
-results["ml_stockout"] = {
-    "n_train": int(len(panel_train)),
-    "n_test": int(len(panel_test)),
-    "base_rate_test": round(float(base_rate), 4),
-    "pr_auc": round(float(pr_auc), 4),
-}
+units_monthly = sales.groupby(["yy", "mm"]).apply(
+    lambda d: pd.Series(dict(units = d["qty"].sum(), trips = d["receipt_id"].nunique())),
+    include_groups = False,
+).reset_index()
+units_monthly["t"] = (units_monthly["yy"] - 2025) * 12 + units_monthly["mm"]
+monthly_full = monthly.merge(units_monthly[["t", "units", "trips"]], on = "t")
+train4 = monthly_full[(monthly_full["t"] >= 2) & (monthly_full["t"] <= 26)].copy()
+post4 = monthly_full[monthly_full["t"] >= 27].copy()
+
+pred_rev, rev_model, sigma_rev = fit_and_project(train4, post4, "rev")
+pred_units, _, _ = fit_and_project(train4, post4, "units")
+pred_trips, _, _ = fit_and_project(train4, post4, "trips")
+
+gap_rev = float(post4["rev"].sum() - pred_rev.sum())
+results["competitor"] = dict(
+    pred_rev = round(float(pred_rev.sum()), 0),
+    act_rev = round(float(post4["rev"].sum()), 0),
+    gap_rev = round(gap_rev, 0),
+    gap_units_pct = round(float(post4["units"].sum() / pred_units.sum() - 1) * 100, 2),
+    gap_trips_pct = round(float(post4["trips"].sum() / pred_trips.sum() - 1) * 100, 2),
+    resid_sigma_log = round(sigma_rev, 4),
+    pre_period_r2 = round(float(rev_model.rsquared), 4),
+    pre_period_n = int(rev_model.nobs),
+)
+print(results["competitor"])
+
+# category-level difference-in-differences on the shelves the owner
+# discounted (his own May 2027 price cut is the treatment date, since
+# that is the response actually visible in the tag file)
+EXPOSED = [
+    "Beverages (Non-Alcoholic)",
+    "Snacks and Confectionery",
+    "Household and Cleaning Supplies",
+]
+cat_sales = sales.merge(skus, on = "uid")
+cat_sales["exposed"] = cat_sales["category"].isin(EXPOSED)
+cat_sales["yy"] = cat_sales["date"].str.slice(0, 4).astype(int)
+cat_monthly = cat_sales.groupby(["yy", "mm", "exposed"]).apply(
+    lambda d: (d["qty"] * d["unit_price"]).sum(),
+    include_groups = False,
+).rename("rev").reset_index()
+cat_monthly["t"] = (cat_monthly["yy"] - 2025) * 12 + cat_monthly["mm"]
+cat_monthly["exposed_i"] = cat_monthly["exposed"].astype(int)
+cat_monthly["post"] = (cat_monthly["t"] >= 29).astype(int)   # May 2027 = t 29
+cat_monthly["did"] = cat_monthly["exposed_i"] * cat_monthly["post"]
+
+Xd = sm.add_constant(pd.concat(
+    [cat_monthly[["t", "exposed_i", "post", "did"]], month_dummies(cat_monthly["mm"])],
+    axis = 1,
+))
+yd = np.log(cat_monthly["rev"])
+did_model = sm.OLS(yd, Xd).fit(
+    cov_type = "HAC",
+    cov_kwds = dict(maxlags = 4),
+)
+
+did_pct = (np.exp(did_model.params["did"]) - 1) * 100
+did_ci = (np.exp(did_model.conf_int().loc["did"]) - 1) * 100
+print(did_model.summary().tables[1])
+results["competitor"]["did"] = dict(
+    coef_log = round(float(did_model.params["did"]), 4),
+    pct = round(float(did_pct), 2),
+    ci_pct = [
+        round(float(did_ci.iloc[0]), 2),
+        round(float(did_ci.iloc[1]), 2),
+    ],
+    pvalue = float(did_model.pvalues["did"]),
+    n_obs = int(did_model.nobs),
+)
+print(results["competitor"]["did"])
 
 fig = go.Figure()
 fig.add_trace(go.Scatter(
-    x=recall, y=precision, name="classifier", mode="lines", line=dict(color=BLUE, width=2),
+    x = post4["t"],
+    y = pred_rev,
+    mode = "lines",
+    line = dict(color = MUTED, width = 2, dash = "dash"),
+    name = "expected (pre-entry trend)",
 ))
 fig.add_trace(go.Scatter(
-    x=[0, 1], y=[base_rate, base_rate], name=f"random baseline (base rate = {base_rate:.3f})",
-    mode="lines", line=dict(color=MUTED, width=2, dash="dash"),
+    x = post4["t"],
+    y = post4["rev"],
+    mode = "lines+markers",
+    line = dict(color = BLUE, width = 2),
+    name = "actual",
 ))
-fig.update_xaxes(title="recall", range=[0, 1])
-fig.update_yaxes(title="precision", range=[0, 1.02])
-savefig(fig, "06_ml_stockout_pr_curve", title=f"Stockout-risk classifier: PR curve (AUC = {pr_auc:.3f})",
-        height=460, width=640)
+fig.update_yaxes(title = "revenue (EUR/month)")
+fig.update_xaxes(title = "month (March 2027 = 27)")
+takeaway(fig, f"10-month gap ≈ €{gap_rev:+,.0f}, not distinguishable from noise")
+savefig(fig, "04_competitor", title = "Actual vs. pre-entry-trend-predicted revenue since the competitor opened")
 
-print("ML section done")
+print("Section 4 done")
 
-# ============================================================ Bayesian
-# hierarchical partial pooling of the weekend demand effect, by category.
-# Deliberately restricted to the first 90 trading days (not the full three
-# years): with three years of data every category's own OLS estimate is
-# already precise enough that pooling barely changes anything, which would
-# make a weak demonstration. A new shop's first quarter is exactly when a
-# real analyst faces this problem for real -- some categories have enough
-# volume to trust on their own, others don't yet, and partial pooling is
-# the honest way to use what the whole shop knows to steady the ones that
-# don't.
-early = sales[sales["date"] < sales["date"].min() + pd.Timedelta(days=90)].copy()
-early_cal = calendar.set_index("date")
-daily_cat = early.groupby(["category", "date"])["qty"].sum().rename("units").reset_index()
-daily_cat["is_weekend"] = daily_cat["date"].map(early_cal["dow"]).ge(5).astype(int)
-daily_cat["log_units"] = np.log1p(daily_cat["units"])
+# =========================================================== 5. expansion
+cs = cost_sheet.copy()
+cs["t"] = (cs["year"] - 2025) * 12 + cs["month"]
+post5 = cs[cs["t"] >= 23]
+train5 = cs[(cs["t"] >= 2) & (cs["t"] <= 22)]
 
-cats = sorted(daily_cat["category"].unique())
-unpooled = []
-for c in cats:
-    sub = daily_cat[daily_cat["category"] == c]
-    m = smf.ols("log_units ~ is_weekend", data=sub).fit()
-    unpooled.append({
-        "category": c,
-        "n_days": int(len(sub)),
-        "beta": float(m.params["is_weekend"]),
-        "se": float(m.bse["is_weekend"]),
-    })
-unpooled = pd.DataFrame(unpooled).sort_values("se").reset_index(drop=True)
-print(unpooled)
 
-import pymc as pm
+def fit_and_project_cs(df_train, df_post, col):
+    X_ = sm.add_constant(pd.concat(
+        [df_train[["t"]], month_dummies(df_train["month"])],
+        axis = 1,
+    ))
+    y_ = np.log(df_train[col])
+    m = sm.OLS(y_, X_).fit(
+        cov_type = "HAC",
+        cov_kwds = dict(maxlags = 3),
+    )
+    Xp = sm.add_constant(
+        pd.concat([df_post[["t"]], month_dummies(df_post["month"])], axis = 1),
+        has_constant = "add",
+    )
+    return np.exp(m.predict(Xp)), m
 
-with pm.Model() as hier:
-    mu = pm.Normal("mu", 0, 1)
-    tau = pm.HalfNormal("tau", 0.5)
-    beta_true = pm.Normal("beta_true", mu, tau, shape=len(unpooled))
-    pm.Normal("obs", beta_true, unpooled["se"].values, observed=unpooled["beta"].values)
-    # cores=1: avoids the Windows multiprocessing spawn crash (see module
-    # docstring) -- fine here, the model is tiny (12 observations)
-    idata = pm.sample(2000, tune=1500, chains=4, cores=1, target_accept=0.95, random_seed=0, progressbar=False)
 
-post_mean = idata.posterior["beta_true"].mean(dim=("chain", "draw")).values
-post_lo = idata.posterior["beta_true"].quantile(0.025, dim=("chain", "draw")).values
-post_hi = idata.posterior["beta_true"].quantile(0.975, dim=("chain", "draw")).values
-global_mu = float(idata.posterior["mu"].mean())
-rhat_max = float(pm.summary(idata, var_names=["mu", "tau"])["r_hat"].max())
+pred_rev5, rev_model5 = fit_and_project_cs(train5, post5, "revenue")
+pred_util5, _ = fit_and_project_cs(train5, post5, "utilities")
 
-unpooled["pooled_mean"] = post_mean
-unpooled["pooled_lo"] = post_lo
-unpooled["pooled_hi"] = post_hi
-print(unpooled)
-print("global mu:", global_mu, "max r_hat:", rhat_max)
+wages = float(post5["wages"].sum())
+payroll = float(post5["payroll_tax"].sum())
+extra_util = max(0.0, float(post5["utilities"].sum() - pred_util5.sum()))
+capex = 14_000.0
+total_cost = wages + payroll + extra_util + capex
+extra_rev = float(post5["revenue"].sum() - pred_rev5.sum())
+gm = 1 - float(cs["procurement"].sum()) / float(cs["revenue"].sum())
+extra_gross_profit = extra_rev * gm
+net = extra_gross_profit - total_cost
 
-results["bayes_hierarchical"] = {
-    "n_days_used": 90,
-    "n_categories": len(cats),
-    "global_weekend_effect_log": round(global_mu, 3),
-    "global_weekend_effect_pct": round((np.exp(global_mu) - 1) * 100, 1),
-    "max_rhat": round(rhat_max, 4),
-    "table": unpooled.round(3).to_dict(orient="records"),
-}
+results["expansion"] = dict(
+    months = int(len(post5)),
+    wages = round(wages, 0),
+    payroll_tax = round(payroll, 0),
+    extra_utilities = round(extra_util, 0),
+    capex = capex,
+    total_cost = round(total_cost, 0),
+    extra_revenue = round(extra_rev, 0),
+    gross_margin = round(gm, 4),
+    extra_gross_profit = round(extra_gross_profit, 0),
+    net = round(net, 0),
+    revenue_needed_for_wage_bill = round((wages + payroll) / gm, 0),
+    pre_period_r2 = round(float(rev_model5.rsquared), 4),
+)
+print(results["expansion"])
 
-y_labels = [f"{c}  (n={n})" for c, n in zip(unpooled["category"], unpooled["n_days"])]
-y = np.arange(len(unpooled))
+waterfall_values = [extra_gross_profit, -wages, -payroll, -extra_util, -capex]
+fig = go.Figure(go.Waterfall(
+    x = ["extra gross profit", "wages", "payroll tax", "extra utilities", "fit-out"],
+    measure = ["relative"] * 5,
+    y = waterfall_values,
+    text = [f"{'+' if v >= 0 else ''}{v:,.0f}" for v in waterfall_values],
+    textposition = "outside",
+    textfont = dict(color = INK, size = 12.5),
+    connector = dict(line = dict(color = MUTED, width = 1)),
+    increasing = dict(marker = dict(color = BLUE)),
+    decreasing = dict(marker = dict(color = RED)),
+))
+fig.update_yaxes(
+    title = "EUR",
+    range = [net * 1.15, extra_gross_profit * 3],
+)
+takeaway(
+    fig,
+    f"net so far: ≈€{net:,.0f}",
+    x = 0.98,
+    y = 0.9,
+    color = RED,
+    anchor = "right",
+)
+savefig(
+    fig,
+    "05_expansion",
+    title = "Expansion cost/benefit waterfall",
+    showlegend = False,
+    hide_value_axis = True,
+)
+
+print("Section 5 done")
+
+# =============================================================== 6. churn
+card_sales = sales[sales["customer_id"].notna() & sales["ref_receipt_id"].isna()]
+visits = card_sales.groupby("customer_id").agg(
+    n = ("receipt_id", "nunique"),
+    first = ("date", "min"),
+    last = ("date", "max"),
+)
+regulars = visits[visits["n"] >= 10].copy()
+regulars["first_dt"] = pd.to_datetime(regulars["first"])
+regulars["last_dt"] = pd.to_datetime(regulars["last"])
+
+year_ends = [
+    ("2025-12-31", 2025),
+    ("2026-12-31", 2026),
+    ("2027-12-31", 2027),
+]
+rows = []
+for year_end, label in year_ends:
+    ye = pd.Timestamp(year_end)
+    eligible = regulars[regulars["first_dt"] <= ye]
+    silent = eligible[(ye - eligible["last_dt"]).dt.days >= 90]
+    new_that_year = regulars[regulars["first_dt"].dt.year == label]
+    rows.append(dict(
+        year = label,
+        regulars_established_by_year_end = int(len(eligible)),
+        gone_quiet_90d_plus = int(len(silent)),
+        newly_established_that_year = int(len(new_that_year)),
+    ))
+churn_table = pd.DataFrame(rows)
+print(churn_table)
+results["churn"] = dict(
+    total_regulars = int(len(regulars)),
+    table = churn_table.to_dict(orient = "records"),
+)
+
 fig = go.Figure()
-for i in range(len(unpooled)):
-    fig.add_trace(go.Scatter(
-        x=[unpooled["pooled_lo"].iloc[i], unpooled["pooled_hi"].iloc[i]], y=[y[i] - 0.15, y[i] - 0.15],
-        mode="lines", line=dict(color=BLUE, width=6), opacity=0.25, showlegend=False, hoverinfo="skip",
-    ))
-    fig.add_trace(go.Scatter(
-        x=[unpooled["beta"].iloc[i], unpooled["pooled_mean"].iloc[i]], y=[y[i] + 0.15, y[i] - 0.15],
-        mode="lines", line=dict(color=MUTED, width=1), showlegend=False, hoverinfo="skip",
-    ))
-fig.add_trace(go.Scatter(
-    x=unpooled["beta"], y=y + 0.15, name="unpooled (per-category OLS)", mode="markers",
-    marker=dict(color=RED, size=10, line=dict(color=SURFACE, width=2)),
+fig.add_trace(go.Bar(
+    x = churn_table["year"],
+    y = churn_table["newly_established_that_year"],
+    name = "newly established",
+    marker = dict(color = BLUE),
+    text = churn_table["newly_established_that_year"],
+    textposition = "outside",
 ))
-fig.add_trace(go.Scatter(
-    x=unpooled["pooled_mean"], y=y - 0.15, name="partial-pooled (hierarchical posterior mean)", mode="markers",
-    marker=dict(color=BLUE, size=10, line=dict(color=SURFACE, width=2)),
+fig.add_trace(go.Bar(
+    x = churn_table["year"],
+    y = -churn_table["gone_quiet_90d_plus"],
+    name = "gone quiet 90d+ (cumulative)",
+    marker = dict(color = RED),
+    text = churn_table["gone_quiet_90d_plus"],
+    textposition = "outside",
 ))
-fig.add_vline(x=global_mu, line=dict(color=INK, width=1, dash="dash"))
-fig.update_yaxes(tickmode="array", tickvals=list(y), ticktext=y_labels, title=None)
-fig.update_xaxes(title="weekend effect on log(units) — first 90 days")
-plot_kwargs = dict(PLOT)
-plot_kwargs["margin"] = dict(l=230, r=28, t=80, b=52)
-fig.update_layout(**plot_kwargs, height=560, width=980,
-                   legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color=SECONDARY, size=12),
-                               orientation="h", y=1.1, x=0),
-                   title=dict(text="Partial pooling shrinks noisy category estimates toward the shop-wide mean",
-                              x=0, xanchor="left", font=dict(color=INK, size=14)))
-fig.update_xaxes(**AXIS)
-fig.update_yaxes(**AXIS, tickmode="array", tickvals=list(y), ticktext=y_labels)
-fig.write_image(f"{FIGDIR}/07_bayes_shrinkage.png", scale=2)
+fig.update_yaxes(title = "customers (tokens)")
+takeaway(
+    fig,
+    "a flow, not a leak: new faces roughly keep pace with the quiet ones",
+    x = 0.5,
+    y = 0.85,
+)
+savefig(
+    fig,
+    "06_churn",
+    title = "New regulars vs. regulars gone quiet, by year",
+    hide_value_axis = True,
+)
 
-print("Bayesian section done")
+print("Section 6 done")
+
+# ============================================================== 7. forecast
+train7 = monthly[monthly["t"] >= 2].copy()
+train7["post_ind"] = (train7["t"] >= 23).astype(int)
+X7 = sm.add_constant(pd.concat(
+    [train7[["t", "post_ind"]], month_dummies(train7["mm"])],
+    axis = 1,
+))
+y7 = np.log(train7["rev"])
+fc_model = sm.OLS(y7, X7).fit(
+    cov_type = "HAC",
+    cov_kwds = dict(maxlags = 3),
+)
+sigma7 = float(np.sqrt(fc_model.mse_resid))
+
+future = pd.DataFrame(dict(
+    t = np.arange(37, 49),
+    mm = np.arange(1, 13),
+))
+future["post_ind"] = 1
+Xf = sm.add_constant(
+    pd.concat([future[["t", "post_ind"]], month_dummies(future["mm"])], axis = 1),
+    has_constant = "add",
+)
+point_log = fc_model.predict(Xf)
+pred28 = np.exp(point_log)
+lo28 = np.exp(point_log - 1.2816 * sigma7)
+hi28 = np.exp(point_log + 1.2816 * sigma7)
+
+rev2026 = cs[cs["year"] == 2026].sort_values("month")["revenue"].to_numpy()
+rev2027 = cs[cs["year"] == 2027].sort_values("month")["revenue"].to_numpy()
+naive_wmape = float(np.abs(rev2027 - rev2026).sum() / rev2027.sum()) * 100
+model_wmape = float(np.abs(train7["rev"] - np.exp(fc_model.fittedvalues)).sum() / train7["rev"].sum()) * 100
+
+y2027 = cs[cs["year"] == 2027]
+rev27 = float(y2027["revenue"].sum())
+proc_rate = float(y2027["procurement"].sum()) / rev27
+vat_rate = float(y2027["vat"].sum()) / rev27
+fixed_cols = ["rent", "wages", "payroll_tax", "utilities", "storage", "flyers", "credit_interest", "repairs"]
+fixed_2027 = float(y2027[fixed_cols].sum().sum())
+
+
+def profit_at(rev):
+    return rev * (1 - proc_rate - vat_rate) - fixed_2027
+
+
+results["forecast"] = dict(
+    point = round(float(pred28.sum()), 0),
+    lo = round(float(lo28.sum()), 0),
+    hi = round(float(hi28.sum()), 0),
+    naive_wmape_pct = round(naive_wmape, 2),
+    model_wmape_pct = round(model_wmape, 2),
+    profit_point = round(profit_at(float(pred28.sum())), 0),
+    profit_lo = round(profit_at(float(lo28.sum())), 0),
+    profit_hi = round(profit_at(float(hi28.sum())), 0),
+    r2 = round(float(fc_model.rsquared), 4),
+    n_obs = int(fc_model.nobs),
+)
+print(results["forecast"])
+
+fig = go.Figure()
+fig.add_trace(go.Scatter(
+    x = list(future["t"]) + list(future["t"][::-1]),
+    y = list(hi28) + list(lo28[::-1]),
+    fill = "toself",
+    fillcolor = "rgba(42,120,214,0.12)",
+    line = dict(width = 0),
+    showlegend = False,
+    hoverinfo = "skip",
+))
+fig.add_trace(go.Scatter(
+    x = monthly[monthly["t"] >= 25]["t"],
+    y = monthly[monthly["t"] >= 25]["rev"],
+    mode = "lines",
+    line = dict(color = MUTED, width = 2),
+    name = "actual (2027)",
+))
+fig.add_trace(go.Scatter(
+    x = future["t"],
+    y = pred28,
+    mode = "lines+markers",
+    line = dict(color = BLUE, width = 2),
+    name = "2028 forecast",
+))
+fig.update_yaxes(title = "revenue (EUR/month)")
+fig.update_xaxes(title = "month (Jan 2027 = 25)")
+takeaway(
+    fig,
+    f"point €{pred28.sum() / 1000:,.0f}k, range €{lo28.sum() / 1000:,.0f}k-€{hi28.sum() / 1000:,.0f}k",
+    y = 0.15,
+)
+savefig(fig, "07_forecast", title = "2028 revenue forecast with an 80% interval, structural break at the expansion")
+
+print("Section 7 done")
+
+# =============================================== 8. synthesis: rent review
+rent_2026 = float(cs.loc[cs["year"] == 2026, "rent"].iloc[0])
+rent_2027 = float(cs.loc[cs["year"] == 2027, "rent"].iloc[0])
+rent_review_cost = (rent_2027 - rent_2026) * 12
+results["synthesis"] = dict(
+    rent_2026_monthly = round(rent_2026, 2),
+    rent_2027_monthly = round(rent_2027, 2),
+    rent_pct_increase = round((rent_2027 / rent_2026 - 1) * 100, 1),
+    rent_review_annual_cost = round(rent_review_cost, 2),
+    expansion_annualized_cost = round(total_cost / len(post5) * 12, 0),
+)
+print(
+    f"rent review: {results['synthesis']['rent_pct_increase']}% increase, "
+    f"{rent_review_cost:,.2f} extra cost per year"
+)
+# -> 12.0% increase, 1,671.35 extra cost per year
 
 with open(f"{FIGDIR}/results.json", "w") as f:
-    json.dump(results, f, indent=2, default=str)
+    json.dump(results, f, indent = 2, default = str)
 print("wrote results.json")
