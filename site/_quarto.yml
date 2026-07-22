@@ -18,6 +18,8 @@ website:
         text: Home
       - href: theory.qmd
         text: Theory
+      - href: complete-dgp.qmd
+        text: Complete DGP
       - href: api-reference.qmd
         text: API reference
       - href: analysis-catalog.qmd

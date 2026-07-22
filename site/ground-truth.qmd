@@ -96,6 +96,9 @@ matching visible table (by `uid`, `customer_id`, `date`/`t`, or
 
 - [Theory](theory.qmd): the model each of these tables is the ground truth
   for.
+- [Complete DGP](complete-dgp.qmd): where each hidden table sits in the
+  full causal graph, including the one-way tap from true state into the
+  recording layer that makes this grading possible.
 - [Analysis catalog](analysis-catalog.qmd): the 62 questions these tables
   make gradeable.
 - [API reference](api-reference.qmd#datainclude_hiddenfalse): the full

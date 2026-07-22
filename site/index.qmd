@@ -75,6 +75,9 @@ every setting `sim.setup()` accepts, with a full example.
 - **[Theory](theory.qmd)**: the intuition behind the construction, why the
   world is split into decisions and scripts, and why that split is what lets
   a counterfactual be exactly true instead of merely estimated.
+- **[Complete DGP](complete-dgp.qmd)**: the full causal graph behind every
+  generated run, drawn whole, from the scripted macro layer down to the
+  paperwork an analyst actually receives.
 - **[API reference](api-reference.qmd)**: every public method, with real
   signatures, parameters, and output.
 - **[Analysis catalog](analysis-catalog.qmd)**: the layered set of questions

@@ -1,0 +1,318 @@
+---
+title: "Complete DGP"
+subtitle: "The full causal graph behind every generated run, from the scripted macro layer to the paperwork an analyst receives"
+mermaid:
+  theme: neutral
+---
+
+Every mechanism on the [Theory](theory.qmd) page and every hidden table on
+[Checking ground truth](ground-truth.qmd) fits into one causal graph. This
+page draws it whole: the macro layer that never listens to anything (top),
+the micro decisions recomputed every period (middle), the always-conserved
+true state those decisions produce, and the recording layer's one-way tap
+that turns true state into the paperwork an analyst actually receives
+(bottom).
+
+::: {#dag-figure}
+```{mermaid}
+graph TD
+    subgraph MACRO[Macro layer: scripted, exogenous]
+        CAL[Calendar: day-of-week, holidays]
+        WX[Weather: temperature, rain]
+        SHOCK[Macro cost shocks: Poisson events]
+        TAX[Tax schedule: VAT, profit tax]
+        POP[Household population: arrivals and departures]
+    end
+
+    subgraph DERIVED[Derived macro processes]
+        DEMMOD[Demand modifier M_ct]
+        TRAFFIC[Traffic modifier Lambda_t]
+        COSTMULT[Wholesale CostMult_ct]
+        BUDGET[Household budget B_iw]
+    end
+
+    CAL --> DEMMOD
+    WX --> DEMMOD
+    CAL --> TRAFFIC
+    WX --> TRAFFIC
+    SHOCK --> COSTMULT
+    SHOCK --> BUDGET
+
+    subgraph OPENING[Owner opening decision, one-shot]
+        TRUEDEM[True demand D_cl]
+        BELIEF["Owner belief D_hat_cl = D_cl times e to the delta_c"]
+        MILP[Opening MILP: location, assortment, quantities, staffing]
+    end
+
+    POP --> TRUEDEM
+    TRUEDEM --> BELIEF
+    BELIEF --> MILP
+
+    subgraph MICRO[Micro layer: recomputed every period]
+        PANTRY[Customer pantry P_ict]
+        NEED[Category need theta_ict]
+        UTIL[Purchase utility U_is]
+        CHOICE[Purchase choice: softmax]
+        PRICE[Shelf price: menu-cost smoothing]
+        RESTOCK[Adaptive restocking: trailing 4-week average]
+        SPOIL[Spoilage: Binomial]
+        EXPAND[Expansion decision: retained-earnings threshold]
+    end
+
+    DEMMOD --> NEED
+    PANTRY --> NEED
+    NEED --> UTIL
+    UTIL --> CHOICE
+    PRICE --> UTIL
+    BUDGET --> CHOICE
+    TRAFFIC --> CHOICE
+    CHOICE --> PANTRY
+
+    COSTMULT --> PRICE
+    TAX --> PRICE
+
+    CHOICE --> RESTOCK
+    MILP --> RESTOCK
+    RESTOCK --> SPOIL
+    WX --> SPOIL
+    SHOCK --> SPOIL
+
+    RESTOCK --> EXPAND
+    CHOICE --> EXPAND
+
+    subgraph TRUTH[True simulated state, always exactly conserved]
+        TRUESTOCK[True stock S_st]
+        TRUELEDGER[True ledger pi_realized]
+    end
+
+    CHOICE --> TRUESTOCK
+    RESTOCK --> TRUESTOCK
+    SPOIL --> TRUESTOCK
+    CHOICE --> TRUELEDGER
+    RESTOCK --> TRUELEDGER
+    TAX --> TRUELEDGER
+    EXPAND --> TRUELEDGER
+
+    subgraph RECORDING[Recording layer, applied only at export]
+        DEFECTS[Paperwork defects D_st]
+    end
+
+    subgraph VISIBLE[visible folder: what an analyst receives]
+        RECEIPTS[receipts.csv]
+        PROCURE[procurement.csv]
+        INVEOD[inventory_eod.csv]
+        WRITEOFFS[write_offs.csv]
+        LEDGER[cost_sheet.csv]
+    end
+
+    TRUESTOCK --> DEFECTS
+    TRUELEDGER --> DEFECTS
+    DEFECTS --> RECEIPTS
+    DEFECTS --> PROCURE
+    DEFECTS --> INVEOD
+    SPOIL --> WRITEOFFS
+    TRUELEDGER --> LEDGER
+
+    subgraph HIDDEN[hidden folder: the answer key]
+        IMPERF[hidden_imperfections]
+        HIDDEMAND[hidden_hidden_demand]
+    end
+
+    DEFECTS --> IMPERF
+    CHOICE --> HIDDEMAND
+```
+:::
+
+<div class="dag-zoom-row">
+<button id="dag-zoom-btn" class="dag-zoom-btn" type="button">Zoom in</button>
+</div>
+
+<div id="dag-modal" class="dag-modal" aria-hidden="true">
+<div class="dag-modal-toolbar">
+<button id="dag-zoom-in" class="dag-modal-btn" type="button" title="Zoom in">+</button>
+<button id="dag-zoom-out" class="dag-modal-btn" type="button" title="Zoom out">&minus;</button>
+<button id="dag-zoom-fit" class="dag-modal-btn" type="button" title="Fit to screen">Fit</button>
+<button id="dag-modal-close" class="dag-modal-btn dag-modal-close" type="button" title="Close">Close</button>
+</div>
+<div id="dag-modal-viewport" class="dag-modal-viewport">
+<div id="dag-modal-stage" class="dag-modal-stage"></div>
+</div>
+</div>
+
+<script>
+(function () {
+  const btn = document.getElementById("dag-zoom-btn");
+  const modal = document.getElementById("dag-modal");
+  const viewport = document.getElementById("dag-modal-viewport");
+  const stage = document.getElementById("dag-modal-stage");
+  const zoomInBtn = document.getElementById("dag-zoom-in");
+  const zoomOutBtn = document.getElementById("dag-zoom-out");
+  const fitBtn = document.getElementById("dag-zoom-fit");
+  const closeBtn = document.getElementById("dag-modal-close");
+
+  const MIN_SCALE = 0.2;
+  const MAX_SCALE = 8;
+
+  let scale = 1;
+  let tx = 0;
+  let ty = 0;
+  let svgWidth = 0;
+  let svgHeight = 0;
+  let dragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let dragOrigTx = 0;
+  let dragOrigTy = 0;
+
+  function clamp(value, lo, hi) {
+    return Math.min(hi, Math.max(lo, value));
+  }
+
+  function applyTransform() {
+    stage.style.transform =
+      "translate(" + tx + "px, " + ty + "px) scale(" + scale + ")";
+  }
+
+  function fitToScreen() {
+    const rect = viewport.getBoundingClientRect();
+    if (!svgWidth || !svgHeight) return;
+    const fitScale = Math.min(
+      (rect.width - 40) / svgWidth,
+      (rect.height - 40) / svgHeight,
+      1,
+    );
+    scale = clamp(fitScale, MIN_SCALE, MAX_SCALE);
+    tx = (rect.width - svgWidth * scale) / 2;
+    ty = (rect.height - svgHeight * scale) / 2;
+    applyTransform();
+  }
+
+  function zoomBy(factor, center) {
+    const rect = viewport.getBoundingClientRect();
+    const cx = center ? center.x : rect.width / 2;
+    const cy = center ? center.y : rect.height / 2;
+    const newScale = clamp(scale * factor, MIN_SCALE, MAX_SCALE);
+    tx = cx - (cx - tx) * (newScale / scale);
+    ty = cy - (cy - ty) * (newScale / scale);
+    scale = newScale;
+    applyTransform();
+  }
+
+  function openModal() {
+    const original = document.querySelector("#dag-figure svg");
+    if (!original) return;
+    const clone = original.cloneNode(true);
+    const viewBox = clone.getAttribute("viewBox");
+    if (viewBox) {
+      const parts = viewBox.trim().split(/\s+/).map(Number);
+      if (parts.length === 4) {
+        svgWidth = parts[2];
+        svgHeight = parts[3];
+        clone.setAttribute("width", svgWidth);
+        clone.setAttribute("height", svgHeight);
+      }
+    }
+    clone.removeAttribute("style");
+    stage.innerHTML = "";
+    stage.appendChild(clone);
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    fitToScreen();
+  }
+
+  function closeModal() {
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    stage.innerHTML = "";
+  }
+
+  btn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  zoomInBtn.addEventListener("click", function () {
+    zoomBy(1.25);
+  });
+  zoomOutBtn.addEventListener("click", function () {
+    zoomBy(1 / 1.25);
+  });
+  fitBtn.addEventListener("click", fitToScreen);
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && modal.classList.contains("open")) {
+      closeModal();
+    }
+  });
+
+  viewport.addEventListener(
+    "wheel",
+    function (event) {
+      if (!modal.classList.contains("open")) return;
+      event.preventDefault();
+      const rect = viewport.getBoundingClientRect();
+      const center = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+      zoomBy(event.deltaY < 0 ? 1.1 : 1 / 1.1, center);
+    },
+    { passive: false },
+  );
+
+  viewport.addEventListener("mousedown", function (event) {
+    dragging = true;
+    dragStartX = event.clientX;
+    dragStartY = event.clientY;
+    dragOrigTx = tx;
+    dragOrigTy = ty;
+    viewport.classList.add("dragging");
+  });
+
+  window.addEventListener("mousemove", function (event) {
+    if (!dragging) return;
+    tx = dragOrigTx + (event.clientX - dragStartX);
+    ty = dragOrigTy + (event.clientY - dragStartY);
+    applyTransform();
+  });
+
+  window.addEventListener("mouseup", function () {
+    dragging = false;
+    viewport.classList.remove("dragging");
+  });
+})();
+</script>
+
+## Reading the graph
+
+- **Macro (top)**: written down in advance, on a fixed calendar, and
+  never a function of anything the simulated people do. This is
+  [Theory](theory.qmd)'s Definition 1, and it is what licenses the
+  counterfactual-replay result in Section 8: editing only this layer and
+  replaying the rest with random draws held fixed gives an exact causal
+  effect, not an estimate.
+- **The opening decision**: a one-shot mixed integer program, solved once
+  against a noisy belief about true demand the owner never observes
+  directly (Section 3).
+- **Micro (middle)**: recomputed fresh every period from the current
+  state, never scripted. The purchase choice feeds the customer's own
+  pantry state one period later, the one real feedback loop inside the
+  micro layer.
+- **True state**: always exactly conserved. Every unit bought, sold, or
+  spoiled is accounted for, and every euro that moves is tracked, before
+  any paperwork noise is applied.
+- **Recording (bottom)**: a one-way tap. Defects are drawn from the true
+  state and written into `visible/`, but never fed back into the
+  simulation. This is why `hidden/` can grade `visible/` (see [Checking
+  ground truth](ground-truth.qmd)) without the grading process itself
+  disturbing the thing being graded.
+
+## Read more
+
+- [Theory](theory.qmd): the full model specification each node in this
+  graph implements.
+- [Checking ground truth](ground-truth.qmd): every `hidden_*` table this
+  graph's recording layer feeds, and a worked example of grading against
+  one.
+- [Analysis catalog](analysis-catalog.qmd): the 62 questions that walk
+  this graph in the other direction, from `visible/` data back toward a
+  cause.

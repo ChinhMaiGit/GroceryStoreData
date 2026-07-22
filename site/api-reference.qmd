@@ -655,6 +655,7 @@ tables.keys()
 
 This page covers the object model. [Theory](theory.qmd) covers *why* it's
 built this way (the layer split that makes counterfactuals and grading
-possible), the [Analysis catalog](analysis-catalog.qmd) is 62 worked
+possible), [Complete DGP](complete-dgp.qmd) draws that layer split as one
+causal graph, the [Analysis catalog](analysis-catalog.qmd) is 62 worked
 questions against these same methods, and [Exemplar
 analyses](analyses/index.qmd) are two full worked cases end to end.

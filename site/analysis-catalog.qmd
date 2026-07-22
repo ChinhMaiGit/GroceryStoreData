@@ -3816,4 +3816,5 @@ behind every technique named above. Worked, fully graded reference notebooks
 for every layer live under
 [`archive/analyses/`](https://github.com/ChinhMaiGit/grocery-sim/tree/main/archive/analyses).
 See also [Exemplar analyses](analyses/index.qmd) for worked examples built
-directly for this site.
+directly for this site, and [Complete DGP](complete-dgp.qmd) for the
+causal graph every question above is trying to work back toward.

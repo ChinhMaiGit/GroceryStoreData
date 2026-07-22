@@ -66,9 +66,12 @@ governed by a pantry process,
 
 $$
 P_{ic,t+1} \overset{\leftarrow}{=} \max(0,\ P_{ict} - r_{ict}) +
-\text{units purchased}, \qquad
+\text{units purchased}
+$$
+
+$$
 \theta_{ict} = \alpha\,\frac{\max(0,\ P^{\text{tgt}}_{ic} -
-P_{ict})}{P^{\text{tgt}}_{ic}} ,
+P_{ict})}{P^{\text{tgt}}_{ic}}
 $$
 
 the shortfall against a target of ten days' cover. The drain rate
@@ -86,8 +89,11 @@ $D_{cl} = \text{Households}_l \cdot \mu_c$, unobserved by the owner. The
 owner's belief is a log-normal perturbation of this quantity,
 
 $$
-\hat{D}_{cl} = D_{cl}\,e^{\delta_c}, \qquad \delta_c \sim
-\text{Normal}(0.10,\ 0.25) ,
+\hat{D}_{cl} = D_{cl}\,e^{\delta_c}
+$$
+
+$$
+\delta_c \sim \text{Normal}(0.10,\ 0.25)
 $$
 
 with the positive mean encoding a calibrated overoptimism parameter. The
@@ -150,10 +156,12 @@ recorded sales,
 
 $$
 \hat{D}^{\text{op}}_{cw} \overset{\leftarrow}{=} \frac{1}{4}\sum_{j=1}^{4}
-\text{Sales}_{c,w-j} ,
-\qquad
+\text{Sales}_{c,w-j}
+$$
+
+$$
 \text{Target}_{sw} = \left(\tfrac{R+L}{7} + \eta\,\tfrac{30}{7}\right)
-\hat{D}^{\text{op}}_{cw}\,\tilde{\sigma}_{sw} ,
+\hat{D}^{\text{op}}_{cw}\,\tilde{\sigma}_{sw}
 $$
 
 with $R = 7$ days between reviews and $L = 2$ days lead time. The rule
@@ -188,8 +196,11 @@ with no draw or retention in loss months. The expansion trigger is a
 joint threshold condition,
 
 $$
-\text{RE}_m \geq K_{\text{exp}}, \qquad
-\text{cash}_m - \text{tax\_reserve}_m \geq C_{\text{exp}} ,
+\text{RE}_m \geq K_{\text{exp}}
+$$
+
+$$
+\text{cash}_m - \text{tax\_reserve}_m \geq C_{\text{exp}}
 $$
 
 evaluated monthly. Expansion occurs on the first day of the following
@@ -208,9 +219,15 @@ Temperature follows a deterministic annual cycle with a persistent
 stochastic anomaly,
 
 $$
-T_t = \mu_T(t) + \varepsilon_t, \qquad
-\mu_T(t) = 12 + 9\cos\!\left(\tfrac{2\pi(t-200)}{365}\right), \qquad
-\varepsilon_t = \phi\,\varepsilon_{t-1} + \text{Normal}(0,\sigma_\varepsilon) ,
+T_t = \mu_T(t) + \varepsilon_t
+$$
+
+$$
+\mu_T(t) = 12 + 9\cos\!\left(\tfrac{2\pi(t-200)}{365}\right)
+$$
+
+$$
+\varepsilon_t = \phi\,\varepsilon_{t-1} + \text{Normal}(0,\sigma_\varepsilon)
 $$
 
 with $\phi = 0.7$. This is the maximum-entropy stationary process
@@ -265,8 +282,11 @@ Value-added tax applies at category-specific rate $r_c(t)$. Profit tax
 applies at a flat rate to positive annual surplus,
 
 $$
-\text{ProfitTax} = r^{\pi}\cdot\max(0,\ \text{ProfitBeforeTax}), \qquad
-r^\pi = 0.20 .
+\text{ProfitTax} = r^{\pi}\cdot\max(0,\ \text{ProfitBeforeTax})
+$$
+
+$$
+r^\pi = 0.20
 $$
 
 **Proposition 2.** Because profit tax is a flat rate on a non-negative
@@ -328,7 +348,9 @@ computed from fully realized runs of the same mechanism:
 
 $$
 \Delta_{\text{optimism}} = \pi_{\text{realized}} - \pi_{\text{believed}}
-\qquad
+$$
+
+$$
 \Delta_{\text{analytics}} = \pi_{\text{oracle}} - \pi_{\text{realized}}
 $$
 
@@ -358,6 +380,8 @@ Section 8's identification result depends on.
 
 ## References
 
+- [Complete DGP](complete-dgp.qmd) draws every mechanism above as one
+  causal graph, from the macro layer through the recording layer.
 - The [Analysis catalog](analysis-catalog.qmd) operationalizes this
   specification as a graded set of 62 questions.
 - The full paper states the customer's purchase decision, the owner's

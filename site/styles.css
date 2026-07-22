@@ -74,12 +74,15 @@ table {
 }
 
 /* long display equations (aligned constraint systems, wide subscripted
-   terms) must scroll inside their own box rather than overflow the page */
+   terms) must scroll horizontally inside their own box rather than
+   overflow the page. overflow-y must stay visible: hidden clips the top
+   of tall glyphs like a sum with sub/superscript limits, or a fraction */
 mjx-container[display="true"] {
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   max-width: 100%;
-  padding-bottom: 0.15rem;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
 }
 
 mjx-container {
@@ -89,4 +92,95 @@ mjx-container {
 pre, code {
   overflow-x: auto;
   max-width: 100%;
+}
+
+/* DAG zoom / lightbox (complete-dgp.qmd) */
+.dag-zoom-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.dag-zoom-btn {
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #ea580c;
+  background: #fff;
+  border: 1px solid #ea580c;
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+
+.dag-zoom-btn:hover {
+  background: #fff7ed;
+}
+
+.dag-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(20, 20, 20, 0.92);
+  flex-direction: column;
+}
+
+.dag-modal.open {
+  display: flex;
+}
+
+.dag-modal-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.dag-modal-btn {
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.dag-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.dag-modal-close {
+  margin-left: auto;
+  border-color: #ea580c;
+  color: #ea580c;
+}
+
+.dag-modal-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.dag-modal-viewport.dragging {
+  cursor: grabbing;
+}
+
+.dag-modal-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.dag-modal-stage svg {
+  display: block;
+  max-width: none !important;
+  background: #fff;
+  border-radius: 4px;
 }
