@@ -249,19 +249,31 @@ P_{ict})}{P^{\text{tgt}}_{ic}} ,
 \hat{D}_{cl} = D_{cl}\,e^{\delta_c}, \qquad \delta_c \sim
 \text{Normal}(0.10,\ 0.25) ,
 \]</span></p>
-<p>with the positive mean encoding a calibrated overoptimism parameter. The opening decision, conditional on beliefs, costs, and a fixed markup <span class="math inline">\(m_c\)</span>, safety-stock fraction <span class="math inline">\(\eta = 0.30\)</span>, and category-share cap <span class="math inline">\(\rho = 0.05\)</span>, is a mixed integer linear program:</p>
+<p>with the positive mean encoding a calibrated overoptimism parameter. The opening decision, conditional on beliefs, costs, and a fixed markup <span class="math inline">\(m_c\)</span>, safety-stock fraction <span class="math inline">\(\eta = 0.30\)</span>, and category-share cap <span class="math inline">\(\rho = 0.05\)</span>, is the following mixed integer linear program (MILP), with decision variables <span class="math inline">\(y_l \in \{0,1\}\)</span> (location choice), <span class="math inline">\(x_s \in \{0,1\}\)</span> (whether product <span class="math inline">\(s\)</span> is listed), <span class="math inline">\(q_s \geq 0\)</span> (quantity ordered), and <span class="math inline">\(u_s \geq 0\)</span> (believed sales quantity):</p>
 <p><span class="math display">\[
-\max \;\; \sum_{c}\sum_{s \in S_c} (1+m_c)\,\text{Cost}_s \cdot u_s \;-\;
+\max_{y,\,x,\,q,\,u} \;\; \sum_{c}\sum_{s \in S_c} (1+m_c)\,\text{Cost}_s \cdot u_s \;-\;
 \text{TotalCost}_0
 \]</span></p>
 <p>subject to</p>
 <p><span class="math display">\[
-\sum_l y_l = 1, \qquad
-u_s \leq q_s, \qquad
-\sum_{s \in S_c} u_s \leq \sum_l y_l\,\hat{D}_{cl}, \qquad
-\text{TotalCost}_0 \leq \text{InitialCapital}_0 ,
+\sum_l y_l = 1
 \]</span></p>
-<p>with <span class="math inline">\(y_l \in \{0,1\}\)</span> the location indicator, <span class="math inline">\(q_s \geq 0\)</span> the quantity ordered, and <span class="math inline">\(u_s \geq 0\)</span> the believed sales quantity. The program is mixed-integer because location and listing decisions are binary while purchase quantities are continuous, with all constraints linear conditional on the location.</p>
+<p><span class="math display">\[
+u_s \leq q_s
+\]</span></p>
+<p><span class="math display">\[
+\sum_{s \in S_c} u_s \leq \sum_l y_l\,\hat{D}_{cl}
+\]</span></p>
+<p><span class="math display">\[
+\sum_s x_s \leq \sum_l y_l\,\text{ShelfSlots}_l
+\]</span></p>
+<p><span class="math display">\[
+\text{TotalCost}_0 \leq \text{InitialCapital}_0
+\]</span></p>
+<p><span class="math display">\[
+y_l \in \{0,1\}, \qquad x_s \in \{0,1\}, \qquad q_s \geq 0, \qquad u_s \geq 0
+\]</span></p>
+<p>The last line is the integrality constraint that makes this a MILP rather than a continuous LP: <span class="math inline">\(y_l\)</span> and <span class="math inline">\(x_s\)</span> are binary (location and listing are yes/no decisions), while <span class="math inline">\(q_s\)</span> and <span class="math inline">\(u_s\)</span> are continuous given a fixed location and listing. Every constraint above is linear conditional on <span class="math inline">\(y\)</span> and <span class="math inline">\(x\)</span>, so the problem is a mixed integer <em>linear</em> program specifically, solvable with standard branch-and-bound/cut MILP solvers rather than requiring general mixed integer nonlinear methods.</p>
 <p><strong>Proposition 1.</strong> Since <span class="math inline">\(\mathbb{E}[\delta_c] &gt; 0\)</span>, the optimal solution <span class="math inline">\(u_s^*, q_s^*\)</span> systematically overstocks relative to the true optimum under <span class="math inline">\(D_{cl}\)</span>. The magnitude of overstocking is a deterministic function of <span class="math inline">\(\delta_c\)</span> and is therefore computable exactly from the model parameters, not merely observable as an empirical regularity.</p>
 </section>
 <section id="day-to-day-adaptive-policy" class="level2">
